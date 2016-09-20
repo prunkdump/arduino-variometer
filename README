@@ -8,12 +8,12 @@ Features :
 - High precision altitude with improved ms5611 code
 - High precision vertical velocity with InvenSense accelerometer (optionnal)
 - Screen display with Nokia 5110 : altitude, vspeed, ground speed, glide ratio (optionnal)
-- Groud speed and glide ratio with GPS device (optionnal)
+- Ground speed and glide ratio with GPS device (optionnal)
 - Flight tracking with sdcard reader and GPS (optionnal)
 
 How to setup code :
 -------------------
-1) In variometer.ino comment or uncomment the device embedded in your variometer 
+1) In variometer.ino comment or uncomment the devices embedded in your variometer 
 
 #define HAVE_SPEAKER
 #define HAVE_ACCELEROMETER
@@ -28,7 +28,7 @@ How to setup code :
 #define VARIOSCREEN_RST_PIN 4
 #define SDCARD_CS_PIN 8
 
-3) If you embbed an InvenSense accelerometer, set the model in /libraries/rpicopter_lib/inv_mpu.h
+3) If you embed an InvenSense accelerometer, set the model in ./libraries/rpicopter_lib/inv_mpu.h
 
 #ifndef _INV_MPU_H_
 #define _INV_MPU_H_
@@ -102,5 +102,3 @@ LightFat16 : very light fat16 writeonly library
 (native)
 rpicopter_lib : From Gregory see https://github.com/rpicopter/ArduinoMotionSensorExample
 toneAC : https://bitbucket.org/teckel12/arduino-toneac/wiki/Home
-
-
