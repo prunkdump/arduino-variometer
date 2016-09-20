@@ -1,0 +1,16 @@
+
+
+
+kalmanvert::kelmanvert(startp, starta, sigmap, sigmaa) {
+
+  /* init base values */
+  p = startp;
+  v= 0;
+  a = starta;
+  
+  
+  /* init variance */
+  varp = sigmap * sigmap;
+  vara = sigmaa * sigmaa;
+
+  /* 

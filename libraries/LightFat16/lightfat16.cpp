@@ -1,0 +1,345 @@
+
+
+#include <lightfat16.h>
+#include <Fat16.h>
+
+#define FAT16_ID_POS 0x0036
+#define MBR_FIRST_PART_POS 0x1be
+#define MBR_PART_LBA_POS 0x08
+#define BLOCKS_PER_CLUSTER_POS 0x000d
+#define RESERVED_BLOCKS_COUNT_POS 0x000e
+#define ROOT_ENTRIES_COUNT_POS 0x0011
+#define BLOCKS_PER_FAT_POS 0x0016
+#define ROOT_ENTRY_SIZE 32
+#define ROOT_ENTRY_FREE_TAG 0xe5
+#define ROOT_ENTRY_CLUSTER_POS 0x1a
+#define ROOT_ENTRY_SIZE_POS 0x1c
+#define FAT_ENTRY_SIZE 2
+#define FAT_FILENAME_SIZE 8
+#define FAT_EOF_TAG 0xffff
+
+lightfat16::lightfat16() {
+  currentBlock = -1;
+  currentPos = 0;
+  blockWriteEnabled = false;
+}
+
+int lightfat16::init(int sspin, uint8_t sckDivisor) {
+
+  /****************/
+  /* init sd card */
+  /****************/
+  if( ! card.begin(sspin, sckDivisor) ) {
+    return -1;
+  }
+
+  /*************************/
+  /* find fat 16 partition */
+  /*************************/
+  uint32_t partitionStartBlock;
+  uint8_t* data;
+  
+  /* ckeck block 0 */
+  data = this->blockSet(0, 0);
+  if( data[FAT16_ID_POS + 3] == '1' && data[FAT16_ID_POS + 4] == '6' ) { //Check "FAT16"
+    partitionStartBlock = 0;
+  } else {
+    /* read MBR to get the first partition and check again */
+    partitionStartBlock = *(uint32_t*)&data[MBR_FIRST_PART_POS + MBR_PART_LBA_POS];
+    data = this->blockSet(partitionStartBlock, 0);
+    if( data[FAT16_ID_POS + 3] != '1' || data[FAT16_ID_POS + 4] != '6' ) { //Check "FAT16"
+      return -1; //no partition found
+    }
+  }
+
+  /**************************/
+  /* read fat 16 parameters */
+  /**************************/
+  blocksPerCluster = *(uint8_t*)&data[BLOCKS_PER_CLUSTER_POS];
+  uint16_t reservedBlocksCount = *(uint16_t*)&data[RESERVED_BLOCKS_COUNT_POS];
+  uint16_t rootEntriesCount = *(uint16_t*)&data[ROOT_ENTRIES_COUNT_POS];
+  blocksPerFAT = *(uint16_t*)&data[BLOCKS_PER_FAT_POS];
+  uint32_t firstFATBlock = partitionStartBlock + reservedBlocksCount;
+  uint32_t secondFATBlock = firstFATBlock + blocksPerFAT;
+  uint32_t rootDirectoryBlock = secondFATBlock + blocksPerFAT;
+  dataBlock = rootDirectoryBlock + rootEntriesCount * 32 / 512;
+
+  /***********************/
+  /* find free file name */
+  /***********************/
+  
+  /* load root directory block */
+  data = this->blockSet(rootDirectoryBlock, 0);
+  
+  int fileNumber;
+  uint8_t fileNumberX_;
+  uint8_t fileNumber_X;
+  for(fileNumber = 0; fileNumber<100; fileNumber++) {
+
+    /* build file name */
+    fileNumberX_ = '0' + fileNumber/10;
+    fileNumber_X = '0' + fileNumber%10;
+
+    /* check if is free */
+    boolean usedNumber = false;
+    while( data[0x00] != 0x00 ) {
+      if( data[0x00] != ROOT_ENTRY_FREE_TAG &&
+	  data[FILE_NAME_NUMBER_POS] == fileNumberX_ &&
+	  data[FILE_NAME_NUMBER_POS+1] == fileNumber_X ) {
+	usedNumber = true;
+	break;
+      }
+
+      data = this->blockSeek(ROOT_ENTRY_SIZE); //next entry
+    }
+
+    /* if free break */
+    if( ! usedNumber ) {
+      break;
+    }
+  }
+
+  /************************/
+  /* find free root entry */
+  /************************/
+
+  data = this->blockSet(rootDirectoryBlock, 0);
+  while(data[0x00] != ROOT_ENTRY_FREE_TAG  && data[0x00] != 0x00) {
+    data = this->blockSeek(ROOT_ENTRY_SIZE);
+  }
+  
+  this->blockGetPosition(fileEntryBlock, fileEntryPos);
+
+  /*********************/
+  /* find free cluster */
+  /*********************/
+  fileCluster = 0;
+
+  /* search on FAT */
+  data = this->blockSet(firstFATBlock, 0);
+  while( *(uint16_t*)&data[0] != 0x0000 ) {
+    data = this->blockSeek(FAT_ENTRY_SIZE);
+    fileCluster++;
+  }
+
+  this->blockGetPosition(fileFATBlock, fileFATPos);
+
+  /* compute data block */
+  fileDataBlock = dataBlock + (fileCluster - 2)*blocksPerCluster;
+  fileDataPos = 0;
+  fileClusterBlockUsage = 1;
+
+  /********************/
+  /* write file entry */
+  /********************/
+  data = this->blockSet(fileEntryBlock, fileEntryPos);
+  this->blockWriteEnable(false);
+
+  /* write filename */
+  uint8_t fileName[] = BASE_FILE_NAME;
+  fileName[FILE_NAME_NUMBER_POS] = fileNumberX_;
+  fileName[FILE_NAME_NUMBER_POS+1] = fileNumber_X;
+
+  int i;
+  for(i=0; i<FILE_NAME_NUMBER_POS+2; i++) {
+    data[i] = fileName[i];
+  }
+  for(i=FILE_NAME_NUMBER_POS+2; i<FAT_FILENAME_SIZE; i++) {
+    data[i] = ' ';
+  }
+
+  /* write constant part */
+  uint8_t fileConstants[] = FILE_ENTRY_CONSTANTS;
+  for(i=0; i<FILE_ENTRY_CONSTANTS_SIZE; i++) {
+    data[i+8] = fileConstants[i];
+  }
+
+  /* write starting cluster */
+  *(uint16_t*)&data[ROOT_ENTRY_CLUSTER_POS] = fileCluster;
+
+  /* write file size : 0 */
+  *(uint32_t*)&data[ROOT_ENTRY_SIZE_POS] = 0;
+
+  /**************/
+  /* write FATs */
+  /**************/
+
+  /* first fat */
+  data = this->blockSet(fileFATBlock, fileFATPos);
+  *(uint16_t*)&data[0] = FAT_EOF_TAG;
+
+  /* second fat */
+  data = this->blockSeek(0, blocksPerFAT);
+  *(uint16_t*)&data[0] = FAT_EOF_TAG;
+
+  /*********************/
+  /* got do data block */
+  /* useless to load   */
+  /*********************/
+  this->blockSet(fileDataBlock, fileDataPos, false);
+
+  return 0;
+}
+
+void lightfat16::write(uint8_t inByte) {
+  /* write byte */
+  blockBuffer[fileDataPos] = inByte;
+  fileDataPos++;
+
+  /* check if we need to change of block or cluster */
+  if( fileDataPos >= BLOCK_SIZE ) {
+    fileDataBlock++;
+    fileDataPos = 0;
+    fileClusterBlockUsage++;
+    if( fileClusterBlockUsage <= blocksPerCluster ) {
+      this->fileNewBlock();
+    } else {
+      fileClusterBlockUsage = 1;
+      this->fileNextCluster();
+    }
+  }
+}
+
+void lightfat16::sync() {
+  this->blockWriteSync();
+}
+
+void lightfat16::fileNewBlock() {
+
+  /* go to root entry to encrease the size of one block */
+  /* as write is enabled, this write the current data block */
+  uint8_t* data = this->blockSet(fileEntryBlock, fileEntryPos);
+  *(uint32_t*)&data[ROOT_ENTRY_SIZE_POS] += BLOCK_SIZE;
+
+  /* go to the new data block */
+  /* !!! file dataBlock is already updated !!! */
+  /* as write is enabled, this write the file entry */
+  /* but useless to load the block data */
+  data = this->blockSet(fileDataBlock, fileDataPos, false);
+
+}
+
+void lightfat16::fileNextCluster() {
+
+
+  /* search on FAT for free cluster */
+  uint32_t newFATBlock;
+  unsigned newFATPos;
+  
+  uint8_t* data = this->blockSet(fileFATBlock, fileFATPos);
+  while( *(uint16_t*)&data[0] != 0x0000 ) {
+    data = this->blockSeek(FAT_ENTRY_SIZE);
+    fileCluster++;
+  }
+
+  this->blockGetPosition(newFATBlock, newFATPos);
+
+  /* write the next cluster */
+  data = this->blockSet(fileFATBlock, fileFATPos);
+  *(uint16_t*)&data[0] = fileCluster;
+
+  /* write EOF on the new cluster */
+  data = this->blockSet(newFATBlock, newFATPos);
+  *(uint16_t*)&data[0] = FAT_EOF_TAG;
+
+  /* same on the second fat */
+  data = this->blockSet(fileFATBlock + blocksPerFAT, fileFATPos);
+  *(uint16_t*)&data[0] = fileCluster;
+  data = this->blockSet(newFATBlock + blocksPerFAT, newFATPos);
+  *(uint16_t*)&data[0] = FAT_EOF_TAG;
+
+  /* save new fat */
+  fileFATBlock = newFATBlock;
+  fileFATPos = newFATPos;
+  
+  /* compute the new data block */
+  fileDataBlock = dataBlock + (fileCluster - 2)*blocksPerCluster;
+  fileDataPos = 0;
+
+  /* load new block */
+  this->fileNewBlock();
+ 
+}
+
+
+
+void lightfat16::blockWriteEnable(boolean reloadBlock) {
+  if(reloadBlock) {
+    card.readBlock(currentBlock, blockBuffer);
+  }
+
+  blockWriteEnabled = true;
+}
+
+void lightfat16::blockWriteDisable(boolean writeCurrentChange) {
+  if( writeCurrentChange ) {
+    card.writeBlock(currentBlock, blockBuffer);
+  }
+
+  blockWriteEnabled = false;
+}
+
+void lightfat16::blockWriteSync() {
+  card.writeBlock(currentBlock, blockBuffer);
+}
+
+
+uint8_t* lightfat16::blockSet(uint32_t block, unsigned pos, boolean loadBlock) {
+  /* load block */
+  if( block != currentBlock ) {
+    if( blockWriteEnabled ) {
+      card.writeBlock(currentBlock, blockBuffer);
+    }
+    currentBlock = block;
+    if( loadBlock ) {
+      card.readBlock(currentBlock, blockBuffer);
+    }
+  }
+
+  /* update pos */
+  currentPos = pos;
+  return &blockBuffer[currentPos];
+}
+
+uint8_t* lightfat16::blockSeek(int32_t byteShift, int32_t blockShift, boolean loadBlock) {
+  /* seek pos */
+  int32_t newPos = currentPos;
+  boolean reload = false;
+  newPos += byteShift;
+
+  /* write current block if needed */
+  if( blockWriteEnabled ) {
+    if( newPos >= BLOCK_SIZE || newPos < 0 || blockShift != 0) {
+      card.writeBlock(currentBlock, blockBuffer);
+    }
+  }
+
+  /* make block shift */
+  if( blockShift != 0) {
+    currentBlock += blockShift;
+    reload = true;
+  }
+  
+  /* make byte shift */
+  if( newPos >= BLOCK_SIZE || newPos < 0) {
+    reload = true;
+    currentBlock += newPos / BLOCK_SIZE;
+    newPos = newPos % BLOCK_SIZE;
+    if( newPos < 0) {
+      currentBlock--;
+      newPos += BLOCK_SIZE;
+    }
+  }
+
+  /* load block if needed */
+  currentPos = newPos;
+  if( reload && loadBlock ) {
+    card.readBlock(currentBlock, blockBuffer);
+  }
+  return &blockBuffer[currentPos];
+}
+
+void lightfat16::blockGetPosition(uint32_t& block, unsigned& pos) {
+  block = currentBlock;
+  pos = currentPos;  
+}

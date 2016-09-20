@@ -1,0 +1,106 @@
+############################
+# Arduino based variometer #
+############################
+
+Features :
+---------
+
+- High precision altitude with improved ms5611 code
+- High precision vertical velocity with InvenSense accelerometer (optionnal)
+- Screen display with Nokia 5110 : altitude, vspeed, ground speed, glide ratio (optionnal)
+- Groud speed and glide ratio with GPS device (optionnal)
+- Flight tracking with sdcard reader and GPS (optionnal)
+
+How to setup code :
+-------------------
+1) In variometer.ino comment or uncomment the device embedded in your variometer 
+
+#define HAVE_SPEAKER
+#define HAVE_ACCELEROMETER
+#define HAVE_SCREEN
+#define HAVE_GPS
+#define HAVE_SDCARD
+
+2) Set the pins used for your screen or sdcard (optionnal)
+
+#define VARIOSCREEN_DC_PIN 6
+#define VARIOSCREEN_CS_PIN 2
+#define VARIOSCREEN_RST_PIN 4
+#define SDCARD_CS_PIN 8
+
+3) If you embbed an InvenSense accelerometer, set the model in /libraries/rpicopter_lib/inv_mpu.h
+
+#ifndef _INV_MPU_H_
+#define _INV_MPU_H_
+...
+#define MPU9250
+or  
+#define MPU6050
+or
+#define MPU6500
+or
+#define MPU9150
+
+Variometer wiring :
+------------------
+
+If you use multiple I2C devices, don't forget the pullup resistor. 
+
+1) ms5611 (can be found combined with MPU9250 or MPU6050 and the pullup resitor). Use I2C !
+SDA -> A4
+SCL -> A5
+GND -> GND
+5V -> 5V
+
+2) Speaker 
+VCC -> 100 ohms resistor -> D10
+GND -> D9 
+
+3) MPU9250 (see ms5611). Use I2C !
+SDA -> A4  
+SCL -> A5
+GND -> GND
+5V -> 5V
+
+3) Nokia 5110. Use SPI !
+LED -> 3V
+SCLK -> D13
+MOSI -> D11
+DC -> any (set on code)
+RST -> any (set on code)
+CS -> any (set on code)
+GND -> GND
+VCC -> 3V
+
+4) GPS. Use Serial !
+GND -> GND
+TXD -> RXD
+RXD -> TXD
+VCC -> 5V (put a power switch to disable the device when talking to arduino by USB)
+
+5) SDcard. Use SPI !
+GND -> GND
+5V -> 5V
+CS -> any (set on code)
+MOSI -> D11
+SCLK -> D13
+MISO -> D12
+
+Libraries :
+-----------
+
+(from me)
+ms5611 : high precision ms5611 library
+I2CDev_ms5611 : special I2CDev library that must be used with ms5611
+beeper : the variometer speaker library 
+kalmanvert : kalman filter for alti/acceleration fusion
+vertaccel: accelerometer library that compute vertical acceleration from IMU
+varioscreen : variometer screen library 
+LightNmeaParser : NMEA parsing library for speed and alti
+LightFat16 : very light fat16 writeonly library
+
+(native)
+rpicopter_lib : From Gregory see https://github.com/rpicopter/ArduinoMotionSensorExample
+toneAC : https://bitbucket.org/teckel12/arduino-toneac/wiki/Home
+
+

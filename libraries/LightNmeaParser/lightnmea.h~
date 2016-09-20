@@ -1,0 +1,22 @@
+#ifndef LIGHT_NMEA_H
+#define LIGHT_NMEA_H
+
+class NmeaParser {
+
+ public:
+  NmeaParser();
+  boolean getChar(uint8_t c);
+  int getSpeed();
+  int getAlti();
+
+ private:
+  unsigned readPos;
+  boolean rmcFound;
+  boolean ggaFound;
+  uint8_t parityState;
+  unsigned commaCount;
+  double value;
+  uint8_t parityTag;
+
+
+#endif
