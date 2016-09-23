@@ -11,6 +11,13 @@ Features :
 - Ground speed and glide ratio with GPS device (optionnal)
 - Flight tracking with sdcard reader and GPS (optionnal)
 
+How to build :
+--------------
+
+- Get a stripbord and cut the tracks as 1_tracks_cut.jpg
+- On the other side, put the wires as 2_board_wires.jpg
+- Solder as show in 3_assembly.jpg
+
 How to setup code :
 -------------------
 1) In variometer.ino comment or uncomment the devices embedded in your variometer 
