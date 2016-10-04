@@ -3,6 +3,8 @@
 
 #include <Arduino.h>
 
+#define VARIOSCREEN_DISPLAY_THRESHOLD 0.65
+
 class VarioScreen {
  public:
   VarioScreen(int8_t DC, int8_t CS, int8_t RST);
@@ -23,7 +25,7 @@ class ScreenDigit {
 
  public:
   ScreenDigit(VarioScreen& screen, uint8_t anchorX, uint8_t anchorY, uint8_t precision, boolean plusDisplay = false)
-    : screen(screen), anchorX(anchorX), anchorY(anchorY), precision(precision), plusDisplay(plusDisplay) { }
+    : screen(screen), anchorX(anchorX), anchorY(anchorY), precision(precision), plusDisplay(plusDisplay) { lastDisplayWidth = 0; lastDisplayValue = 10000000.0; }
   void display(double value);
 
  private:
@@ -33,6 +35,7 @@ class ScreenDigit {
   uint8_t precision;
   boolean plusDisplay;
   boolean lastDisplayWidth;
+  double lastDisplayValue;
 };
 
 class MSUnit {

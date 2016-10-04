@@ -200,13 +200,6 @@ void ScreenDigit::display(double value) {
   uint8_t digitCharacters[MAX_CHAR_IN_LINE];
   uint8_t digitPos = 0;
  
-  /* check sign */
-  boolean neg = false;
-  if( value < 0.0 ) {
-    value *= -1.0;
-    neg = true;
-  }
-
   /* set precision */
   uint8_t p = precision;
   while(p > 0) {
@@ -214,8 +207,26 @@ void ScreenDigit::display(double value) {
     p--;
   }
 
+  /* check if display if needed */
+  if( (value - lastDisplayValue > -VARIOSCREEN_DISPLAY_THRESHOLD) &&
+      (value - lastDisplayValue < VARIOSCREEN_DISPLAY_THRESHOLD)) {
+    return;
+  }
+
+  /* check sign */
+  boolean neg = false;
+  if( value < 0.0 ) {
+    value *= -1.0;
+    neg = true;
+  }
+
   /* fill digit characters */
   unsigned long ival = value;
+  lastDisplayValue = ival;
+  if( neg ) {
+    lastDisplayValue *= -1.0;
+  }
+  
   p = precision;
   while( p > 0) {
     digitCharacters[digitPos] = ival % 10;
