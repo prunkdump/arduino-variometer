@@ -10,8 +10,8 @@ const char ggaTag[] PROGMEM = {"GPGGA"};
 #define KNOTS_TO_KMH 1.852
 
 NmeaParser::NmeaParser() {
-  parserState &= ~(1 << NEW_SPEED_VALUE_BIT);
-  parserState &= ~(1 << NEW_ALTI_VALUE_BIT);
+  // variables are initialized when '$' char is received
+  parserState = 0;
 }
 
 boolean NmeaParser::getChar(uint8_t c) {

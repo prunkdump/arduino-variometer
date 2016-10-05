@@ -1,5 +1,3 @@
-
-
 #include <lightfat16.h>
 #include <Fat16.h>
 
@@ -20,7 +18,6 @@
 
 lightfat16::lightfat16() {
   currentBlock = -1;
-  currentPos = 0;
   blockWriteEnabled = false;
 }
 

@@ -74,8 +74,6 @@ double ms5611_getAltitude();
 
 /* you can change the base pressure at any time */
 /* each step change =~ 10 meter */
-void ms5611_setBasePressureCorrection(int step);
-int ms5611_getBasePressureCorrection();
 void ms5611_setCurrentAltitude(double currentAlti); //if altitude is known
 
 #endif

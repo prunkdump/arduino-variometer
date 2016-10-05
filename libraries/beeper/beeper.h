@@ -42,7 +42,6 @@ class beeper {
   double beepUpperThreshold;
   unsigned long beepStartTime;
   double beepVelocity;
-  double beepFilteredVelocity;
   double beepFreq;
   boolean beepPaternEnabled;
   double beepPaternBasePosition;

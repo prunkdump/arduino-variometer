@@ -11,15 +11,14 @@ beeper::beeper(double lowerThreshold, double upperThreshold) {
   } else {
     beepUpperThreshold = upperThreshold;
   }
-
+  
   /* init private vars */
   beepStartTime = 0;
-  beepVelocity = 0.0;
-  beepFilteredVelocity = beepVelocity * BEEP_VELOCITY_FILTER_COEFF + BEEP_VELOCITY_FILTER_BASE;   
-  beepFreq = BEEP_BASE_FREQ;
-  beepPaternEnabled = false;
-  beepPaternBasePosition = 0.0;
-  beepPaternPosition = 0.0;
+  //beepVelocity = 0.0; 
+  //beepFreq = BEEP_BASE_FREQ;
+  //beepPaternEnabled = false;
+  //beepPaternBasePosition = 0.0;
+  //beepPaternPosition = 0.0;
   beepStatus = LOW;
 }
 
@@ -36,7 +35,6 @@ void beeper::setThresholds(double lowerThreshold, double upperThreshold) {
 
 void beeper::setBeepParameters(double velocity) {
   beepVelocity = velocity;
-  beepFilteredVelocity = beepVelocity * BEEP_VELOCITY_FILTER_COEFF + BEEP_VELOCITY_FILTER_BASE;
   if(velocity > 0.0) {
     beepFreq = BEEP_FREQ_COEFF * velocity + BEEP_BASE_FREQ;
     beepPaternEnabled = true;
@@ -89,7 +87,7 @@ void beeper::update() {
       /* update position */
       unsigned long currentTime = millis();
       double currentLength = (double)(currentTime - beepStartTime);
-      currentLength = currentLength/1000.0 * beepFilteredVelocity;
+      currentLength = currentLength/1000.0 * (beepVelocity * BEEP_VELOCITY_FILTER_COEFF + BEEP_VELOCITY_FILTER_BASE);
       
       if( currentLength + beepPaternBasePosition > beepPaternPosition ) {
         beepPaternPosition = currentLength + beepPaternBasePosition;

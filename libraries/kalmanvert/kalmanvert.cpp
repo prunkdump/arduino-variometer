@@ -27,7 +27,7 @@ void kalmanvert::update(double mp, double ma, unsigned long timestamp) {
   /* delta time */
   /**************/
   unsigned long deltaTime = timestamp - t;
-  double dt = ((double)deltaTime)/1000;
+  double dt = ((double)deltaTime)/1000.0;
   t = timestamp;
 
   /**************/

@@ -12,12 +12,6 @@
 
 static boolean newData;
 
-/* accelerometer calibration */
-static double accelCorrX, accelCorrY, accelCorrZ;
-
-/* current acceleration with gravity */
-static double accel[3];
-
 /* vertical acceleration */
 static double va;
 
@@ -47,14 +41,10 @@ int vertaccel_init() {
 
   /* init data variables */
   newData = false;
-  accelCorrX = VERTACCEL_ACCEL_CORR_X;
-  accelCorrY = VERTACCEL_ACCEL_CORR_Y;
-  accelCorrZ = VERTACCEL_ACCEL_CORR_Z;
-  
 }
 
 /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
-/*   must be run as often sa possible   */
+/*   must be run as often as possible   */
 /* check if data ready and threat data  */
 /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 boolean vertaccel_dataReady() {
@@ -76,7 +66,8 @@ boolean vertaccel_dataReady() {
     /***************************/
     /* normalize and calibrate */
     /***************************/
-    double quat[4];
+    double accel[3]; 
+    double quat[4]; 
     
     accel[0] = ((double)iaccel[0])/VERTACCEL_ACCEL_SCALE + VERTACCEL_ACCEL_CORR_X;
     accel[1] = ((double)iaccel[1])/VERTACCEL_ACCEL_SCALE + VERTACCEL_ACCEL_CORR_Y;
@@ -103,6 +94,7 @@ boolean vertaccel_dataReady() {
     rax = accel[0] - ux;
     ray = accel[1] - uy;
     raz = accel[2] - uz;
+    
         
     /* compute vertical acceleration */
     va = (ux*rax + uy*ray + uz*raz);

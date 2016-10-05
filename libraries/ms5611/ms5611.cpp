@@ -20,7 +20,6 @@ static boolean interruptWait = false;
 static boolean deviceReset = false;
 static uint16_t c1, c2, c3, c4, c5, c6; //PROM factors
 static double compensatedTemperature;
-static int basePressureCorrectionStep;
 static double basePressure;
 static double compensatedPressure;
 
@@ -191,7 +190,6 @@ void ms5611_init() {
   }
   
   /* set base pressure */
-  basePressureCorrectionStep = 0;
   basePressure = MS5611_BASE_SEA_PRESSURE;
 
   /* initialize interrupt variables */
@@ -322,15 +320,6 @@ double ms5611_getAltitude() {
   return alti;
 }
     
-/* reset the base pressure */
-void ms5611_setBasePressureCorrection(int step){
-  basePressureCorrectionStep = step;
-  basePressure = MS5611_BASE_SEA_PRESSURE * pow(MS5611_PRESSURE_CORRECTION_FACTOR, (double)step);
-}
-
-int ms5611_getBasePressureCorrection() {
-  return basePressureCorrectionStep;
-}
 
 /* reset to a given altitude */
 void ms5611_setCurrentAltitude(double currentAlti) {
