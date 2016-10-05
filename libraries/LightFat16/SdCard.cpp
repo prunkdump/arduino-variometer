@@ -91,20 +91,6 @@ uint8_t SdCard::cardAcmd(uint8_t cmd, uint32_t arg) {
   return cardCommand(cmd, arg);
 }
 //------------------------------------------------------------------------------
-/**
- * Determine the size of a standard SD flash memory card
- * \return The number of 512 byte data blocks in the card
- */
-uint32_t SdCard::cardSize(void) {
-  uint16_t c_size;
-  csd_t csd;
-  if (!readReg(CMD9, &csd)) return 0;
-  uint8_t read_bl_len = csd.v1.read_bl_len;
-  c_size = (csd.v1.c_size_high << 10) | (csd.v1.c_size_mid << 2) | csd.v1.c_size_low;
-  uint8_t c_size_mult = (csd.v1.c_size_mult_high << 1) | csd.v1.c_size_mult_low;
-  return (uint32_t)(c_size+1) << (c_size_mult + read_bl_len - 7);
-}
-//------------------------------------------------------------------------------
 void SdCard::chipSelectHigh(void) {
   digitalWrite(chipSelectPin_, HIGH);
   // make sure MISO goes high impedance

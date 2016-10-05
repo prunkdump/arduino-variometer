@@ -9,8 +9,8 @@
 #include <SPI.h>
 #include <avr/pgmspace.h>
 #include <varioscreen.h>
-#include <Fat16.h>
-#include <lightfat16.h>
+#include <SdCard.h>
+#include <LightFat16.h>
 #include <lightnmea.h>
 
 

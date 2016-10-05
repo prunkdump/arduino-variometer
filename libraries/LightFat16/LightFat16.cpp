@@ -1,5 +1,5 @@
-#include <lightfat16.h>
-#include <Fat16.h>
+#include <LightFat16.h>
+#include <SdCard.h>
 
 #define FAT16_ID_POS 0x0036
 #define MBR_FIRST_PART_POS 0x1be

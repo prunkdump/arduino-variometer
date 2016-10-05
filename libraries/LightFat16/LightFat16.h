@@ -1,8 +1,7 @@
 #ifndef LIGHT_FAT_16_H
 #define LIGHT_FAT_16_H
 
-#include <Fat16.h>
-
+#include <SdCard.h>
 
 #define BLOCK_SIZE 512
 #define FILE_NAME_NUMBER_POS 3
