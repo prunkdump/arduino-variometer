@@ -67,29 +67,37 @@ int lightfat16::init(int sspin, uint8_t sckDivisor) {
   
   /* load root directory block */
   data = this->blockSet(rootDirectoryBlock, 0);
+
+  uint8_t fileName[] = BASE_FILE_NAME;
+  for(int fileNumber = 0; fileNumber<FILE_NAME_NUMBER_LIMIT; fileNumber++) {
   
-  int fileNumber;
-  uint8_t fileNumberX_;
-  uint8_t fileNumber_X;
-  for(fileNumber = 0; fileNumber<100; fileNumber++) {
-
     /* build file name */
-    fileNumberX_ = '0' + fileNumber/10;
-    fileNumber_X = '0' + fileNumber%10;
-
+    int digit = fileNumber;
+    int base = FILE_NAME_NUMBER_LIMIT/10;
+    for(int i = sizeof(fileName)-1 - FILE_NAME_NUMBER_SIZE; i<sizeof(fileName)-1; i++) {
+      fileName[i] = '0' + digit/base;
+      digit %= base;
+      base /= 10;
+    }
+      
     /* check if is free */
     boolean usedNumber = false;
     while( data[0x00] != 0x00 ) {
-      if( data[0x00] != ROOT_ENTRY_FREE_TAG &&
-	  data[FILE_NAME_NUMBER_POS] == fileNumberX_ &&
-	  data[FILE_NAME_NUMBER_POS+1] == fileNumber_X ) {
-	usedNumber = true;
-	break;
+      if( data[0x00] != ROOT_ENTRY_FREE_TAG ) {
+	boolean nameFound = true;
+	for( int i = sizeof(fileName)-1 - FILE_NAME_NUMBER_SIZE; i<sizeof(fileName)-1; i++) {
+	  if( fileName[i] != data[i] ) {
+	    nameFound = false;
+	    break;
+	  }
+	}
+	if( nameFound ) {
+	  usedNumber = true;
+	  break;
+	}
       }
-
       data = this->blockSeek(ROOT_ENTRY_SIZE); //next entry
     }
-
     /* if free break */
     if( ! usedNumber ) {
       break;
@@ -133,21 +141,16 @@ int lightfat16::init(int sspin, uint8_t sckDivisor) {
   this->blockWriteEnable(false);
 
   /* write filename */
-  uint8_t fileName[] = BASE_FILE_NAME;
-  fileName[FILE_NAME_NUMBER_POS] = fileNumberX_;
-  fileName[FILE_NAME_NUMBER_POS+1] = fileNumber_X;
-
-  int i;
-  for(i=0; i<FILE_NAME_NUMBER_POS+2; i++) {
+  for(int i = 0; i<sizeof(fileName)-1; i++) {
     data[i] = fileName[i];
   }
-  for(i=FILE_NAME_NUMBER_POS+2; i<FAT_FILENAME_SIZE; i++) {
+  for(int i = sizeof(fileName)-1; i<FAT_FILENAME_SIZE; i++) {
     data[i] = ' ';
   }
 
   /* write constant part */
   uint8_t fileConstants[] = FILE_ENTRY_CONSTANTS;
-  for(i=0; i<FILE_ENTRY_CONSTANTS_SIZE; i++) {
+  for(int i=0; i<FILE_ENTRY_CONSTANTS_SIZE; i++) {
     data[i+8] = fileConstants[i];
   }
 
