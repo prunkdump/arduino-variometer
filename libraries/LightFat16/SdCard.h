@@ -24,23 +24,8 @@
   * SdCard class
   */
 #include <Arduino.h>
+#include <SPI.h>
 
-//------------------------------------------------------------------------------
-// SPI divisor constants
-/** Set SCK to max rate of F_CPU/2. */
-uint8_t const SPI_FULL_SPEED = 2;
-/** Set SCK rate to F_CPU/3 for Due */
-uint8_t const SPI_DIV3_SPEED = 3;
-/** Set SCK rate to F_CPU/4. */
-uint8_t const SPI_HALF_SPEED = 4;
-/** Set SCK rate to F_CPU/6 for Due */
-uint8_t const SPI_DIV6_SPEED = 6;
-/** Set SCK rate to F_CPU/8. */
-uint8_t const SPI_QUARTER_SPEED = 8;
-/** Set SCK rate to F_CPU/16. */
-uint8_t const SPI_EIGHTH_SPEED = 16;
-/** Set SCK rate to F_CPU/32. */
-uint8_t const SPI_SIXTEENTH_SPEED = 32;
 //------------------------------------------------------------------------------
 // SD operation timeouts
 /** init timeout ms */
@@ -147,7 +132,7 @@ class SdCard  {
   /** Data that may be helpful in determining the cause of an error */
   uint8_t errorData;
   
-  bool begin(uint8_t chipSelect = SS, uint8_t sckDivisor = SPI_FULL_SPEED);
+  bool begin(uint8_t chipSelect = SS, uint8_t sckDivisor = SPI_CLOCK_DIV2);
   /**
    * Initialize an SD flash memory card with default clock rate and chip
    * select pin.  See SdCard::begin(uint8_t chipSelectPin, uint8_t sckRateID).
@@ -155,7 +140,7 @@ class SdCard  {
    * \return true for success or false for failure.
    */
   bool init(void) {
-    return begin(SS, SPI_FULL_SPEED);
+    return begin(SS, SPI_CLOCK_DIV2);
   }
   /**
    * Initialize an SD flash memory card.
@@ -165,7 +150,7 @@ class SdCard  {
    * \return true for success or false for failure.   
    */
   bool init(bool halfSpeed) {
-    return begin(halfSpeed ? SPI_HALF_SPEED : SPI_FULL_SPEED, SS);
+    return begin(halfSpeed ? SPI_CLOCK_DIV4 : SPI_CLOCK_DIV2, SS);
   }
   /**
    * Initialize an SD flash memory card.
@@ -176,14 +161,13 @@ class SdCard  {
    * \return true for success or false for failure.
    */  
   bool init(bool halfSpeed, uint8_t chipSelect) {
-    return begin(halfSpeed ? SPI_HALF_SPEED : SPI_FULL_SPEED, chipSelect);}
+    return begin(halfSpeed ? SPI_CLOCK_DIV4 : SPI_CLOCK_DIV2, chipSelect);}
   bool readBlock(uint32_t block, uint8_t* dst);
   bool writeBlock(uint32_t block, const uint8_t* src);
  private:
   uint8_t cardAcmd(uint8_t cmd, uint32_t arg);
   uint8_t cardCommand(uint8_t cmd, uint32_t arg);
   uint8_t chipSelectPin_;
-  uint8_t sckDivisor_;
   void chipSelectHigh(void);
   void chipSelectLow(void);
   void error(uint8_t code, uint8_t data);

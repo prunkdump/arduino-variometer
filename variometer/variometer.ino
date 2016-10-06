@@ -28,6 +28,11 @@
 #define VARIOSCREEN_RST_PIN 4
 #define SDCARD_CS_PIN 8
 
+// the variometer seems to be more stable at half speed
+// don't hesitate to experiment
+#define VARIOSCREEN_SPEED SPI_CLOCK_DIV4
+#define SDCARD_SPEED SPI_CLOCK_DIV4
+
 
 /*****************/
 /* screen objets */
@@ -87,12 +92,6 @@ beeper beeper;
 
 #define GPS_CALIBRATION_STEPS 5
 
-#ifdef HAVE_SCREEN
-#define SDCARD_SPEED SPI_HALF_SPEED
-#else
-#define SDCARD_SPEED SPI_FULL_SPEED
-#endif //HAVE_SCREEN
-
 NmeaParser parser;
 boolean gpsDataStarted = false;
 boolean gpsAltiCalibrated = false;
@@ -102,7 +101,7 @@ double lastAltiValue;
 
 #ifdef HAVE_SDCARD
 lightfat16 file;
-boolean sdcardFound = false;
+boolean sdcardFound;
 #endif //HAVE_SDCARD
 
 #endif //HAVE_GPS
@@ -116,7 +115,7 @@ void setup() {
   /* init screen */
   /***************/
 #ifdef HAVE_SCREEN
-  screen.begin();
+  screen.begin(VARIOSCREEN_SPEED);
   munit.display(VARIOSCREEN_ALTI_ANCHOR_X, VARIOSCREEN_ALTI_ANCHOR_Y);
   msunit.display(VARIOSCREEN_VARIO_ANCHOR_X, VARIOSCREEN_VARIO_ANCHOR_Y);
 #ifdef HAVE_GPS
@@ -132,7 +131,9 @@ void setup() {
 #ifdef HAVE_SDCARD
   if( file.init(SDCARD_CS_PIN, SDCARD_SPEED) >= 0 ) {
     sdcardFound = true;
-  }
+   } else {
+    sdcardFound = false;
+   }
 #endif //HAVE_SDCARD
 #endif //HAVE_GPS
    

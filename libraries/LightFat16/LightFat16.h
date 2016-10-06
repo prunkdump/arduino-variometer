@@ -14,7 +14,7 @@ class lightfat16 {
 
  public :
   lightfat16();
-  int init(int sspin, uint8_t sckDivisor = SPI_FULL_SPEED);
+  int init(int sspin, uint8_t sckDivisor = SPI_CLOCK_DIV2);
   void write(uint8_t inByte);
   void sync();
   

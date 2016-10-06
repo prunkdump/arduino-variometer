@@ -19,6 +19,8 @@
  */
 #include <Fat16Config.h>
 #include <SdCard.h>
+#include <SPI.h>
+
 //------------------------------------------------------------------------------
 #if 0//////////////////////////////////////////////////////////////////////////////////////////////////
 // r1 status values
@@ -35,27 +37,13 @@ uint8_t const DATA_RES_WRITE_ERROR = 0X0D;
 //
 // stop compiler from inlining where speed optimization is not required
 #define STATIC_NOINLINE static __attribute__((noinline))
-//------------------------------------------------------------------------------
-// SPI static functions
-//
-// clock byte in
-STATIC_NOINLINE uint8_t spiRec(void) {
-  SPDR = 0xff;
-  while (!(SPSR & (1 << SPIF)));
-  return SPDR;
-}
-//------------------------------------------------------------------------------
-// clock byte out
-STATIC_NOINLINE void spiSend(uint8_t b) {
-  SPDR = b;
-  while (!(SPSR & (1 << SPIF)));
-}
+
 //------------------------------------------------------------------------------
 // wait for card to go not busy
 // return false if timeout
 STATIC_NOINLINE bool waitForToken(uint8_t token, uint16_t timeoutMillis) {
   uint16_t t0 = millis();
-  while (spiRec() != token) {
+  while (SPI.transfer(0xff) != token) {
     if (((uint16_t)millis() - t0) > timeoutMillis) return false;
   }
   return true;
@@ -73,16 +61,19 @@ uint8_t SdCard::cardCommand(uint8_t cmd, uint32_t arg) {
   waitForToken(0XFF, SD_WRITE_TIMEOUT);
 
   // send command
-  spiSend(cmd | 0x40);
+  SPI.transfer(cmd | 0x40);
 
   // send argument
-  for (int8_t s = 24; s >= 0; s -= 8) spiSend(arg >> s);
+  for (int8_t s = 24; s >= 0; s -= 8)
+    SPI.transfer(arg >> s);
 
   // send CRC - must send valid CRC for CMD0
-  spiSend(cmd == CMD0 ? 0x95 : 0XFF);
+  SPI.transfer(cmd == CMD0 ? 0x95 : 0XFF);
 
   // wait for not busy
-  for (uint8_t retry = 0; (0X80 & (r1 = spiRec())) && retry != 0XFF; retry++);
+  for (uint8_t retry = 0; (0X80 & (r1 = SPI.transfer(0xff))) && retry != 0Xff; retry++);
+
+  chipSelectHigh();
   return r1;
 }
 //------------------------------------------------------------------------------
@@ -93,19 +84,10 @@ uint8_t SdCard::cardAcmd(uint8_t cmd, uint32_t arg) {
 //------------------------------------------------------------------------------
 void SdCard::chipSelectHigh(void) {
   digitalWrite(chipSelectPin_, HIGH);
-  // make sure MISO goes high impedance
-  spiSend(0XFF);
 }
 //------------------------------------------------------------------------------
 void SdCard::chipSelectLow(void) {
-  uint8_t r = 0;
-  
-  for (uint8_t b = 2; sckDivisor_ > b && r < 6; b <<= 1, r++);
-  // See avr processor documentation
-  SPCR = (1 << SPE) | (1 << MSTR) | (r >> 1);
-  SPSR = r & 1 || r == 6 ? 0 : 1 << SPI2X;
-  
-  digitalWrite(chipSelectPin_, LOW);
+   digitalWrite(chipSelectPin_, LOW);
 }
 //------------------------------------------------------------------------------
 void SdCard::error(uint8_t code, uint8_t data) {
@@ -130,7 +112,6 @@ void SdCard::error(uint8_t code) {
  */
 bool SdCard::begin(uint8_t chipSelect, uint8_t sckDivisor) {
 
-  sckDivisor_ = sckDivisor;
   chipSelectPin_ = chipSelect;
   errorCode = 0;
   uint8_t r;
@@ -139,19 +120,13 @@ bool SdCard::begin(uint8_t chipSelect, uint8_t sckDivisor) {
 
   pinMode(chipSelectPin_, OUTPUT);
   digitalWrite(chipSelectPin_, HIGH);
-  pinMode(MISO, INPUT);
-  pinMode(SS, OUTPUT);
-  digitalWrite(SS, HIGH);
-  pinMode(MOSI, OUTPUT);
-  pinMode(SCK, OUTPUT);
 
-  // Enable SPI, Master, clock rate F_CPU/128
-  SPCR = (1 << SPE) | (1 << MSTR) | (1 << SPR1) | (1 << SPR0);
-
+  SPI.begin();
+  SPI.setClockDivider(sckDivisor);
+    
   // must supply min of 74 clock cycles with CS high.
-  for (uint8_t i = 0; i < 10; i++) spiSend(0XFF);
-  digitalWrite(chipSelectPin_, LOW);
-
+  for (uint8_t i = 0; i < 10; i++) SPI.transfer(0Xff);
+  
   // command to go idle in SPI mode
   while ((r = cardCommand(CMD0, 0)) != R1_IDLE_STATE) {
     if (((uint16_t)millis() - t0) > SD_INIT_TIMEOUT) {
@@ -176,7 +151,6 @@ bool SdCard::begin(uint8_t chipSelect, uint8_t sckDivisor) {
     }   
   }
 #endif  // USE_ACMD41
-  chipSelectHigh();
   return true;
 }
 //------------------------------------------------------------------------------
@@ -199,27 +173,27 @@ bool SdCard::readBlock(uint32_t blockNumber, uint8_t* dst) {
 bool SdCard::readReg(uint8_t cmd, void* buf) {
   uint8_t* dst = reinterpret_cast<uint8_t*>(buf);
   if (cardCommand(cmd, 0)) {
-    chipSelectHigh();
     return false;
   }
   return readTransfer(dst, 16);
 }
 //------------------------------------------------------------------------------
 bool SdCard::readTransfer(uint8_t* dst, uint16_t count) {
+  chipSelectLow();
+  
   // wait for start of data
   if (!waitForToken(DATA_START_BLOCK, SD_READ_TIMEOUT)) {
     error(SD_ERROR_READ_TIMEOUT);
   }
   // start first spi transfer
-  SPDR = 0XFF;
   for (uint16_t i = 0; i < count; i++) {
-    while (!(SPSR & (1 << SPIF)));
-    dst[i] = SPDR;
-    SPDR = 0XFF;
+    dst[i] = SPI.transfer(0xff);
   }
-  // wait for first CRC byte
-  while (!(SPSR & (1 << SPIF)));
-  spiRec();  // second CRC byte
+
+  // wait for first and second CRC byte
+  SPI.transfer(0xff);
+  SPI.transfer(0xff);
+  
   chipSelectHigh();
   return true;
 }
@@ -240,17 +214,17 @@ bool SdCard::writeBlock(uint32_t blockNumber, const uint8_t* src) {
     return false;
   }
   // optimize write loop
-  SPDR = DATA_START_BLOCK;
-  for (uint16_t i = 0; i < 512; i++) {
-    while (!(SPSR & (1 << SPIF)));
-    SPDR = src[i];
+  chipSelectLow();
+  
+  SPI.transfer(DATA_START_BLOCK);
+  for (int i = 0; i < 512; i++) {
+    SPI.transfer(src[i]);
   }
-  while (!(SPSR & (1 << SPIF)));  // wait for last data byte
-  spiSend(0xFF);  // dummy crc
-  spiSend(0xFF);  // dummy crc
+  SPI.transfer(0xFF);  // dummy crc
+  SPI.transfer(0xFF);  // dummy crc
 
   // get write response
-  uint8_t r1 = spiRec();
+  uint8_t r1 = SPI.transfer(0xFF);
   if ((r1 & DATA_RES_MASK) != DATA_RES_ACCEPTED) {
     error(SD_ERROR_WRITE_RESPONSE, r1);
     return false;

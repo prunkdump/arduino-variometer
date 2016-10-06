@@ -93,7 +93,6 @@ const uint8_t varioscreenGR[] PROGMEM = {
 #define PCD8544_SETTEMP 0x04
 #define PCD8544_SETBIAS 0x10
 #define PCD8544_SETVOP 0x80
-#define PCD8544_SPI_CLOCK_DIV SPI_CLOCK_DIV4
 
 VarioScreen::VarioScreen(int8_t DC, int8_t CS, int8_t RST) {
   _dc = DC;
@@ -101,27 +100,23 @@ VarioScreen::VarioScreen(int8_t DC, int8_t CS, int8_t RST) {
   _cs = CS;
 }
 
-void VarioScreen::begin(uint8_t contrast, uint8_t bias) {
+void VarioScreen::begin(uint8_t clockDiviser, uint8_t contrast, uint8_t bias) {
   // ONLY HARDWARE SPI 
   SPI.begin();
-  SPI.setClockDivider(PCD8544_SPI_CLOCK_DIV);
+  SPI.setClockDivider(clockDiviser);
   SPI.setDataMode(SPI_MODE0);
   SPI.setBitOrder(MSBFIRST);
 
   // Set common pin outputs.
   pinMode(_dc, OUTPUT);
-  if (_rst > 0)
-      pinMode(_rst, OUTPUT);
-  if (_cs > 0)
-      pinMode(_cs, OUTPUT);
+  pinMode(_rst, OUTPUT);
+  pinMode(_cs, OUTPUT);
 
   // toggle RST low to reset
-  if (_rst > 0) {
-    digitalWrite(_rst, LOW);
-    delay(500);
-    digitalWrite(_rst, HIGH);
-  }
-
+  digitalWrite(_rst, LOW);
+  delay(500);
+  digitalWrite(_rst, HIGH);
+  
   // get into the EXTENDED mode!
   command(PCD8544_FUNCTIONSET | PCD8544_EXTENDEDINSTRUCTION );
 
@@ -148,8 +143,7 @@ void VarioScreen::beginDisplay(uint8_t x, uint8_t y) {
   command(PCD8544_SETYADDR | y);
   command(PCD8544_SETXADDR | x);
   digitalWrite(_dc, HIGH);
-  if (_cs > 0)
-    digitalWrite(_cs, LOW);
+  digitalWrite(_cs, LOW);
 }
 
 void VarioScreen::display(uint8_t displayByte) {
@@ -157,8 +151,7 @@ void VarioScreen::display(uint8_t displayByte) {
 }
 
 void VarioScreen::endDisplay() {
-  if (_cs > 0)
-    digitalWrite(_cs, HIGH);
+  digitalWrite(_cs, HIGH);
 }
 
 void VarioScreen::flush() {
@@ -178,11 +171,9 @@ void VarioScreen::clear() {
 
 void VarioScreen::command(uint8_t c) {
   digitalWrite(_dc, LOW);
-  if (_cs > 0)
-    digitalWrite(_cs, LOW);
+  digitalWrite(_cs, LOW);
   SPI.transfer(c);
-  if (_cs > 0)
-    digitalWrite(_cs, HIGH);
+  digitalWrite(_cs, HIGH);
 }
 
 /*****************/

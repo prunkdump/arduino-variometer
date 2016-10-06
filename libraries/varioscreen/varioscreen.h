@@ -2,13 +2,14 @@
 #define VARIOSCREEN_H
 
 #include <Arduino.h>
+#include <SPI.h>
 
 #define VARIOSCREEN_DISPLAY_THRESHOLD 0.65
 
 class VarioScreen {
  public:
   VarioScreen(int8_t DC, int8_t CS, int8_t RST);
-  void begin(uint8_t contrast = 40, uint8_t bias = 0x04);
+  void begin(uint8_t clockDiviser = SPI_CLOCK_DIV2, uint8_t contrast = 40, uint8_t bias = 0x04);
   void beginDisplay(uint8_t x, uint8_t y);
   void display(uint8_t displayByte);
   void endDisplay();
