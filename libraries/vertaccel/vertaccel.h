@@ -6,6 +6,15 @@
 #include <inv_mpu.h>
 #include <inv_mpu_dmp_motion_driver.h>
 
+/**********************************************/
+/* !! REPLACE BY YOUR CALIBRATION SETTINGS !! */
+/**********************************************/
+#define VERTACCEL_ACCEL_CAL_X (0.00983)
+#define VERTACCEL_ACCEL_CAL_Y (-0.01411)
+#define VERTACCEL_ACCEL_CAL_Z (0.01070)
+
+
+/* accelerometer parameters */
 #define VERTACCEL_G_TO_MS 9.80665
 
 #define VERTACCEL_GIRO_FSR 2000
@@ -14,9 +23,7 @@
 
 /* 4G ~= 2^15 */
 #define VERTACCEL_ACCEL_SCALE 8192.0
-#define VERTACCEL_ACCEL_CORR_X (+0.00415)
-#define VERTACCEL_ACCEL_CORR_Y (-0.0137)
-#define VERTACCEL_ACCEL_CORR_Z (+0.0141)
+
 
 /* 2^30 */
 #define VERTACCEL_QUAT_SCALE 1073741824.0
@@ -33,6 +40,7 @@ int vertaccel_init();
 
 /* !!! WARNING : run as often as possible to clear the FIFO stack !!! */
 boolean vertaccel_dataReady();
+boolean vertaccel_rawReady(double* accel, double* upVector, double* vertAccel);
 
 /* when ready update and get data */
 void vertaccel_updateData();

@@ -33,6 +33,11 @@
 #define VARIOSCREEN_SPEED SPI_CLOCK_DIV4
 #define SDCARD_SPEED SPI_CLOCK_DIV4
 
+/*!!!!!!!!!!!!!!!!!!!!!!!*/
+/* VARIOMETER PARAMETERS */
+/*!!!!!!!!!!!!!!!!!!!!!!!*/
+#define VARIOMETER_SPEED_LOWER_THRESHOLD -2.0
+#define VARIOMETER_SPEED_UPPER_THRESHOLD 0.2
 
 /*****************/
 /* screen objets */
@@ -82,7 +87,7 @@ unsigned char screenStatus;
 
 kalmanvert kalmanvert;
 #ifdef HAVE_SPEAKER
-beeper beeper;
+beeper beeper(VARIOMETER_SPEED_LOWER_THRESHOLD, VARIOMETER_SPEED_UPPER_THRESHOLD);
 #endif
 
 /***************/
