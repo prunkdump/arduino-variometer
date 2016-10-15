@@ -9,9 +9,9 @@
 /**********************************************/
 /* !! REPLACE BY YOUR CALIBRATION SETTINGS !! */
 /**********************************************/
-#define VERTACCEL_ACCEL_CAL_X (0.00983)
-#define VERTACCEL_ACCEL_CAL_Y (-0.01411)
-#define VERTACCEL_ACCEL_CAL_Z (0.01070)
+#define VERTACCEL_ACCEL_CAL_X (0.00860)
+#define VERTACCEL_ACCEL_CAL_Y (-0.01366)
+#define VERTACCEL_ACCEL_CAL_Z (0.01188)
 
 
 /* accelerometer parameters */
@@ -32,7 +32,7 @@
 /*******************/
 /* init the device */
 /*******************/
-int vertaccel_init();
+int vertaccel_init(boolean giroCalibration = true);
 
 /***********/
 /* reading */

@@ -20,7 +20,7 @@ static double va;
 /********************/
 
 /* init vertaccel */
-int vertaccel_init() {
+int vertaccel_init(boolean giroCalibration) {
 
   /* setting imu */
   mpu_select_device(0);
@@ -37,8 +37,12 @@ int vertaccel_init() {
   dmp_load_motion_driver_firmware();
   dmp_set_fifo_rate(VERTACCEL_FIFO_RATE);
   mpu_set_dmp_state(1);
-  dmp_enable_feature(DMP_FEATURE_6X_LP_QUAT|DMP_FEATURE_SEND_RAW_ACCEL|DMP_FEATURE_GYRO_CAL); 
-
+  if( giroCalibration ) {
+    dmp_enable_feature(DMP_FEATURE_6X_LP_QUAT|DMP_FEATURE_SEND_RAW_ACCEL|DMP_FEATURE_GYRO_CAL); 
+  } else {
+    dmp_enable_feature(DMP_FEATURE_6X_LP_QUAT|DMP_FEATURE_SEND_RAW_ACCEL);
+  }
+  
   /* init data variables */
   newData = false;
 }

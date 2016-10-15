@@ -35,7 +35,7 @@
 
 //  This symbol defines how many devices are supported
 
-#define MPU_MAX_DEVICES 2
+#define MPU_MAX_DEVICES 1
 
 //  Call this function before using the MPU to select the correct device
 
