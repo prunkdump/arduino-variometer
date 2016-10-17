@@ -33,11 +33,7 @@
 
 //#define MPU_MAXIMAL
 
-//  This symbol defines how many devices are supported
-
-#define MPU_MAX_DEVICES 1
-
-//  Call this function before using the MPU to select the correct device
+//  for compatibility
 
 int mpu_select_device(int device);
 

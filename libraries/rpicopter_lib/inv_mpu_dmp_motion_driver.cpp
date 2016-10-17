@@ -461,18 +461,13 @@ struct dmp_s {
     unsigned char packet_length;
 };
 
-struct dmp_s dmpArray[MPU_MAX_DEVICES];
+struct dmp_s dmpStructure;
 
-struct dmp_s *dmp;
-static int deviceIndex = 0;
+struct dmp_s *dmp = &dmpStructure;
 
+/* useless : functionnality removed */ 
 int dmp_select_device(int device)
 {
-  if ((device < 0) || (device >= MPU_MAX_DEVICES))
-    return -1;
-
-  deviceIndex = device;
-  dmp = dmpArray + device;
   return 0;
 }
 
