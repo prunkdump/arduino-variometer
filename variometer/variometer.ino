@@ -36,8 +36,9 @@
 /*!!!!!!!!!!!!!!!!!!!!!!!*/
 /* VARIOMETER PARAMETERS */
 /*!!!!!!!!!!!!!!!!!!!!!!!*/
-#define VARIOMETER_SPEED_LOWER_THRESHOLD -2.0
-#define VARIOMETER_SPEED_UPPER_THRESHOLD 0.2
+#define VARIOMETER_SINKING_THRESHOLD -2.0
+#define VARIOMETER_CLIMBING_THRESHOLD 0.2
+#define VARIOMETER_NEAR_CLIMBING_SENSITIVITY 0.5
 
 /*****************/
 /* screen objets */
@@ -87,7 +88,7 @@ unsigned char screenStatus;
 
 kalmanvert kalmanvert;
 #ifdef HAVE_SPEAKER
-beeper beeper(VARIOMETER_SPEED_LOWER_THRESHOLD, VARIOMETER_SPEED_UPPER_THRESHOLD);
+beeper beeper(VARIOMETER_SINKING_THRESHOLD, VARIOMETER_CLIMBING_THRESHOLD, VARIOMETER_NEAR_CLIMBING_SENSITIVITY);
 #endif
 
 /***************/
@@ -115,7 +116,8 @@ boolean sdcardFound;
 /*      SETUP      */
 /*-----------------*/
 void setup() {
-   
+  beeper.setGlidingBeepState(true);
+  beeper.setGlidingAlarmState(true);
   /***************/
   /* init screen */
   /***************/
