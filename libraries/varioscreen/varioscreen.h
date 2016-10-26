@@ -35,7 +35,7 @@ class ScreenDigit {
   uint8_t anchorX, anchorY;
   uint8_t precision;
   boolean plusDisplay;
-  boolean lastDisplayWidth;
+  uint8_t lastDisplayWidth;
   double lastDisplayValue;
 };
 
