@@ -4,12 +4,12 @@
 
 Features :
 ---------
-
 - High precision altitude with improved ms5611 code
 - High precision vertical velocity with InvenSense accelerometer (optionnal)
 - Screen display with Nokia 5110 : altitude, vspeed, ground speed, glide ratio (optionnal)
 - Ground speed and glide ratio with GPS device (optionnal)
 - Flight tracking with sdcard reader and GPS (optionnal)
+
 
 How to build :
 --------------
@@ -23,12 +23,25 @@ How to build :
  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
-How to calibrate the accelerometer :
-------------------------------------
+If you embed an InvenSense accelerometer :
+------------------------------------------
+- Set the model in ./libraries/rpicopter_lib/inv_mpu.h
+
+#ifndef _INV_MPU_H_
+#define _INV_MPU_H_
+...
+#define MPU9250
+or  
+#define MPU6050
+or
+#define MPU6500
+or
+#define MPU9150
+
 - Open calibration.ino and compile/upload the code
 - Open the Serial Monitor at 9600 baud
 - Follow the instructions
-- Replace the calibration settings in libraries/vertaccel/vertaccel.h
+- Replace the calibration settings in ./libraries/vertaccel/vertaccel.h
 
 
 How to setup code :
@@ -48,30 +61,20 @@ How to setup code :
 #define VARIOSCREEN_RST_PIN 4
 #define SDCARD_CS_PIN 8
 
-4) If needed tweak the speed threshold
+3) Next you can adjust the variometer behavior
 
-#define VARIOMETER_SPEED_LOWER_THRESHOLD -2.0
-#define VARIOMETER_SPEED_UPPER_THRESHOLD 0.2
+#define VARIOMETER_SINKING_THRESHOLD -2.0
+#define VARIOMETER_CLIMBING_THRESHOLD 0.2
+#define VARIOMETER_NEAR_CLIMBING_SENSITIVITY 0.5
 
-3) If you embed an InvenSense accelerometer, set the model in ./libraries/rpicopter_lib/inv_mpu.h
-
-#ifndef _INV_MPU_H_
-#define _INV_MPU_H_
-...
-#define MPU9250
-or  
-#define MPU6050
-or
-#define MPU6500
-or
-#define MPU9150
-
+#define VARIOMETER_ENABLE_NEAR_CLIMBING_ALARM
+//#define VARIOMETER_ENABLE_NEAR_CLIMBING_BEEP
 
 
 Variometer wiring :
 ------------------
 
-If you use multiple I2C devices, don't forget the pullup resistor. 
+If you use multiple separated I2C devices, don't forget the pullup resistor. 
 
 1) ms5611 (can be found combined with MPU9250 or MPU6050 and the pullup resitor). Use I2C !
 SDA -> A4
@@ -112,6 +115,7 @@ CS -> any (set on code)
 MOSI -> D11
 SCLK -> D13
 MISO -> D12
+
 
 Libraries :
 -----------
