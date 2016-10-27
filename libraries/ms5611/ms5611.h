@@ -37,10 +37,19 @@
 #define MS5611_STEP_READ_TEMP 0
 #define MS5611_STEP_READ_PRESSURE 1
 
-/* with a 64 prescale, 125 ticks give 0.5 ms */
-/* and 17 * 0.5 = 8.5 ms the conv delay */
+/* the measure period need to be greater than 8.22 ms */
+/* the library use a 64 prescale so the time unit is 64/F_CPU */
+/* the INTERRUPT_COMPARE can't be greater than 255 */
+/* but a greater value give less code interrupts */
+/* the final period is 64/F_CPU * INTERRUPT_COMPARE * INTERRUPT_TIME */
+/* in seconds */
+#if F_CPU >= 16000000L
 #define MS5611_INTERRUPT_COMPARE 125
 #define MS5611_INTERRUPT_TIME 17
+#else
+#define MS5611_INTERRUPT_COMPARE 150
+#define MS5611_INTERRUPT_TIME 7
+#endif
 #define MS5611_INTERRUPT_START_DELAY 1000
 
 #define MS5611_BASE_SEA_PRESSURE 1013.25

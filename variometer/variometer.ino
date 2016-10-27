@@ -30,8 +30,13 @@
 
 // the variometer seems to be more stable at half speed
 // don't hesitate to experiment
+#if F_CPU >= 16000000L
 #define VARIOSCREEN_SPEED SPI_CLOCK_DIV4
 #define SDCARD_SPEED SPI_CLOCK_DIV4
+#else
+#define VARIOSCREEN_SPEED SPI_CLOCK_DIV2
+#define SDCARD_SPEED SPI_CLOCK_DIV2
+#endif //CPU_FREQ
 
 /*!!!!!!!!!!!!!!!!!!!!!!!*/
 /* VARIOMETER PARAMETERS */
@@ -156,7 +161,12 @@ void setup() {
   /************************************/
   /* init altimeter and accelerometer */
   /************************************/
+  /* !!! fastwire don't take on account the cpu frequency !!! */
+#if F_CPU >= 16000000L
   Fastwire::setup(400,0);
+#else
+  Fastwire::setup(800,0);
+#endif //CPU_FREQ
   ms5611_init();
 #ifdef HAVE_ACCELEROMETER
   vertaccel_init();
