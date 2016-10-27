@@ -40,6 +40,9 @@
 #define VARIOMETER_CLIMBING_THRESHOLD 0.2
 #define VARIOMETER_NEAR_CLIMBING_SENSITIVITY 0.5
 
+#define VARIOMETER_ENABLE_NEAR_CLIMBING_ALARM
+#define VARIOMETER_ENABLE_NEAR_CLIMBING_BEEP
+
 /*****************/
 /* screen objets */
 /*****************/
@@ -89,6 +92,13 @@ unsigned char screenStatus;
 kalmanvert kalmanvert;
 #ifdef HAVE_SPEAKER
 beeper beeper(VARIOMETER_SINKING_THRESHOLD, VARIOMETER_CLIMBING_THRESHOLD, VARIOMETER_NEAR_CLIMBING_SENSITIVITY);
+
+#define FLIGHT_START_MIN_TIMESTAMP 15000
+#define FLIGHT_START_VARIO_LOW_THRESHOLD (-0.5)
+#define FLIGHT_START_VARIO_HIGH_THRESHOLD 0.5
+#define FLIGHT_START_MIN_SPEED 10.0
+boolean beepNearThermalEnabled = false;
+
 #endif
 
 /***************/
@@ -116,8 +126,7 @@ boolean sdcardFound;
 /*      SETUP      */
 /*-----------------*/
 void setup() {
-  beeper.setGlidingBeepState(true);
-  beeper.setGlidingAlarmState(true);
+
   /***************/
   /* init screen */
   /***************/
@@ -232,6 +241,27 @@ void loop() {
   /*****************/
 #ifdef HAVE_SPEAKER
   beeper.update();
+
+  /* check if near thermal features need to be started */
+#if defined(VARIOMETER_ENABLE_NEAR_CLIMBING_ALARM) || defined(VARIOMETER_ENABLE_NEAR_CLIMBING_BEEP)
+  if( !beepNearThermalEnabled ) {
+    /* check flight start conditions */
+    if( (millis() > FLIGHT_START_MIN_TIMESTAMP) &&
+        (kalmanvert.getVelocity() < FLIGHT_START_VARIO_LOW_THRESHOLD || kalmanvert.getVelocity() > FLIGHT_START_VARIO_HIGH_THRESHOLD)
+#ifdef HAVE_GPS
+        && gpsAltiCalibrated && (parser.getSpeed() > FLIGHT_START_MIN_SPEED)
+#endif //HAVE_GPS
+      ) {
+    beepNearThermalEnabled = true;
+#ifdef VARIOMETER_ENABLE_NEAR_CLIMBING_ALARM
+    beeper.setGlidingAlarmState(true);
+#endif
+#ifdef VARIOMETER_ENABLE_NEAR_CLIMBING_BEEP
+    beeper.setGlidingBeepState(true);
+#endif
+    }
+  }  
+#endif //defined(VARIOMETER_ENABLE_NEAR_CLIMBING_ALARM) || defined(VARIOMETER_ENABLE_NEAR_CLIMBING_BEEP)
 #endif //HAVE_SPEAKER
 
   /**************/
