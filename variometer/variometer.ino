@@ -48,6 +48,9 @@
 #define VARIOMETER_ENABLE_NEAR_CLIMBING_ALARM
 #define VARIOMETER_ENABLE_NEAR_CLIMBING_BEEP
 
+/* mean filter duration = filter size * 2 seconds */
+#define VARIOMETER_SPEED_FILTER_SIZE 5
+
 /*****************/
 /* screen objets */
 /*****************/
@@ -117,8 +120,11 @@ NmeaParser parser;
 boolean gpsDataStarted = false;
 boolean gpsAltiCalibrated = false;
 unsigned char gpsAltiCalibrationStep = 0;
-unsigned long lastSpeedTimestamp;
-double lastAltiValue;
+
+unsigned long speedFilterTimestamps[VARIOMETER_SPEED_FILTER_SIZE];
+double speedFilterSpeedValues[VARIOMETER_SPEED_FILTER_SIZE];
+double speedFilterAltiValues[VARIOMETER_SPEED_FILTER_SIZE];
+int8_t speedFilterPos = 0;
 
 #ifdef HAVE_SDCARD
 lightfat16 file;
@@ -208,11 +214,6 @@ void setup() {
                   ACCELERATION_MEASURE_STANDARD_DEVIATION,
                   millis());
    
-#ifdef HAVE_GPS               
-  /* init screen gps vars */
-  lastSpeedTimestamp = millis();
-  lastAltiValue = ms5611_getAltitude();
-#endif //HAVE_GPS  
 }
 
 /*----------------*/
@@ -357,6 +358,7 @@ void loop() {
   if( ! gpsAltiCalibrated ) {
    if( parser.haveNewAltiValue() ) {
      gpsAltiCalibrationStep++;
+     parser.getAlti(); //clear the new value flag
      if( gpsAltiCalibrationStep == GPS_CALIBRATION_STEPS) { //get 5 alti values before calibrating
        double gpsAlti = parser.getAlti();
        ms5611_setCurrentAltitude(gpsAlti);
@@ -383,15 +385,46 @@ void loop() {
 #ifdef HAVE_GPS
   /* when getting speed from gps, display speed and ratio */
   if ( parser.haveNewSpeedValue() ) {
-    double currentSpeed = parser.getSpeed();
-       
-    /* compute ratio */
-    unsigned long duration = millis() - lastSpeedTimestamp;
-    lastSpeedTimestamp = millis();
-    double altiDelta = lastAltiValue- kalmanvert.getPosition(); //give positive result 
-    lastAltiValue = kalmanvert.getPosition();
-    double ratio = (currentSpeed*((double)duration)/3600.0)/altiDelta;
+
+    /* get new values */
+    unsigned long baseTime = speedFilterTimestamps[speedFilterPos];
+    unsigned long deltaTime = millis(); //computed later
+    speedFilterTimestamps[speedFilterPos] = deltaTime;
     
+    double deltaAlti = speedFilterAltiValues[speedFilterPos]; //computed later
+    speedFilterAltiValues[speedFilterPos] = kalmanvert.getPosition(); 
+
+    double currentSpeed = parser.getSpeed();
+    speedFilterSpeedValues[speedFilterPos] = currentSpeed;
+
+    speedFilterPos++;
+    if( speedFilterPos >= VARIOMETER_SPEED_FILTER_SIZE )
+      speedFilterPos = 0;
+
+    /* compute deltas */
+    deltaAlti -= kalmanvert.getPosition();
+    deltaTime -= baseTime;
+    
+    /* compute mean distance */
+    double meanDistance = 0;
+    int step = 0;
+    while( step < VARIOMETER_SPEED_FILTER_SIZE ) {
+
+      /* compute distance */
+      unsigned long currentTime = speedFilterTimestamps[speedFilterPos];
+      meanDistance += speedFilterSpeedValues[speedFilterPos] * (double)(currentTime - baseTime);
+      baseTime = currentTime;
+
+      /* next */
+      speedFilterPos++;
+      if( speedFilterPos >= VARIOMETER_SPEED_FILTER_SIZE )
+        speedFilterPos = 0;
+      step++;
+    }
+
+    /* compute glide ratio */
+    double ratio = (meanDistance/3600.0)/deltaAlti;
+
     /* display speed and ratio */    
     speedDigit.display( currentSpeed );
     if( currentSpeed >= RATIO_MIN_SPEED && ratio >= 0.0 && ratio < RATIO_MAX_VALUE ) {
