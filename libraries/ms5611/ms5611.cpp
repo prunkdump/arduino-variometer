@@ -8,7 +8,6 @@ uint32_t d1i;
 uint32_t d2i;
 
 /* measure status */
-static int interruptCount;
 static int measureStep;
 static boolean newData;
 
@@ -123,7 +122,6 @@ void ms5611_release() {
   if( interruptWait ) {
     ms5611_readStep(); //the interrupt can't read, do it for it
     TCNT2 = 0; //reset timer
-    interruptCount = 0;
     interruptWait = false;
   }
 }
@@ -132,38 +130,31 @@ void ms5611_release() {
 /* read at stable frequency */
 ISR(TIMER2_COMPA_vect) {
 
-  /* check time */
-  interruptCount++;
-  if( interruptCount >= MS5611_INTERRUPT_TIME ) {
-    interruptCount = 0;    
-
-    /* if mutex locked, let the main loop do the job when release */
-    if( locked ) {
-      interruptWait = true;
-      return;
-    }
-    
-    /* reenable interrupts for i2c */
-    interrupts();
-
-    /* read at stable frequency */
-    ms5611_readStep();
+  /* if mutex locked, let the main loop do the job when release */
+  if( locked ) {
+    interruptWait = true;
+    return;
   }
+    
+  /* reenable interrupts for i2c */
+  interrupts();
+
+  /* read at stable frequency */
+  ms5611_readStep();
 }
+
 
 /* setting timer */
 void ms5611_setTimer() {
-  noInterrupts();           // disable all interrupts
-  TCCR2A = 0;
-  TCCR2B = 0;
-  TCNT2  = 0;
+  noInterrupts();   // disable all interrupts
 
-  TCCR2B |= (1 << WGM22);   // CTC mode
-  TCCR2B |= (1 << CS21);    // 64 prescaler
-  TCCR2B |= (1 << CS20);
+  TCCR2A = 0b00000010; //CTC MODE
+  TCCR2B = 0b00000111; //1024 prescale
+  TIMSK2 = 0b00000010; //enable CompA
+  
+  TCNT2  = 0;
   OCR2A = MS5611_INTERRUPT_COMPARE;
   
-  TIMSK2 |= (1 << OCIE2A);  // enable timer compare interrupt
   interrupts();
 }
 
@@ -193,7 +184,6 @@ void ms5611_init() {
   basePressure = MS5611_BASE_SEA_PRESSURE;
 
   /* initialize interrupt variables */
-  interruptCount = 0;
   measureStep = MS5611_STEP_READ_TEMP;
   newData = false;
 
