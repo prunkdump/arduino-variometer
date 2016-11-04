@@ -95,27 +95,12 @@ uint8_t const DATA_RES_MASK = 0X1F;
 /** write data accepted token */
 uint8_t const DATA_RES_ACCEPTED = 0X05;
 //------------------------------------------------------------------------------
-// error codes
-/** Card did not go into SPI mode */
-uint8_t const SD_ERROR_CMD0              = 0X1;
-/** Card did not go ready */
-uint8_t const SD_ERROR_ACMD41            = 0X2;
-/** Write command not accepted */
-uint8_t const SD_ERROR_CMD24             = 0X3;
-/** Read command not accepted */
-uint8_t const SD_ERROR_CMD17             = 0X4;
-/** timeout waiting for read data */
-uint8_t const SD_ERROR_READ_TIMEOUT      = 0X5;
-/** write error occurred */
-uint8_t const SD_ERROR_WRITE_RESPONSE    = 0X6;
-/** timeout waiting for write status */
-uint8_t const SD_ERROR_WRITE_TIMEOUT     = 0X7;
-/** attempt to write block zero */
-uint8_t const SD_ERROR_BLOCK_ZERO_WRITE  = 0X8;
-/** card returned an error to a CMD13 status check after a write */
-uint8_t const SD_ERROR_WRITE_PROGRAMMING = 0X9;
-/** card fialed to initialize with CMD1*/
-uint8_t const SD_ERROR_CMD1              = 0XA;
+/** sd card type v1 */
+uint8_t const CARD_TYPE_SDV1 = 0x01;
+/** sd card type v2 */
+uint8_t const CARD_TYPE_SDV2 = 0x02;
+/** sd card type sdhc */
+uint8_t const CARD_TYPE_SDHC = 0x03;
 
 //------------------------------------------------------------------------------
 /**
@@ -127,10 +112,6 @@ uint8_t const SD_ERROR_CMD1              = 0XA;
  */
 class SdCard  {
  public:
-  /** Code for a SD error. See SdCard.h for definitions. */
-  uint8_t errorCode;
-  /** Data that may be helpful in determining the cause of an error */
-  uint8_t errorData;
   
   bool begin(uint8_t chipSelect = SS, uint8_t sckDivisor = SPI_CLOCK_DIV2);
   /**
@@ -165,13 +146,12 @@ class SdCard  {
   bool readBlock(uint32_t block, uint8_t* dst);
   bool writeBlock(uint32_t block, const uint8_t* src);
  private:
+  uint8_t chipSelectPin;
+  uint8_t cardType;
   uint8_t cardAcmd(uint8_t cmd, uint32_t arg);
   uint8_t cardCommand(uint8_t cmd, uint32_t arg);
-  uint8_t chipSelectPin_;
   void chipSelectHigh(void);
   void chipSelectLow(void);
-  void error(uint8_t code, uint8_t data);
-  void error(uint8_t code);
   bool readReg(uint8_t cmd, void* buf);
   bool readTransfer(uint8_t* dst, uint16_t count);
 };
