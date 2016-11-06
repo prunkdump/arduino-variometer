@@ -137,6 +137,18 @@ boolean sdcardFound;
 /*      SETUP      */
 /*-----------------*/
 void setup() {
+  /****************/
+  /* init sdcard  */
+  /****************/
+#ifdef HAVE_GPS
+#ifdef HAVE_SDCARD
+  if( file.init(SDCARD_CS_PIN, SDCARD_SPEED) >= 0 ) {
+    sdcardFound = true;
+   } else {
+    sdcardFound = false;
+   }
+#endif //HAVE_SDCARD
+#endif //HAVE_GPS
 
   /***************/
   /* init screen */
@@ -151,19 +163,6 @@ void setup() {
 #endif //HAVE_GPS
 #endif //HAVE_SCREEN
   
-  /****************/
-  /* init sdcard  */
-  /****************/
-#ifdef HAVE_GPS
-#ifdef HAVE_SDCARD
-  if( file.init(SDCARD_CS_PIN, SDCARD_SPEED) >= 0 ) {
-    sdcardFound = true;
-   } else {
-    sdcardFound = false;
-   }
-#endif //HAVE_SDCARD
-#endif //HAVE_GPS
-   
   /************************************/
   /* init altimeter and accelerometer */
   /************************************/
