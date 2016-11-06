@@ -52,29 +52,34 @@ STATIC_NOINLINE bool waitForToken(uint8_t token, uint16_t timeoutMillis) {
 // SdCard member functions
 //------------------------------------------------------------------------------
 uint8_t SdCard::cardCommand(uint8_t cmd, uint32_t arg) {
-  uint8_t r1;
-
   // select card
   chipSelectLow();
-
+  
   // wait if busy
-  waitForToken(0XFF, SD_WRITE_TIMEOUT);
+  waitForToken(0xff, SD_WRITE_TIMEOUT);
 
   // send command
   SPI.transfer(cmd | 0x40);
 
   // send argument
-  for (int8_t s = 24; s >= 0; s -= 8)
-    SPI.transfer(arg >> s);
+  uint8_t *pa = reinterpret_cast<uint8_t *>(&arg);
+  for (int8_t i = 3; i >= 0; i--) {
+    SPI.transfer(pa[i]);
+  }
+  
+  // send CRC - correct for CMD0 with arg zero or CMD8 with arg 0X1AA
+  SPI.transfer(cmd == CMD0 ? 0X95 : 0X87);
 
-  // send CRC - must send valid CRC for CMD0 and CMD8
-  SPI.transfer(cmd == CMD0 ? 0x95 : 0x87);
+  // skip stuff byte for stop read
+  if (cmd == CMD12) {
+    SPI.transfer(0xff);
+  }
 
-  // wait for not busy
-  for (uint8_t retry = 0; (0X80 & (r1 = SPI.transfer(0xff))) && retry != 0Xff; retry++);
-
-  chipSelectHigh();
-  return r1;
+  // wait for response
+  uint8_t status;
+  for (uint8_t i = 0; ((status = SPI.transfer(0xff)) & 0X80) && i != 0XFF; i++) {
+  }
+  return status;
 }
 //------------------------------------------------------------------------------
 uint8_t SdCard::cardAcmd(uint8_t cmd, uint32_t arg) {
@@ -83,11 +88,23 @@ uint8_t SdCard::cardAcmd(uint8_t cmd, uint32_t arg) {
 }
 //------------------------------------------------------------------------------
 void SdCard::chipSelectHigh(void) {
+  if (!selected) {
+    return;
+  }
   digitalWrite(chipSelectPin, HIGH);
+  SPI.transfer(0Xff);
+  //SPI.endTransaction();
+  selected = false;
 }
 //------------------------------------------------------------------------------
 void SdCard::chipSelectLow(void) {
-   digitalWrite(chipSelectPin, LOW);
+  if (selected) {
+    return;
+  }
+  //SPI.beginTransaction(SPISettings(SPI_MAX_SPEED, MSBFIRST, SPI_MODE0));
+  //SPI.setClockDivider(spiClockDivisor);
+  digitalWrite(chipSelectPin, LOW);
+  selected = true;
 }
 
 //------------------------------------------------------------------------------
@@ -102,56 +119,71 @@ void SdCard::chipSelectLow(void) {
  *
  */
 bool SdCard::begin(uint8_t chipSelect, uint8_t sckDivisor) {
-
+  uint8_t status;
+  
+  /* save parameter */
   chipSelectPin = chipSelect;
 
-  uint8_t r;
   // 16-bit init start time allows over a minute
-  uint16_t t0 = (uint16_t)millis();
+  unsigned t0 = (unsigned)millis();
+  uint32_t arg;
 
+  // initialize SPI bus and chip select pin.
   pinMode(chipSelectPin, OUTPUT);
   digitalWrite(chipSelectPin, HIGH);
-
   SPI.begin();
-  SPI.setClockDivider(sckDivisor);
-    
-  // must supply min of 74 clock cycles with CS high.
-  for (uint8_t i = 0; i < 10; i++) SPI.transfer(0Xff);
-  
-  // command to go idle in SPI mode
-  while ((r = cardCommand(CMD0, 0)) != R1_IDLE_STATE) {
-    if (((uint16_t)millis() - t0) > SD_INIT_TIMEOUT) {
-      chipSelectHigh();
-      return false;
-    }
-  }
-  
-  // send CMD8
-  if (cardCommand(CMD8, 0x1AA) == (R1_ILLEGAL_COMMAND | R1_IDLE_STATE)) {
-    cardType = CARD_TYPE_SDV1;
-  } else {
-    cardType = CARD_TYPE_SDV2;
-    // read response 
-    for (uint8_t i = 0; i < 4; i++) {
-      SPI.transfer(0xff);
-    }
-  }
-  
-  // send ACMD
-  uint32_t acmdArg = cardType == CARD_TYPE_SDV2 ? 0x40000000 : 0;
 
-  while ((r = cardAcmd(ACMD41, acmdArg)) != R1_READY_STATE) {
-    if (((uint16_t)millis() - t0) > SD_INIT_TIMEOUT) {
-      chipSelectHigh();
-      return false;
-    }  
-  }
+  // set SCK rate for initialization commands.
+  SPI.setClockDivider(SPI_SCK_INIT_DIVISOR);
   
-  // check for SDHC with CMD58
+  // toggle chip select and set slow SPI clock.
+  chipSelectLow();
+  chipSelectHigh();
+
+  // must supply min of 74 clock cycles with CS high.
+  for (uint8_t i = 0; i < 10; i++) {
+    SPI.transfer(0xff);
+  }
+  // command to go idle in SPI mode
+  while (cardCommand(CMD0, 0) != R1_IDLE_STATE) {
+    if (((unsigned)millis() - t0) > SD_INIT_TIMEOUT) {
+      goto fail;
+    }
+  }
+
+  // check SD version
+  while (1) {
+    if (cardCommand(CMD8, 0x1AA) == (R1_ILLEGAL_COMMAND | R1_IDLE_STATE)) {
+      cardType = CARD_TYPE_SDV1;
+      break;
+    }
+    for (uint8_t i = 0; i < 4; i++) {
+      status = SPI.transfer(0xff);
+    }
+    if (status == 0XAA) {
+      cardType = CARD_TYPE_SDV2;
+      break;
+    }
+    if (((unsigned)millis() - t0) > SD_INIT_TIMEOUT) {
+      goto fail;
+    }
+  }
+
+    
+  // initialize card and send host supports SDHC if SD2
+  arg = cardType == CARD_TYPE_SDV2 ? 0X40000000 : 0;
+    
+  while (cardAcmd(ACMD41, arg) != R1_READY_STATE) {
+    // check for timeout
+    if (((unsigned)millis() - t0) > SD_INIT_TIMEOUT) {
+      goto fail;
+    }
+  }
+    
+  // if SD2 read OCR register to check for SDHC card
   if (cardType == CARD_TYPE_SDV2) {
     if (cardCommand(CMD58, 0)) {
-      chipSelectHigh();
-      return false;
+      goto fail;
     }
     if ((SPI.transfer(0xff) & 0XC0) == 0XC0) {
       cardType = CARD_TYPE_SDHC;
@@ -162,8 +194,17 @@ bool SdCard::begin(uint8_t chipSelect, uint8_t sckDivisor) {
     }
   }
 
+
+  
+  chipSelectHigh();
+  SPI.setClockDivider(SPI_SCK_INIT_DIVISOR);
   return true;
+
+ fail:
+  chipSelectHigh();
+  return false;
 }
+
 //------------------------------------------------------------------------------
 /**
  * Reads a 512 byte block from a storage device.
@@ -174,42 +215,47 @@ bool SdCard::begin(uint8_t chipSelect, uint8_t sckDivisor) {
  * the value zero, false, is returned for failure.
  */
 bool SdCard::readBlock(uint32_t blockNumber, uint8_t* dst) {
-  if( cardType != CARD_TYPE_SDHC )
-    blockNumber <<= 9;
-  
-  if (cardCommand(CMD17, blockNumber)) {
-    chipSelectHigh();
-    return false;
-  }
-  return readTransfer(dst, 512);
-}
-//------------------------------------------------------------------------------
-bool SdCard::readReg(uint8_t cmd, void* buf) {
-  uint8_t* dst = reinterpret_cast<uint8_t*>(buf);
-  if (cardCommand(cmd, 0)) {
-    return false;
-  }
-  return readTransfer(dst, 16);
-}
-//------------------------------------------------------------------------------
-bool SdCard::readTransfer(uint8_t* dst, uint16_t count) {
-  chipSelectLow();
-  
-  // wait for start of data
-  if (!waitForToken(DATA_START_BLOCK, SD_READ_TIMEOUT)) {
-    chipSelectHigh();
-  }
-  // start first spi transfer
-  for (uint16_t i = 0; i < count; i++) {
-    dst[i] = SPI.transfer(0xff);
-  }
 
-  // wait for first and second CRC byte
-  SPI.transfer(0xff);
-  SPI.transfer(0xff);
+  uint8_t status;
+  unsigned t0;
   
+  /* get block number */
+  if (cardType != CARD_TYPE_SDHC) {
+    blockNumber <<= 9;
+  }
+  if (cardCommand(CMD17, blockNumber)) {
+    goto fail;
+  }
+  
+  /********/
+  /* read */
+  /********/
+  // wait for start block token
+  t0 = millis();
+  while ((status = SPI.transfer(0xff)) == 0XFF) {
+    if (((unsigned)millis() - t0) > SD_READ_TIMEOUT) {
+      goto fail;
+    }
+  }
+  if (status != DATA_START_BLOCK) {
+    goto fail;
+  }
+  // transfer data
+  for (size_t i = 0; i < 512; i++) {
+    dst[i] = SPI.transfer(0XFF);
+  }
+  
+  // discard crc
+  SPI.transfer(0XFF);
+  SPI.transfer(0XFF);
+
+  // ok
   chipSelectHigh();
   return true;
+
+fail:
+  chipSelectHigh();
+  return false;
 }
 //------------------------------------------------------------------------------
 /**
@@ -221,33 +267,39 @@ bool SdCard::readTransfer(uint8_t* dst, uint16_t count) {
  * the value zero, false, is returned for failure.
  */
 bool SdCard::writeBlock(uint32_t blockNumber, const uint8_t* src) {
-  if( cardType != CARD_TYPE_SDHC )
+  uint8_t status;
+  
+  /* set block number */
+  if (cardType != CARD_TYPE_SDHC) {
     blockNumber <<= 9;
- 
-  if (cardCommand(CMD24, blockNumber)) {
-    chipSelectHigh();
-    return false;
   }
-  // optimize write loop
-  chipSelectLow();
+  if (cardCommand(CMD24, blockNumber)) {
+    goto fail;
+  }
+
+  /*********/
+  /* write */
+  /*********/
+  SPI.transfer(0xff);
+  SPI.transfer(0xff);
   
   SPI.transfer(DATA_START_BLOCK);
-  for (int i = 0; i < 512; i++) {
+  for (size_t i = 0; i < 512; i++) {
     SPI.transfer(src[i]);
   }
-  SPI.transfer(0xFF);  // dummy crc
-  SPI.transfer(0xFF);  // dummy crc
+  SPI.transfer(0xff);
+  SPI.transfer(0xff);
+  
+  status = SPI.transfer(0xff);
+  if ((status & DATA_RES_MASK) != DATA_RES_ACCEPTED) {
+    goto fail;
+  }
 
-  // get write response
-  uint8_t r1 = SPI.transfer(0xFF);
-  if ((r1 & DATA_RES_MASK) != DATA_RES_ACCEPTED) {
-    chipSelectHigh();
-    return false;
-  }
-  // wait for card to complete write programming
-  if (!waitForToken(0XFF, SD_WRITE_TIMEOUT)) {
-    chipSelectHigh();
-  }
+  // ok
   chipSelectHigh();
   return true;
+  
+ fail:
+  chipSelectHigh();
+  return false;
 }

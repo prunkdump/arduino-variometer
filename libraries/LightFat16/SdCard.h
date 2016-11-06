@@ -26,6 +26,9 @@
 #include <Arduino.h>
 #include <SPI.h>
 
+
+#define SPI_SCK_INIT_DIVISOR SPI_CLOCK_DIV128
+
 //------------------------------------------------------------------------------
 // SD operation timeouts
 /** init timeout ms */
@@ -147,12 +150,11 @@ class SdCard  {
   bool writeBlock(uint32_t block, const uint8_t* src);
  private:
   uint8_t chipSelectPin;
+  boolean selected;
   uint8_t cardType;
   uint8_t cardAcmd(uint8_t cmd, uint32_t arg);
   uint8_t cardCommand(uint8_t cmd, uint32_t arg);
   void chipSelectHigh(void);
   void chipSelectLow(void);
-  bool readReg(uint8_t cmd, void* buf);
-  bool readTransfer(uint8_t* dst, uint16_t count);
 };
 #endif  // SdCard_h
