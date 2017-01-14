@@ -2,6 +2,7 @@
 #include <I2Cdev.h>
 #include <ms5611.h>
 #include <vertaccel.h>
+#include <EEPROM.h>
 #include <inv_mpu.h>
 #include <kalmanvert.h>
 #include <beeper.h>

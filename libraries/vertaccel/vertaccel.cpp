@@ -5,15 +5,74 @@
 #include <inv_mpu.h>
 #include <inv_mpu_dmp_motion_driver.h>
 
+#include <EEPROM.h>
 
 /******************/
 /* data variables */
 /******************/
 
+/* calibration */
+static double accelCal[3];
+
 static boolean newData;
 
 /* vertical acceleration */
 static double va;
+
+
+/*************************/
+/* calibration functions */
+/*************************/
+
+/* read calibration from EEPROM */
+void vertaccel_readCalibration(void) {
+
+  /* check tag */
+  uint16_t eepromTag;
+  eepromTag = EEPROM.read(VERTACCEL_EPROM_ADDR);
+  eepromTag <<= 8;
+  eepromTag += EEPROM.read(VERTACCEL_EPROM_ADDR + 0x01);
+  
+  if( eepromTag != VERTACCEL_EPROM_TAG ) {
+    accelCal[0] = 0.0;
+    accelCal[1] = 0.0;
+    accelCal[2] = 0.0;
+  } else {
+    /* read calibration settings */
+    uint8_t* datap = (uint8_t*)accelCal;
+    for( int i = 0; i<sizeof(accelCal); i++ ) {
+      datap[i] =  EEPROM.read(VERTACCEL_EPROM_ADDR + 0x02 + i);
+    }
+  }
+}
+
+/* save calibration to EEPROM */
+void vertaccel_saveCalibration(double* cal) {
+
+  /* write tag */
+  uint16_t eepromTag = VERTACCEL_EPROM_TAG;
+  EEPROM.write(VERTACCEL_EPROM_ADDR, (eepromTag>>8) & 0xff);
+  EEPROM.write(VERTACCEL_EPROM_ADDR + 0x01, eepromTag & 0xff);
+
+  /* save calibration settings */
+  uint8_t* datap = (uint8_t*)cal;
+  for( int i = 0; i<3*sizeof(double); i++ ) {
+    EEPROM.write(VERTACCEL_EPROM_ADDR + 0x02 + i, datap[i]);
+  }
+
+  /* save in global var */
+  accelCal[0] = cal[0];
+  accelCal[1] = cal[1];
+  accelCal[2] = cal[2];
+}
+
+/* give calibration coefficients */
+double* vertaccel_getCalibration(void) {
+
+  return accelCal;
+}  
+ 
+
 
 /********************/
 /* public functions */
@@ -42,6 +101,9 @@ int vertaccel_init(boolean giroCalibration) {
   } else {
     dmp_enable_feature(DMP_FEATURE_6X_LP_QUAT|DMP_FEATURE_SEND_RAW_ACCEL);
   }
+
+  /* init calibration settings */
+  vertaccel_readCalibration();
   
   /* init data variables */
   newData = false;
@@ -73,9 +135,9 @@ boolean vertaccel_dataReady() {
     double accel[3]; 
     double quat[4]; 
     
-    accel[0] = ((double)iaccel[0])/VERTACCEL_ACCEL_SCALE + VERTACCEL_ACCEL_CAL_X;
-    accel[1] = ((double)iaccel[1])/VERTACCEL_ACCEL_SCALE + VERTACCEL_ACCEL_CAL_Y;
-    accel[2] = ((double)iaccel[2])/VERTACCEL_ACCEL_SCALE + VERTACCEL_ACCEL_CAL_Z;
+    accel[0] = ((double)iaccel[0])/VERTACCEL_ACCEL_SCALE + accelCal[0];
+    accel[1] = ((double)iaccel[1])/VERTACCEL_ACCEL_SCALE + accelCal[1];
+    accel[2] = ((double)iaccel[2])/VERTACCEL_ACCEL_SCALE + accelCal[2];
         
     quat[0] = ((double)iquat[0])/VERTACCEL_QUAT_SCALE;
     quat[1] = ((double)iquat[1])/VERTACCEL_QUAT_SCALE;
@@ -165,7 +227,6 @@ boolean vertaccel_rawReady(double* accel, double* upVector, double* vertAccel) {
 }
 
 
-
 /* must be run before reading values */
 void vertaccel_updateData() {
 
@@ -178,10 +239,3 @@ void vertaccel_updateData() {
 double vertaccel_getValue() {
   return va * VERTACCEL_G_TO_MS;
 }
-
-
-
-
-
-
-  
