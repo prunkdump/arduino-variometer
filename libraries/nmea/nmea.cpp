@@ -43,7 +43,7 @@ void Nmea::feed(uint8_t c) {
   /* by default we suppose that this input byte will be outputed */
   outChar = c;
   nmeaState_set(AVAILIABLE);
-  inParity ^= c;
+  inParity ^= c;   //parity will be reverted later if must not be done
 
   switch( c ) {
 
@@ -142,7 +142,7 @@ void Nmea::feed(uint8_t c) {
 	}
 
 	/* for GGA we need to subsitute value */
-	if( nmeaState_isset(GGA_FOUND) ) {
+	if( commaCount == GGA_ALTI_COMMA_COUNT && nmeaState_isset(GGA_FOUND) ) {
 	  nmeaState_unset(AVAILIABLE); //don't output the digits
 	  digitParity ^= c; //store parity to correct the parity tag
 	}
@@ -151,6 +151,9 @@ void Nmea::feed(uint8_t c) {
 
     /* parity case */
     else {
+      /* !! revert parity !! */
+      inParity ^= c;
+      
       /****************/
       /* parity check */
       /****************/
@@ -165,25 +168,37 @@ void Nmea::feed(uint8_t c) {
       readPos++;
       
       /* if parity is read, check */
-      if( readPos == 2 && inParity == parityTag && nmeaState_isset(VALUE_FOUND) ) {
+      if( readPos == 2 ) {
 
-	/* new speed value */
-	if( nmeaState_isset(RMC_FOUND) ) {
-	  nmeaState_set(HAVE_NEW_SPEED_VALUE);
-	  gpsSpeed = value/NMEA_RMC_SPEED_PRECISION;
-	  /* calibration step */
-	  speedCalibrationStep++;
-	  if( speedCalibrationStep == NMEA_SPEED_CALIBRATION_PASS ) {
-	    nmeaState_set(READY);
+	/* ok parity is read */
+	nmeaState_unset(PARITY_FOUND);
+
+	/* compare parity */
+	if( inParity == parityTag && nmeaState_isset(VALUE_FOUND) ) {
+
+	  /* new speed value */
+	  if( nmeaState_isset(RMC_FOUND) ) {
+	    nmeaState_set(HAVE_NEW_SPEED_VALUE);
+	    gpsSpeed = value/NMEA_RMC_SPEED_PRECISION;
+	    /* calibration step */
+	    speedCalibrationStep++;
+	    if( speedCalibrationStep == NMEA_SPEED_CALIBRATION_PASS ) {
+	      nmeaState_set(READY);
+	      nmeaState_unset(AVAILIABLE); //don't output only the last parity digit
+	    }
+	  }
+	
+	  /* new alti value */
+	  if( nmeaState_isset(GGA_FOUND) ) {
+	    nmeaState_set(HAVE_NEW_ALTI_VALUE);
+	    gpsAlti = value/NMEA_GGA_ALTI_PRECISION;
 	  }
 	}
+      }
 
-	/* new alti value */
-	if( nmeaState_isset(GGA_FOUND) ) {
-	  nmeaState_set(HAVE_NEW_ALTI_VALUE);
-	  gpsAlti = value/NMEA_GGA_ALTI_PRECISION;
-	  nmeaState_unset(AVAILIABLE); //as alti is substitued we need to update parity, don't output
-	}
+      /* if GGA don't output parity as it will be substitued */
+      if( nmeaState_isset(GGA_FOUND) ) {
+	nmeaState_unset(AVAILIABLE);
       }
     }
   }
@@ -232,7 +247,7 @@ uint8_t Nmea::read(void) {
   }
 
   /* need to start POV sentence ? */
-  else if( nmeaState_isset(GGA_FOUND) && nmeaState_isset(PARITY_FOUND) && outChar == '\n' ) {
+  else if( nmeaState_isset(GGA_FOUND) && outChar == '\n' ) {
 
     povTagPos = 0; //will make tag output
     inParity = 0;  //used to compute sentence parity
@@ -251,8 +266,10 @@ uint8_t Nmea::read(void) {
     /* check the POV tag */
     if( povTagPos < POV_TAG_SIZE ) {
       readChar =  pgm_read_byte_near(povTag + povTagPos);
+      if( povTagPos != 0) {  //$ is not in parity
+	inParity ^= readChar;
+      }
       povTagPos++;
-      inParity ^= readChar;
     }
 
     /* check value digit */
@@ -276,7 +293,7 @@ uint8_t Nmea::read(void) {
 
       if( ! parityDigit.availiable() ) {
 	/* if we not writing POV sentence */
-	if( outChar != 1 ) {
+	if( povTagPos >= POV_TAG_FULL_SIZE  ) {
 	  nmeaState_unset(AVAILIABLE);
 	}
       }
@@ -295,7 +312,9 @@ uint8_t Nmea::read(void) {
 
   /* standard output */
   else {
-    nmeaState_unset(AVAILIABLE);
+    if( outChar == readChar ) {
+      nmeaState_unset(AVAILIABLE);
+    }
   }
 
   return readChar;
