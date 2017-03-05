@@ -65,6 +65,29 @@ void Digit::begin(double value) {
   ival = (unsigned long)value;
 }
 
+unsigned Digit::size(unsigned signSize, unsigned digitSize, unsigned dotSize) {
+  
+  unsigned long e = exp;
+  unsigned size = 0;
+
+  /* number of digits */
+  while( e > 0 ) {
+    e /= 10;
+    size += digitSize;
+  }
+
+  /* plus or minus needed ? */
+  if( digitState_isset(DISPLAY_PLUS) || digitState_isset(DISPLAY_MINUS) ) {
+    size += signSize;
+  }
+
+  /* dot needed ? */
+  if( precision > 0 ) {
+    size += dotSize;
+  }
+
+  return size;
+}
 
 boolean Digit::availiable(void) {
   if( exp > 0 ) {

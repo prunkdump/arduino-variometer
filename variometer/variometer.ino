@@ -10,6 +10,7 @@
 #include <SPI.h>
 #include <avr/pgmspace.h>
 #include <varioscreen.h>
+#include <digit.h>
 #include <SdCard.h>
 #include <LightFat16.h>
 #include <lightnmea.h>

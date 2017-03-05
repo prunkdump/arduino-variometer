@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include <SPI.h>
+#include <digit.h>
 
 #define VARIOSCREEN_DISPLAY_THRESHOLD 0.65
 
@@ -25,49 +26,58 @@ class VarioScreen {
 class ScreenDigit {
 
  public:
-  ScreenDigit(VarioScreen& screen, uint8_t anchorX, uint8_t anchorY, uint8_t precision, boolean plusDisplay = false)
-    : screen(screen), anchorX(anchorX), anchorY(anchorY), precision(precision), plusDisplay(plusDisplay) { lastDisplayWidth = 0; lastDisplayValue = 10000000.0; }
+  ScreenDigit(VarioScreen& screen, uint8_t anchorX, uint8_t anchorY, uint8_t precision, boolean plusDisplay = false) : screen(screen), digit(precision, plusDisplay), anchorX(anchorX), anchorY(anchorY) { lastDisplayWidth = 0; lastDisplayValue = 10000000.0; }
+  
   void display(double value);
 
  private:
   void displayCharacter(const uint8_t* pointer, uint8_t width, uint8_t line);
   VarioScreen& screen;
+  Digit digit;
   uint8_t anchorX, anchorY;
-  uint8_t precision;
-  boolean plusDisplay;
   uint8_t lastDisplayWidth;
   double lastDisplayValue;
 };
 
 class MSUnit {
+
  public :
   MSUnit(VarioScreen& screen) : screen(screen) { }
   void display(uint8_t posX, uint8_t posY);
+
  private :
   VarioScreen& screen;
 };
 
 class MUnit {
+
  public :
   MUnit(VarioScreen& screen) : screen(screen) { }
   void display(uint8_t posX, uint8_t posY);
+
  private :
   VarioScreen& screen;
 };
 
 class KMHUnit {
+
  public :
   KMHUnit(VarioScreen& screen) : screen(screen) { }
   void display(uint8_t posX, uint8_t posY);
+
  private :
   VarioScreen& screen;
 };
 
 class GRUnit {
+
  public :
   GRUnit(VarioScreen& screen) : screen(screen) { }
   void display(uint8_t posX, uint8_t posY);
+
  private :
   VarioScreen& screen;
 };
+
+
 #endif

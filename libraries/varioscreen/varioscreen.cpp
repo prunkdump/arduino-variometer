@@ -2,7 +2,7 @@
 #include <Arduino.h>
 #include <avr/pgmspace.h>
 #include <SPI.h>
-
+#include <digit.h>
 
 #define VARIOSCREEN_FONT_HEIGHT 2
 
@@ -187,71 +187,23 @@ void ScreenDigit::display(double value) {
   /* build digit */
   /***************/
 
-  /* store the characters to be displayed */
+  /* to store the characters to be displayed */
   uint8_t digitCharacters[MAX_CHAR_IN_LINE];
-  uint8_t digitPos = 0;
- 
-  /* set precision */
-  uint8_t p = precision;
-  while(p > 0) {
-    value *= 10;
-    p--;
-  }
+  uint8_t digitSize = 0;
 
-  /* check if display if needed */
-  if( (value - lastDisplayValue > -VARIOSCREEN_DISPLAY_THRESHOLD) &&
-      (value - lastDisplayValue < VARIOSCREEN_DISPLAY_THRESHOLD)) {
-    return;
-  }
+  /* compute the total digit width in pixels */
+  digit.begin(value);
+  uint8_t digitWidth = digit.size(VARIOSCREEN_DIGIT_WIDTH, VARIOSCREEN_DIGIT_WIDTH, VARIOSCREEN_DOT_WIDTH);
 
-  /* check sign */
-  boolean neg = false;
-  if( value < 0.0 ) {
-    value *= -1.0;
-    neg = true;
+  /* get characters */
+  while( digit.availiable() ) {
+    digitCharacters[digitSize] = digit.get();
+    digitSize++;
   }
-
-  /* fill digit characters */
-  unsigned long ival = value;
-  lastDisplayValue = ival;
-  if( neg ) {
-    lastDisplayValue *= -1.0;
-  }
-  
-  p = precision;
-  while( p > 0) {
-    digitCharacters[digitPos] = ival % 10;
-    digitPos++;
-    ival /= 10;
-    p--;
-  }
-  
-  if( ival == 0 ) { //leading zero
-    digitCharacters[digitPos] = 0;
-    digitPos++;
-  } else {
-    while( ival != 0 ) {
-      digitCharacters[digitPos] = ival % 10;
-      digitPos++;
-      ival /= 10;
-    }
-  }
-  
+   
   /*******************/
   /* prepare display */
   /*******************/
-
-  uint8_t digitCharCount = digitPos;
-  uint8_t beforeDotCount = digitCharCount - precision;
-
-  /* compute new width */
-  uint8_t digitWidth = digitPos * VARIOSCREEN_DIGIT_WIDTH;
-  if( precision > 0 ) { //dot needed ?
-    digitWidth += VARIOSCREEN_DOT_WIDTH;
-  }
-  if( neg || plusDisplay ) {
-    digitWidth += VARIOSCREEN_DIGIT_WIDTH;
-  }
 
   /* number of bytes that need to be deleted */
   uint8_t nullWidth;
@@ -265,11 +217,11 @@ void ScreenDigit::display(double value) {
   /* start position */
   uint8_t posX = anchorX - digitWidth - nullWidth;
   uint8_t posY = anchorY;
-
+  
   /*****************/
   /* start display */
   /*****************/
-
+  
   uint8_t line;
   for(line = 0; line < VARIOSCREEN_FONT_HEIGHT; line++) {
     screen.beginDisplay(posX, posY + line);
@@ -279,31 +231,32 @@ void ScreenDigit::display(double value) {
       screen.display(0);
     }
 
-    /* the sign if needed */
-    if( neg ) {
-      displayCharacter(varioscreenMinus, VARIOSCREEN_DIGIT_WIDTH, line);
-    } else if( plusDisplay ) {
-      displayCharacter(varioscreenPlus, VARIOSCREEN_DIGIT_WIDTH, line);
-    }
+    /* the digit characters */
+    for(int i = 0; i<digitSize; i++) {
+      uint8_t c = digitCharacters[i];
+      
+      switch( c ) {
+      case '+':
+	displayCharacter(varioscreenPlus, VARIOSCREEN_DIGIT_WIDTH, line);
+	break;
 
-    /* before the dot */
-    for(int i = 1; i<=beforeDotCount; i++) {
-      uint8_t digit = digitCharacters[digitPos - i];
-      displayCharacter(varioscreenDigit[digit], VARIOSCREEN_DIGIT_WIDTH, line);
-    }
+      case '-':
+	displayCharacter(varioscreenMinus, VARIOSCREEN_DIGIT_WIDTH, line);
+	break;
 
-    /* the dot if needed */
-    if( precision > 0 ) {
-      displayCharacter(varioscreenDot, VARIOSCREEN_DOT_WIDTH, line);
-    }
+      case '.':
+	displayCharacter(varioscreenDot, VARIOSCREEN_DOT_WIDTH, line);
+	break;
 
-    /* after the dot */
-    for(int i = beforeDotCount+1; i<=digitCharCount; i++) {
-      uint8_t digit = digitCharacters[digitPos - i];
-      displayCharacter(varioscreenDigit[digit], VARIOSCREEN_DIGIT_WIDTH, line);
+      default:
+	displayCharacter(varioscreenDigit[c - '0'], VARIOSCREEN_DIGIT_WIDTH, line);
+	break;
+      }
     }
+    
     screen.endDisplay();
   }
+  
   screen.flush();
 }
 
