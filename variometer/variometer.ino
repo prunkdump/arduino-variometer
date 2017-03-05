@@ -14,7 +14,7 @@
 #include <SdCard.h>
 #include <LightFat16.h>
 #include <nmea.h>
-
+#include <wserial.h>
 
 /*!!!!!!!!!!!!!!!!!!!!!!!*/
 /* VARIOMETER STRUCTURE  */
@@ -24,11 +24,14 @@
 #define HAVE_SCREEN
 #define HAVE_GPS
 #define HAVE_SDCARD
+#define HAVE_BLUETOOTH
 
 #define VARIOSCREEN_DC_PIN 6
 #define VARIOSCREEN_CS_PIN 2
 #define VARIOSCREEN_RST_PIN 4
 #define SDCARD_CS_PIN 8
+#define BLUETOOTH_TX_PIN 5
+#define BLUETOOTH_BAUDS 9600
 
 // the variometer seems to be more stable at half speed
 // don't hesitate to experiment
@@ -129,6 +132,10 @@ lightfat16 file;
 boolean sdcardFound;
 #endif //HAVE_SDCARD
 
+#ifdef HAVE_BLUETOOTH
+WSerial bluetooth(BLUETOOTH_TX_PIN);
+#endif //HAVE_BLUETOOTH
+
 #endif //HAVE_GPS
 
 /*-----------------*/
@@ -146,6 +153,10 @@ void setup() {
     sdcardFound = false;
    }
 #endif //HAVE_SDCARD
+
+#ifdef HAVE_BLUETOOTH
+  bluetooth.begin(BLUETOOTH_BAUDS);
+#endif //HAVE_BLUETOOTH
 #endif //HAVE_GPS
 
   /***************/
@@ -305,6 +316,9 @@ void loop() {
             file.write(oc);
           }
 #endif //HAVE_SDCARD
+#ifdef HAVE_BLUETOOTH
+          bluetooth.write(oc);
+#endif //HAVE_BLUETOOTH
     }
   }
 #endif //HAVE_GPS
