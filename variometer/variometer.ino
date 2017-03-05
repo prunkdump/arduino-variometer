@@ -13,7 +13,7 @@
 #include <digit.h>
 #include <SdCard.h>
 #include <LightFat16.h>
-#include <lightnmea.h>
+#include <nmea.h>
 
 
 /*!!!!!!!!!!!!!!!!!!!!!!!*/
@@ -116,12 +116,8 @@ boolean beepNearThermalEnabled = false;
 /***************/
 #ifdef HAVE_GPS
 
-#define GPS_CALIBRATION_STEPS 5
-
-NmeaParser parser;
-boolean gpsDataStarted = false;
+Nmea nmea;
 boolean gpsAltiCalibrated = false;
-unsigned char gpsAltiCalibrationStep = 0;
 
 unsigned long speedFilterTimestamps[VARIOMETER_SPEED_FILTER_SIZE];
 double speedFilterSpeedValues[VARIOMETER_SPEED_FILTER_SIZE];
@@ -246,6 +242,11 @@ void loop() {
 #ifdef HAVE_SPEAKER
     beeper.setVelocity( kalmanvert.getVelocity() );
 #endif //HAVE_SPEAKER
+
+    /* set nmea data */
+#ifdef HAVE_GPS
+    nmea.setBaroData( kalmanvert.getPosition(), kalmanvert.getVelocity() );
+#endif //HAVE_GPS
   }
 
   /*****************/
@@ -261,7 +262,7 @@ void loop() {
     if( (millis() > FLIGHT_START_MIN_TIMESTAMP) &&
         (kalmanvert.getVelocity() < FLIGHT_START_VARIO_LOW_THRESHOLD || kalmanvert.getVelocity() > FLIGHT_START_VARIO_HIGH_THRESHOLD)
 #ifdef HAVE_GPS
-        && gpsAltiCalibrated && (parser.getSpeed() > FLIGHT_START_MIN_SPEED)
+        && gpsAltiCalibrated && (nmea.getSpeed() > FLIGHT_START_MIN_SPEED)
 #endif //HAVE_GPS
       ) {
     beepNearThermalEnabled = true;
@@ -282,91 +283,29 @@ void loop() {
 #ifdef HAVE_GPS
   if( Serial.available() > 0 ) {
     
-    /* if needed wait for GPS initialization */
-    if( ! gpsDataStarted ) {
-      while (Serial.available() > 0) {
-        int c = Serial.read();
-        if( c == '$' ) {
-          parser.getChar(c);
-#ifdef HAVE_SDCARD
-          if( sdcardFound ) {
-            file.write(c);
-          }
-#endif //HAVE_SDCARD
-          gpsDataStarted = true;
-        }
+    /* feed nmea */
+    nmea.feed(Serial.read());
+    
+    /* check if we need to calibrate */
+    if( ! gpsAltiCalibrated ) {
+      if( nmea.ready() ) {
+        double gpsAlti = nmea.getAlti();
+        ms5611_setCurrentAltitude(gpsAlti);
+        kalmanvert.resetPosition(gpsAlti);
+        gpsAltiCalibrated = true;
+        nmea.setBaroData(gpsAlti, kalmanvert.getVelocity());
       }
     }
     
-    /* else parse NMEA and save to sdcard */
-    if( gpsDataStarted ) {
+    /* read nmea and output if needed */
+    while( nmea.availiable() ) {
+      uint8_t oc = nmea.read();
 #ifdef HAVE_SDCARD
-      boolean altiSaved = false;
-#endif //HAVE_SDCARD
-      while (Serial.available() > 0) {
-        int c = Serial.read();
-        parser.getChar(c);
-#ifdef HAVE_SDCARD
-        if( sdcardFound ) {
-          file.write(c);
-          /*--------------------------------*/
-          /* save barometric alti if needed */
-          /*--------------------------------*/
-          if( ! altiSaved && parser.haveNewSpeedValue() && gpsAltiCalibrated ) { //just after $GPRMC
-            file.write('\r');
-            file.write('\n'); // the newline of the $GPRMC line will be writed after
-            uint8_t altiDigits[13];
-            unsigned currentAlti = (kalmanvert.getPosition()*10.0);
-            uint8_t parity = (((('$'^'B')^'A')^',')^'.'); //one digit after .
-            altiDigits[3] = '0'+ currentAlti%10;
-            currentAlti /= 10;
-            altiDigits[4] = '.';
-            parity ^= altiDigits[3];
-            
-            int8_t pos = 5;
-            while( currentAlti != 0) {
-              altiDigits[pos] =  '0' + currentAlti%10;
-              currentAlti /= 10;
-              pos++;
-            }
-            
-            /* constants */
-            altiDigits[pos] = ',';
-            altiDigits[pos+1] = 'A';
-            altiDigits[pos+2] = 'B';
-            altiDigits[pos+3] = '$';
-            pos+=3;
-  
-            /* parity */
-            altiDigits[0] = '0' + parity%10;
-            altiDigits[1] = '0' + parity/10;
-            altiDigits[2] = '*';
-            
-            while(pos >= 0) {
-              file.write(altiDigits[pos]);
-              pos--;
-            }
-            
-            altiSaved = true;
+          if( sdcardFound ) {
+            file.write(oc);
           }
-        }
 #endif //HAVE_SDCARD
-      }
     }
-  }
-  
-  /* recalibrate alti with gps */
-  if( ! gpsAltiCalibrated ) {
-   if( parser.haveNewAltiValue() ) {
-     gpsAltiCalibrationStep++;
-     parser.getAlti(); //clear the new value flag
-     if( gpsAltiCalibrationStep == GPS_CALIBRATION_STEPS) { //get 5 alti values before calibrating
-       double gpsAlti = parser.getAlti();
-       ms5611_setCurrentAltitude(gpsAlti);
-       kalmanvert.resetPosition(gpsAlti);
-       gpsAltiCalibrated = true;
-     }
-   }
   }
 #endif //HAVE_GPS
   
@@ -385,7 +324,7 @@ void loop() {
   
 #ifdef HAVE_GPS
   /* when getting speed from gps, display speed and ratio */
-  if ( parser.haveNewSpeedValue() ) {
+  if ( nmea.haveNewSpeedValue() ) {
 
     /* get new values */
     unsigned long baseTime = speedFilterTimestamps[speedFilterPos];
@@ -395,7 +334,7 @@ void loop() {
     double deltaAlti = speedFilterAltiValues[speedFilterPos]; //computed later
     speedFilterAltiValues[speedFilterPos] = kalmanvert.getPosition(); 
 
-    double currentSpeed = parser.getSpeed();
+    double currentSpeed = nmea.getSpeed();
     speedFilterSpeedValues[speedFilterPos] = currentSpeed;
 
     speedFilterPos++;

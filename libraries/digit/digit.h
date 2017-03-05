@@ -3,6 +3,8 @@
 
 #include <Arduino.h>
 
+/* !!! can only display numbers with less than 10 digits !!! */
+
 class Digit {
 
  public:
