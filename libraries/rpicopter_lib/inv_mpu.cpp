@@ -23,6 +23,7 @@
 #include <string.h>
 #include <math.h>
 #include "inv_mpu.h"
+#include "inv_dmp_uncompress.h"
 
 /* The following functions must be defined for this platform:
  * i2c_write(unsigned char slave_addr, unsigned char reg_addr,
@@ -2142,34 +2143,31 @@ int mpu_read_mem(unsigned short mem_addr, unsigned short length,
  *  @param[in]  sample_rate Fixed sampling rate used when DMP is enabled.
  *  @return     0 if successful.
  */
-int mpu_load_firmware(unsigned short length, const unsigned char *firmware,
-    unsigned short start_addr, unsigned short sample_rate)
+
+//!!! modified to use compressed DMP code
+int mpu_load_firmware(unsigned short start_addr, unsigned short sample_rate)
 {
     unsigned short ii;
     unsigned short this_write;
     int errCode;
-    uint8_t *progBuffer;
+
     /* Must divide evenly into GYRO_HW_BANK_SIZE to avoid bank crossings. */
 #define LOAD_CHUNK  (16)
+    uint8_t progBuffer[LOAD_CHUNK];
     unsigned char cur[LOAD_CHUNK], tmp[2];
 
     if (st->chip_cfg.dmp_loaded)
         /* DMP should only be loaded once. */
-        return -1;
+      return -1;
 
-    if (!firmware)
-        return -2;
-        
-    progBuffer = (uint8_t *)malloc(LOAD_CHUNK);
-    for (ii = 0; ii < length; ii += this_write) {
-        this_write = min(LOAD_CHUNK, length - ii);
+    /* start loading */
+    inv_dmp_uncompress_reset();
+    
+    for (ii = 0; ii < UNCOMPRESSED_DMP_CODE_SIZE; ii += this_write) {
+        this_write = min(LOAD_CHUNK, UNCOMPRESSED_DMP_CODE_SIZE - ii);
         
         for (int progIndex = 0; progIndex < this_write; progIndex++)
-#ifdef __SAM3X8E__
-            progBuffer[progIndex] = firmware[ii + progIndex];
-#else
-            progBuffer[progIndex] = pgm_read_byte(firmware + ii + progIndex);
-#endif
+	    progBuffer[progIndex] = inv_dmp_uncompress();
             
         if ((errCode = mpu_write_mem(ii, this_write, progBuffer))) {
 #ifdef MPU_DEBUG

@@ -30,7 +30,9 @@
 #define VARIOSCREEN_CS_PIN 2
 #define VARIOSCREEN_RST_PIN 4
 #define SDCARD_CS_PIN 8
-#define BLUETOOTH_TX_PIN 5
+#define BLUETOOTH_RX_PIN 7
+
+#define GPS_BAUDS 9600
 #define BLUETOOTH_BAUDS 9600
 
 // the variometer seems to be more stable at half speed
@@ -133,7 +135,7 @@ boolean sdcardFound;
 #endif //HAVE_SDCARD
 
 #ifdef HAVE_BLUETOOTH
-WSerial bluetooth(BLUETOOTH_TX_PIN);
+WSerial bluetooth(BLUETOOTH_RX_PIN);
 #endif //HAVE_BLUETOOTH
 
 #endif //HAVE_GPS
@@ -190,7 +192,7 @@ void setup() {
   /* init gps */
   /************/
 #ifdef HAVE_GPS
-  Serial.begin(9600);
+  Serial.begin(GPS_BAUDS);
 #endif //HAVE_GPS
   
   /******************/
