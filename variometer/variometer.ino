@@ -38,6 +38,9 @@
 #define GPS_BAUDS 9600
 #define BLUETOOTH_BAUDS 9600
 
+//you can try 800 on <8mhz microcontrollers (not always work)
+#define FASTWIRE_SPEED 400
+
 // the variometer seems to be more stable at half speed
 // don't hesitate to experiment
 #if F_CPU >= 16000000L
@@ -180,12 +183,7 @@ void setup() {
   /************************************/
   /* init altimeter and accelerometer */
   /************************************/
-  /* !!! fastwire don't take on account the cpu frequency !!! */
-#if F_CPU >= 16000000L
-  Fastwire::setup(400,0);
-#else
-  Fastwire::setup(800,0);
-#endif //CPU_FREQ
+  Fastwire::setup(FASTWIRE_SPEED, 0);
   ms5611_init();
 #ifdef HAVE_ACCELEROMETER
   vertaccel_init();
