@@ -32,6 +32,9 @@
 #define SDCARD_CS_PIN 8
 #define BLUETOOTH_RX_PIN 7
 
+//adjust if needed
+#define VARIOSCREEN_CONTRAST 60
+
 #define GPS_BAUDS 9600
 #define BLUETOOTH_BAUDS 9600
 
@@ -165,7 +168,7 @@ void setup() {
   /* init screen */
   /***************/
 #ifdef HAVE_SCREEN
-  screen.begin(VARIOSCREEN_SPEED);
+  screen.begin(VARIOSCREEN_SPEED, VARIOSCREEN_CONTRAST);
   munit.display(VARIOSCREEN_ALTI_ANCHOR_X, VARIOSCREEN_ALTI_ANCHOR_Y);
   msunit.display(VARIOSCREEN_VARIO_ANCHOR_X, VARIOSCREEN_VARIO_ANCHOR_Y);
 #ifdef HAVE_GPS
