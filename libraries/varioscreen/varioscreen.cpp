@@ -102,7 +102,18 @@ VarioScreen::VarioScreen(int8_t DC, int8_t CS, int8_t RST) {
 
 void VarioScreen::begin(uint8_t clockDiviser, uint8_t contrast, uint8_t bias) {
   // ONLY HARDWARE SPI 
-  SPI.begin();
+
+  //don't use SPI.begin();
+  // we don't want SS pin HIGH
+  //pinMode(_cs, OUTPUT);
+  //digitalWrite(_cs, HIGH);
+  pinMode(SS, OUTPUT);
+  SPCR |= _BV(MSTR);
+  SPCR |= _BV(SPE);
+  pinMode(SCK, OUTPUT);
+  pinMode(MOSI, OUTPUT);
+
+  // set SPI
   SPI.setClockDivider(clockDiviser);
   SPI.setDataMode(SPI_MODE0);
   SPI.setBitOrder(MSBFIRST);

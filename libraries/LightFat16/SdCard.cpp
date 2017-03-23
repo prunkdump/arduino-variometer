@@ -131,7 +131,14 @@ bool SdCard::begin(uint8_t chipSelect, uint8_t sckDivisor) {
   // initialize SPI bus and chip select pin.
   pinMode(chipSelectPin, OUTPUT);
   digitalWrite(chipSelectPin, HIGH);
-  SPI.begin();
+
+  //don't use SPI.begin();
+  // we don't want SS pin HIGH
+  pinMode(SS, OUTPUT);
+  SPCR |= _BV(MSTR);
+  SPCR |= _BV(SPE);
+  pinMode(SCK, OUTPUT);
+  pinMode(MOSI, OUTPUT);
 
   // set SCK rate for initialization commands.
   SPI.setClockDivider(SPI_SCK_INIT_DIVISOR);
