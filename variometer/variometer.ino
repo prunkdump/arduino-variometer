@@ -295,7 +295,7 @@ void loop() {
   /* update gps */
   /**************/
 #ifdef HAVE_GPS
-  if( Serial.available() > 0 ) {
+  while( Serial.available() > 0 ) {
     
     /* feed nmea */
     nmea.feed(Serial.read());
