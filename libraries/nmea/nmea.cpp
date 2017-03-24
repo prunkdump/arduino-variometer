@@ -132,9 +132,10 @@ void Nmea::feed(uint8_t c) {
       }
 
       /* the speed or alti value */
-      if( commaCount == RMC_SPEED_COMMA_COUNT || commaCount == GGA_ALTI_COMMA_COUNT ) {
-	/* made even if it is not the coorect tag */
-	/* ignore dot as the pricision is constant */
+      if( ! nmeaState_isset(VALUE_FOUND) &&
+	  ( commaCount == RMC_SPEED_COMMA_COUNT || commaCount == GGA_ALTI_COMMA_COUNT )) {
+	/* made even if it is not the correct tag */
+	/* ignore dot as the precision is constant */
 	if( c >= '0' && c <= '9' ) {  
 	  value *= 10;
 	  value += c - '0';
@@ -179,7 +180,7 @@ void Nmea::feed(uint8_t c) {
 	  /* new speed value */
 	  if( nmeaState_isset(RMC_FOUND) ) {
 	    nmeaState_set(HAVE_NEW_SPEED_VALUE);
-	    gpsSpeed = value/NMEA_RMC_SPEED_PRECISION;
+	    gpsSpeed = (value/NMEA_RMC_SPEED_PRECISION)*KNOTS_TO_KMH;
 	    /* calibration step */
 	    speedCalibrationStep++;
 	    if( speedCalibrationStep == NMEA_SPEED_CALIBRATION_PASS ) {

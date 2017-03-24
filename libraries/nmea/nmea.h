@@ -11,6 +11,8 @@
 #define NMEA_RMC_SPEED_PRECISION 1000.0
 #define NMEA_GGA_ALTI_PRECISION 10.0
 
+#define KNOTS_TO_KMH 1.852 
+
 /************************************************************/
 /* NMEA                                                     */ 
 /* -> parse the nmea sentences from gps                     */
