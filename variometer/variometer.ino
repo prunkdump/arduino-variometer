@@ -24,7 +24,7 @@
 #define HAVE_SCREEN
 #define HAVE_GPS
 #define HAVE_SDCARD
-#define HAVE_BLUETOOTH
+//#define HAVE_BLUETOOTH
 
 #define VARIOSCREEN_DC_PIN 4
 #define VARIOSCREEN_CS_PIN 3
