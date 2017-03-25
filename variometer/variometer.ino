@@ -14,7 +14,6 @@
 #include <SdCard.h>
 #include <LightFat16.h>
 #include <nmea.h>
-#include <wserial.h>
 
 /*!!!!!!!!!!!!!!!!!!!!!!!*/
 /* VARIOMETER STRUCTURE  */
@@ -30,13 +29,12 @@
 #define VARIOSCREEN_CS_PIN 3
 #define VARIOSCREEN_RST_PIN 2
 #define SDCARD_CS_PIN 14
-#define BLUETOOTH_RX_PIN 7
 
 //adjust if needed
 #define VARIOSCREEN_CONTRAST 60
 
-#define GPS_BAUDS 9600
-#define BLUETOOTH_BAUDS 9600
+//GPS and bluetooth must have the same bauds
+#define GPS_BLUETOOTH_BAUDS 9600
 
 //you can try 800 on <8mhz microcontrollers (not always work)
 #define FASTWIRE_SPEED 400
@@ -140,10 +138,6 @@ lightfat16 file;
 boolean sdcardFound;
 #endif //HAVE_SDCARD
 
-#ifdef HAVE_BLUETOOTH
-WSerial bluetooth(BLUETOOTH_RX_PIN);
-#endif //HAVE_BLUETOOTH
-
 #endif //HAVE_GPS
 
 /*-----------------*/
@@ -161,10 +155,6 @@ void setup() {
     sdcardFound = false;
    }
 #endif //HAVE_SDCARD
-
-#ifdef HAVE_BLUETOOTH
-  bluetooth.begin(BLUETOOTH_BAUDS);
-#endif //HAVE_BLUETOOTH
 #endif //HAVE_GPS
 
   /***************/
@@ -189,11 +179,11 @@ void setup() {
   vertaccel_init();
 #endif //HAVE_ACCELEROMETER
   
-  /************/
-  /* init gps */
-  /************/
-#ifdef HAVE_GPS
-  Serial.begin(GPS_BAUDS);
+  /**************************/
+  /* init gps and bluetooth */
+  /**************************/
+#if defined(HAVE_GPS) || defined(HAVE_BLUETOOTH)
+  Serial.begin(GPS_BLUETOOTH_BAUDS);
 #endif //HAVE_GPS
   
   /******************/
@@ -320,7 +310,7 @@ void loop() {
           }
 #endif //HAVE_SDCARD
 #ifdef HAVE_BLUETOOTH
-          bluetooth.write(oc);
+          Serial.write(oc);
 #endif //HAVE_BLUETOOTH
     }
   }
