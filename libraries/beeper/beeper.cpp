@@ -2,8 +2,11 @@
 #include <beeper.h>
 #include <toneAC.h>
 
-beeper::beeper(double sinkingThreshold, double climbingThreshold, double nearClimbingSensitivity) {
+beeper::beeper(double sinkingThreshold, double climbingThreshold, double nearClimbingSensitivity, uint8_t baseVolume) {
 
+  /* save volume */
+  volume = baseVolume;
+  
   /* set threshold */
   setThresholds(sinkingThreshold, climbingThreshold, nearClimbingSensitivity);
   
@@ -18,6 +21,11 @@ void beeper::setThresholds(double sinkingThreshold, double climbingThreshold, do
   beepSinkingThreshold = sinkingThreshold;
   beepGlidingThreshold = climbingThreshold - nearClimbingSensitivity;
   beepClimbingThreshold = climbingThreshold;
+}
+
+void beeper::setVolume(uint8_t newVolume) {
+
+  volume = newVolume;
 }
 
 void beeper::setGlidingBeepState(boolean status) {
@@ -260,10 +268,10 @@ void beeper::setTone() {
       /* set tone */
       if( halfPaternPosition < CLIMBING_ALARM_HIGH_LENGTH ) {
 	if( !bst_isset(BEEP_HIGH) ) {
-	  toneAC(CLIMBING_ALARM_FREQ);
+	  toneAC(CLIMBING_ALARM_FREQ, volume);
 	  bst_set(BEEP_HIGH);
 	} else if( bst_isset(BEEP_NEW_FREQ) ) {
-	  toneAC(CLIMBING_ALARM_FREQ);
+	  toneAC(CLIMBING_ALARM_FREQ, volume);
 	}
       } else {
 	toneAC(0.0);
@@ -276,7 +284,7 @@ void beeper::setTone() {
     /*****************/
     else {
       if( !bst_isset(BEEP_HIGH) || bst_isset(BEEP_NEW_FREQ) ) {
-	toneAC(SINKING_ALARM_FREQ);
+	toneAC(SINKING_ALARM_FREQ, volume);
 	bst_set(BEEP_HIGH);
       }
     }
@@ -287,7 +295,7 @@ void beeper::setTone() {
     /****************/
     if( beepType == BEEP_TYPE_SINKING ) {
       if( !bst_isset(BEEP_HIGH) || bst_isset(BEEP_NEW_FREQ) ) {
-	toneAC(beepFreq);
+	toneAC(beepFreq, volume);
 	bst_set(BEEP_HIGH);
       }
     }
@@ -307,10 +315,10 @@ void beeper::setTone() {
       if( bst_isset(GLIDING_BEEP_ENABLED) ) {
 	if( beepPaternPosition < GLIDING_BEEP_HIGH_LENGTH ) {
 	  if( !bst_isset(BEEP_HIGH) ) {
-	    toneAC(beepFreq);
+	    toneAC(beepFreq, volume);
 	    bst_set(BEEP_HIGH);
 	  } else if( bst_isset(BEEP_NEW_FREQ) ) {
-	    toneAC(beepFreq);
+	    toneAC(beepFreq, volume);
 	  }
 	} else {
 	  toneAC(0.0);
@@ -328,10 +336,10 @@ void beeper::setTone() {
     else {
       if( beepPaternPosition < CLIMBING_BEEP_HIGH_LENGTH ) {
 	if( !bst_isset(BEEP_HIGH) ) {
-	  toneAC(beepFreq);
+	  toneAC(beepFreq, volume);
 	  bst_set(BEEP_HIGH);
 	} else if( bst_isset(BEEP_NEW_FREQ) ) {
-	  toneAC(beepFreq);
+	  toneAC(beepFreq, volume);
 	}
       } else {
 	toneAC(0.0);

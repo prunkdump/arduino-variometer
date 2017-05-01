@@ -4,6 +4,7 @@
 /***************************/
 /* beep general parameters */
 /***************************/
+#define BEEP_DEFAULT_VOLUME 10
 
 /* default threshold */
 #define BEEP_VELOCITY_DEFAULT_SINKING_THRESHOLD (-2.0)
@@ -90,12 +91,15 @@ class beeper {
  public:
   beeper(double sinkingThreshold = BEEP_VELOCITY_DEFAULT_SINKING_THRESHOLD,
 	 double climbingThreshold = BEEP_VELOCITY_DEFAULT_CLIMBING_THRESHOLD,
-	 double nearClimbingSensitivity = BEEP_VELOCITY_DEFAULT_NEAR_CLIMBING_SENSITIVITY);
+	 double nearClimbingSensitivity = BEEP_VELOCITY_DEFAULT_NEAR_CLIMBING_SENSITIVITY,
+	 uint8_t volume = BEEP_DEFAULT_VOLUME);
 
-  /* to stop beeper, set a very low and hight threshold. ex : -1000.0 and 1000.0 */
+  /* to stop beeper, set volume = 0 or set a very low and hight threshold. ex : -1000.0 and 1000.0 */
   void setThresholds(double sinkingThreshold = BEEP_VELOCITY_DEFAULT_SINKING_THRESHOLD,
 		     double climblingThreshold = BEEP_VELOCITY_DEFAULT_CLIMBING_THRESHOLD,
 		     double nearClimbingSensitivity = BEEP_VELOCITY_DEFAULT_NEAR_CLIMBING_SENSITIVITY);
+
+  void setVolume(uint8_t newVolume = BEEP_DEFAULT_VOLUME);
 
   /* set near thermal alarm status */
   void setGlidingBeepState(boolean status);
@@ -114,6 +118,7 @@ class beeper {
   double beepSinkingThreshold;
   double beepGlidingThreshold;
   double beepClimbingThreshold;
+  uint8_t volume;
   unsigned long beepStartTime;
   double beepVelocity;
   double beepFreq;
