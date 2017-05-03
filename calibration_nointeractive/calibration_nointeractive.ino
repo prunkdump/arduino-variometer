@@ -37,10 +37,10 @@ void signalBeep(double freq, unsigned long duration, int count = 1) {
 void setup() {
   
   /* init calibrator */
+  delay(5000);
   Fastwire::setup(400,0);
   calibrator.init();
-  delay(5000);
-  
+    
   /* start beep */
   signalBeep(HIGH_BEEP_FREQ, BASE_BEEP_DURATION, 3);
   
