@@ -7,6 +7,7 @@
 #include <avr/pgmspace.h>
 #include <accelcalibrator.h>
 #include <toneAC.h>
+#include <FirmwareUpdater.h>
 
 #define HIGH_BEEP_FREQ 1000.0
 #define LOW_BEEP_FREQ 100.0
@@ -40,6 +41,11 @@ void setup() {
   delay(5000);
   Fastwire::setup(400,0);
   calibrator.init();
+  
+  /* launch firmware update if needed */
+  if( firmwareUpdateCond() ) {
+   firmwareUpdate();
+  }
     
   /* start beep */
   signalBeep(HIGH_BEEP_FREQ, BASE_BEEP_DURATION, 3);

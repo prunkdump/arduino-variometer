@@ -14,6 +14,7 @@
 #include <SdCard.h>
 #include <LightFat16.h>
 #include <nmea.h>
+#include <FirmwareUpdater.h>
 
 /*!!!!!!!!!!!!!!!!!!!!!!!*/
 /* VARIOMETER STRUCTURE  */
@@ -179,6 +180,9 @@ void setup() {
   ms5611_init();
 #ifdef HAVE_ACCELEROMETER
   vertaccel_init();
+  if( firmwareUpdateCond() ) {
+   firmwareUpdate();
+  }
 #endif //HAVE_ACCELEROMETER
   
   /**************************/
