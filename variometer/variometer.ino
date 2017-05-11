@@ -13,7 +13,9 @@
 #include <digit.h>
 #include <SdCard.h>
 #include <LightFat16.h>
-#include <nmea.h>
+#include <SerialNmea.h>
+#include <NmeaParser.h>
+#include <LxnavSentence.h>
 #include <FirmwareUpdater.h>
 
 /*!!!!!!!!!!!!!!!!!!!!!!!*/
@@ -24,7 +26,7 @@
 #define HAVE_SCREEN
 #define HAVE_GPS
 #define HAVE_SDCARD
-//#define HAVE_BLUETOOTH
+#define HAVE_BLUETOOTH
 
 #define VARIOSCREEN_DC_PIN 4
 #define VARIOSCREEN_CS_PIN 3
@@ -64,6 +66,9 @@
 
 /* mean filter duration = filter size * 2 seconds */
 #define VARIOMETER_SPEED_FILTER_SIZE 5
+
+/* best precision is 100 */
+#define VARIOMETER_GPS_ALTI_CALIBRATION_PRECISION_THRESHOLD 200
 
 /*****************/
 /* screen objets */
@@ -128,7 +133,10 @@ boolean beepNearThermalEnabled = false;
 /***************/
 #ifdef HAVE_GPS
 
-Nmea nmea;
+NmeaParser nmeaParser;
+LxnavSentence lxnav;
+unsigned long RMCSentenceTimestamp;
+boolean lastSentence = false;
 boolean gpsAltiCalibrated = false;
 
 unsigned long speedFilterTimestamps[VARIOMETER_SPEED_FILTER_SIZE];
@@ -188,9 +196,13 @@ void setup() {
   /**************************/
   /* init gps and bluetooth */
   /**************************/
-#if defined(HAVE_GPS) || defined(HAVE_BLUETOOTH)
-  Serial.begin(GPS_BLUETOOTH_BAUDS);
+#if defined(HAVE_BLUETOOTH) || defined(HAVE_GPS)
+#ifdef HAVE_GPS
+  serialNmea.begin(GPS_BLUETOOTH_BAUDS, true);
+#else
+  serialNmea.begin(GPS_BLUETOOTH_BAUDS, false);
 #endif //HAVE_GPS
+#endif //defined(HAVE_BLUETOOTH) || defined(HAVE_GPS)
   
   /******************/
   /* get first data */
@@ -252,11 +264,7 @@ void loop() {
 #ifdef HAVE_SPEAKER
     beeper.setVelocity( kalmanvert.getVelocity() );
 #endif //HAVE_SPEAKER
-
-    /* set nmea data */
-#ifdef HAVE_GPS
-    nmea.setBaroData( kalmanvert.getPosition(), kalmanvert.getVelocity() );
-#endif //HAVE_GPS
+    
   }
 
   /*****************/
@@ -272,7 +280,7 @@ void loop() {
     if( (millis() > FLIGHT_START_MIN_TIMESTAMP) &&
         (kalmanvert.getVelocity() < FLIGHT_START_VARIO_LOW_THRESHOLD || kalmanvert.getVelocity() > FLIGHT_START_VARIO_HIGH_THRESHOLD)
 #ifdef HAVE_GPS
-        && gpsAltiCalibrated && (nmea.getSpeed() > FLIGHT_START_MIN_SPEED)
+        && gpsAltiCalibrated && (nmeaParser.getSpeed() > FLIGHT_START_MIN_SPEED)
 #endif //HAVE_GPS
       ) {
     beepNearThermalEnabled = true;
@@ -290,38 +298,57 @@ void loop() {
   /**************/
   /* update gps */
   /**************/
-#ifdef HAVE_GPS
-  while( Serial.available() > 0 ) {
+  
+  /* in priority send vario nmea sentence */
+  if( lxnav.availiable() ) {
+    while( lxnav.availiable() ) {
+       serialNmea.write( lxnav.get() );
+    }
     
-    /* feed nmea */
-    nmea.feed(Serial.read());
+    serialNmea.release();
+  }
+  
+  /* else try to parse GPS nmea */
+  else {
     
-    /* check if we need to calibrate */
+    /* try to lock sentences */
+    if( serialNmea.lockRMC() ) {
+      RMCSentenceTimestamp = millis();
+      nmeaParser.beginRMC();
+    } else if( serialNmea.lockGGA() ) {
+      nmeaParser.beginGGA();
+      lastSentence = true;
+    }
+  
+    /* parse if needed */
+    if( nmeaParser.isParsing() ) {
+      while( nmeaParser.isParsing() ) {
+         nmeaParser.feed( serialNmea.read() );
+      }
+      serialNmea.release();
+    
+      /* if this is the last GPS sentence */
+      /* we can send our sentences */
+      if( lastSentence ) {
+          lastSentence = false;
+          lxnav.begin(kalmanvert.getPosition(), kalmanvert.getVelocity());
+          serialNmea.lock();
+      }
+    }
+  
+    /* check if we need to calibrate the altimeter */
     if( ! gpsAltiCalibrated ) {
-      if( nmea.ready() ) {
-        double gpsAlti = nmea.getAlti();
+    
+      /* we need a good quality value */
+      if( nmeaParser.haveNewAltiValue() && nmeaParser.precision < VARIOMETER_GPS_ALTI_CALIBRATION_PRECISION_THRESHOLD ) {
+        double gpsAlti = nmeaParser.getAlti();
         ms5611_setCurrentAltitude(gpsAlti);
         kalmanvert.resetPosition(gpsAlti);
         gpsAltiCalibrated = true;
-        nmea.setBaroData(gpsAlti, kalmanvert.getVelocity());
       }
     }
-    
-    /* read nmea and output if needed */
-    while( nmea.availiable() ) {
-      uint8_t oc = nmea.read();
-#ifdef HAVE_SDCARD
-          if( sdcardFound ) {
-            file.write(oc);
-          }
-#endif //HAVE_SDCARD
-#ifdef HAVE_BLUETOOTH
-          Serial.write(oc);
-#endif //HAVE_BLUETOOTH
-    }
-  }
-#endif //HAVE_GPS
-  
+  } 
+   
   /*****************/
   /* update screen */
   /*****************/
@@ -337,17 +364,17 @@ void loop() {
   
 #ifdef HAVE_GPS
   /* when getting speed from gps, display speed and ratio */
-  if ( nmea.haveNewSpeedValue() ) {
+  if ( nmeaParser.haveNewSpeedValue() ) {
 
     /* get new values */
     unsigned long baseTime = speedFilterTimestamps[speedFilterPos];
-    unsigned long deltaTime = millis(); //computed later
-    speedFilterTimestamps[speedFilterPos] = deltaTime;
+    unsigned long deltaTime = RMCSentenceTimestamp; //delta computed later
+    speedFilterTimestamps[speedFilterPos] = RMCSentenceTimestamp;
     
     double deltaAlti = speedFilterAltiValues[speedFilterPos]; //computed later
     speedFilterAltiValues[speedFilterPos] = kalmanvert.getPosition(); 
 
-    double currentSpeed = nmea.getSpeed();
+    double currentSpeed = nmeaParser.getSpeed();
     speedFilterSpeedValues[speedFilterPos] = currentSpeed;
 
     speedFilterPos++;

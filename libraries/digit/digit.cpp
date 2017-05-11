@@ -65,6 +65,14 @@ void Digit::begin(double value) {
   ival = (unsigned long)value;
 }
 
+
+void Digit::begin(double value, uint8_t digitPrecision) {
+
+  precision = digitPrecision;
+  begin(value);
+}
+  
+
 unsigned Digit::size(unsigned signSize, unsigned digitSize, unsigned dotSize) {
   
   unsigned long e = exp;

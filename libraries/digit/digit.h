@@ -8,8 +8,9 @@
 class Digit {
 
  public:
-  Digit(uint8_t digitPrecision, boolean plusDisplay = false);
+  Digit(uint8_t digitPrecision = 0, boolean plusDisplay = false);
   void begin(double value);
+  void begin(double value, uint8_t digitPrecision);
   unsigned size(unsigned signSize = 1, unsigned digitSize = 1, unsigned dotSize = 1); //!! work only just after begin
   boolean availiable(void);
   uint8_t get(void);
