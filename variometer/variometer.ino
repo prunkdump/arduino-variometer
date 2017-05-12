@@ -16,6 +16,7 @@
 #include <SerialNmea.h>
 #include <NmeaParser.h>
 #include <LxnavSentence.h>
+#include <IGCSentence.h>
 #include <FirmwareUpdater.h>
 
 /*!!!!!!!!!!!!!!!!!!!!!!!*/
@@ -146,6 +147,7 @@ int8_t speedFilterPos = 0;
 
 #ifdef HAVE_SDCARD
 lightfat16 file;
+IGCSentence igc;
 boolean sdcardFound;
 #endif //HAVE_SDCARD
 
@@ -318,12 +320,28 @@ void loop() {
     } else if( serialNmea.lockGGA() ) {
       nmeaParser.beginGGA();
       lastSentence = true;
+      
+      /* start to write IGC B frames */
+      if( sdcardFound && gpsAltiCalibrated ) {
+        file.write( igc.begin( kalmanvert.getPosition() ) );
+      }
     }
   
     /* parse if needed */
     if( nmeaParser.isParsing() ) {
       while( nmeaParser.isParsing() ) {
-         nmeaParser.feed( serialNmea.read() );
+        uint8_t c = serialNmea.read();
+        
+        /* parse sentence */        
+        nmeaParser.feed( c );
+        
+        /* if GGA, convert to IGC and write to sdcard */
+        if( sdcardFound && lastSentence && gpsAltiCalibrated ) {
+          igc.feed(c);
+          while( igc.availiable() ) {
+            file.write( igc.get() );
+          }
+        }
       }
       serialNmea.release();
     
