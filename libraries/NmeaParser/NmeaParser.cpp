@@ -72,8 +72,18 @@ void NmeaParser::feed(uint8_t c) {
       /* GGA case */
       else {
 
+	/* GGA time */
+	if( commaCount == NMEA_PARSER_GGA_TIME_POS ) {
+	  time = value;
+	}
+
+	/* GGA satellite count */
+	else if( commaCount == NMEA_PARSER_GGA_SATELLITE_COUNT_POS ) {
+	  satelliteCount = value;
+	}
+
 	/* GGA precision */
-	if( commaCount == NMEA_PARSER_GGA_PRECISION_POS ) {
+	else if( commaCount == NMEA_PARSER_GGA_PRECISION_POS ) {
 	  precision = value;
 	}
 
