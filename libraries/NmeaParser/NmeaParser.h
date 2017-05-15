@@ -2,6 +2,7 @@
 #define NMEA_PARSER_H
 
 #define NMEA_PARSER_RMC_SPEED_POS 7
+#define NMEA_PARSER_RMC_DATE_POS 9 
 #define NMEA_PARSER_GGA_PRECISION_POS 8
 #define NMEA_PARSER_GGA_ALTITUDE_POS 9
 #define NMEA_PARSER_RMC_SPEED_PRECISION 1000.0
@@ -26,6 +27,8 @@ class NmeaParser {
   double getAlti(void);
   double getSpeed(void);
   bool isParsing(void);
+  bool isParsingRMC(void);
+  bool isParsingGGA(void);
 
  private :
   uint8_t state;

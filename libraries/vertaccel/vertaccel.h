@@ -29,7 +29,7 @@
 /*******************/
 /* init the device */
 /*******************/
-int vertaccel_init(boolean giroCalibration = true);
+void vertaccel_init(boolean giroCalibration = true);
 
 /***********/
 /* reading */

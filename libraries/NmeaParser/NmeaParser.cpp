@@ -120,4 +120,14 @@ bool NmeaParser::isParsing(void) {
   return ( parserState_isset(PARSE_RMC) || parserState_isset(PARSE_GGA) );
 }
 
+bool NmeaParser::isParsingRMC(void) {
+
+  return parserState_isset(PARSE_RMC);
+}
+bool NmeaParser::isParsingGGA(void) {
+
+  return parserState_isset(PARSE_GGA);
+}
+
+
 

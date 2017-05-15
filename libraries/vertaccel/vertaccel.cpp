@@ -79,7 +79,7 @@ double* vertaccel_getCalibration(void) {
 /********************/
 
 /* init vertaccel */
-int vertaccel_init(boolean giroCalibration) {
+void vertaccel_init(boolean giroCalibration) {
 
   /* setting imu */
   mpu_select_device(0);
