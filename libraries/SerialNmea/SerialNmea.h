@@ -25,17 +25,17 @@ class SerialNmea {
   uint8_t buffer[SERIAL_NMEA_BUFFER_SIZE];
 
  private :
-  uint8_t state;
-  uint8_t txTail;
-  uint8_t txHead;
-  uint8_t writePos;
-  uint8_t rmcPos;
-  uint8_t ggaPos;
-  uint8_t nmeaPos;
+  volatile uint8_t state;
+  volatile uint8_t txTail;
+  volatile uint8_t txHead;
+  volatile uint8_t writePos;
+  volatile uint8_t rmcPos;
+  volatile uint8_t ggaPos;
+  volatile uint8_t nmeaPos;
   uint8_t readPos;
-  int8_t nmeaParseStep;
-  uint8_t nmeaParity;
-  uint8_t parityTag;
+  volatile int8_t nmeaParseStep;
+  volatile uint8_t nmeaParity;
+  volatile uint8_t parityTag;
   
 };
 
