@@ -9,6 +9,7 @@ void kalmanvert::init(double startp, double starta, double sigmap, double sigmaa
   v = 0;
   a = starta;
   t = timestamp;
+  calibrationDrift = 0.0;
     
   /* init variance */
   varp = sigmap * sigmap;
@@ -75,21 +76,31 @@ void kalmanvert::update(double mp, double ma, unsigned long timestamp) {
 }
 
 double kalmanvert::getPosition() {
+
   return p;
 }
 
+double kalmanvert::getCalibratedPosition() {
+
+  return (p + calibrationDrift);
+}
+
 double kalmanvert::getVelocity() {
+
   return v;
 }
 
 double kalmanvert::getAcceleration() {
+
   return a;
 }
 
 unsigned long kalmanvert::getTimestamp() {
+
   return t;
 }
 
-void kalmanvert::resetPosition(double position) {
-  p = position;
+void kalmanvert::calibratePosition(double newPosition) {
+
+  calibrationDrift = newPosition - p;
 }

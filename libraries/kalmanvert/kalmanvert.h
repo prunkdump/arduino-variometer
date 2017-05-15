@@ -23,12 +23,13 @@ class kalmanvert {
 
   /* at any time get result */
   double getPosition();
+  double getCalibratedPosition();
   double getVelocity();
   double getAcceleration();
   unsigned long getTimestamp();
 
-  /* reset the current altitude without changing velocity and acceleration */
-  void resetPosition(double position);
+  /* reset the current position without changing velocity and acceleration */
+  void calibratePosition(double newPosition);
 
  private:
   /* position variance, acceleration variance */
@@ -37,6 +38,9 @@ class kalmanvert {
   /* position, velocity, acceleration, timestamp */
   double p, v, a;
   unsigned long t;
+
+  /* calibration */
+  double calibrationDrift;
 
   /* covariance matrix */
   double p11, p21, p12, p22;

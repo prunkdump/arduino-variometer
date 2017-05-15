@@ -24,6 +24,10 @@
 /* want.                                                         */ 
 /*###############################################################*/
 
+/* the pressure normalized sea level pressure */  
+#define MS5611_BASE_SEA_PRESSURE 1013.25
+
+
 #define MS5611_ADDRESS (0x77)
 #define MS5611_CMD_RESET (0x1E)
 #define MS5611_CMD_READ_PROM (0xA2)
@@ -50,10 +54,6 @@
 #endif
 #define MS5611_INTERRUPT_START_DELAY 1000
 
-#define MS5611_BASE_SEA_PRESSURE 1013.25
-// 10 meters correction
-#define MS5611_PRESSURE_CORRECTION_FACTOR 0.9988151618
-
 /* ################################ */
 
 /* first init the altimeter */
@@ -78,9 +78,5 @@ void ms5611_updateData(void);
 double ms5611_getTemperature();
 double ms5611_getPressure();
 double ms5611_getAltitude();
-
-/* you can change the base pressure at any time */
-/* each step change =~ 10 meter */
-void ms5611_setCurrentAltitude(double currentAlti); //if altitude is known
 
 #endif

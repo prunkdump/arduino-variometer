@@ -70,6 +70,7 @@
 
 /* best precision is 100 */
 #define VARIOMETER_GPS_ALTI_CALIBRATION_PRECISION_THRESHOLD 200
+//#define VARIOMETER_SEND_CALIBRATED_ALTITUDE 
 
 /* flight start detection */
 #define FLIGHT_START_MIN_TIMESTAMP 15000
@@ -349,7 +350,7 @@ void loop() {
     /* try to lock sentences */
     if( serialNmea.lockRMC() ) {
       RMCSentenceTimestamp = millis();
-      RMCSentenceCurrentAlti = kalmanvert.getPosition();
+      RMCSentenceCurrentAlti = kalmanvert.getPosition(); //useless to take calibrated here
       nmeaParser.beginRMC();
     } else if( serialNmea.lockGGA() ) {
       nmeaParser.beginGGA();
@@ -359,7 +360,11 @@ void loop() {
 #ifdef HAVE_SDCARD      
       /* start to write IGC B frames */
       if( sdcardState == SDCARD_STATE_READY ) {
+#ifdef VARIOMETER_SEND_CALIBRATED_ALTITUDE
+        file.write( igc.begin( kalmanvert.getCalibratedPosition() ) );
+#else
         file.write( igc.begin( kalmanvert.getPosition() ) );
+#endif
       }
 #endif //HAVE_SDCARD
     }
@@ -389,7 +394,11 @@ void loop() {
       /* we can send our sentences */
       if( lastSentence ) {
           lastSentence = false;
+#ifdef VARIOMETER_SEND_CALIBRATED_ALTITUDE
+          lxnav.begin(kalmanvert.getCalibratedPosition(), kalmanvert.getVelocity());
+#else
           lxnav.begin(kalmanvert.getPosition(), kalmanvert.getVelocity());
+#endif
           serialNmea.lock(); //will be writed at next loop
       }
 #endif //HAVE_BLUETOOTH
@@ -410,8 +419,7 @@ void loop() {
           
           /* calibrate */
           double gpsAlti = nmeaParser.getAlti();
-          ms5611_setCurrentAltitude(gpsAlti);
-          kalmanvert.resetPosition(gpsAlti);
+          kalmanvert.calibratePosition(gpsAlti);
           variometerState = VARIOMETER_STATE_CALIBRATED;
           
          
@@ -505,7 +513,7 @@ void loop() {
 #ifdef HAVE_SCREEN
   /* alternate display : alti / vario */
   if( screenStatus == 0 ) {
-    altiDigit.display( kalmanvert.getPosition() );
+    altiDigit.display( kalmanvert.getCalibratedPosition() );
     screenStatus = 1;
   } else {
     varioDigit.display( kalmanvert.getVelocity() );
@@ -532,7 +540,7 @@ void loop() {
       speedFilterPos = 0;
 
     /* compute deltas */
-    deltaAlti -= kalmanvert.getPosition();
+    deltaAlti -= RMCSentenceCurrentAlti;
     deltaTime -= baseTime;
     
     /* compute mean distance */
