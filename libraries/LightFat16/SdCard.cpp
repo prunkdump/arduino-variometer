@@ -201,10 +201,9 @@ bool SdCard::begin(uint8_t chipSelect, uint8_t sckDivisor) {
     }
   }
 
-
-  
+  /* reset SPI clock */
   chipSelectHigh();
-  SPI.setClockDivider(SPI_SCK_INIT_DIVISOR);
+  SPI.setClockDivider(sckDivisor);
   return true;
 
  fail:

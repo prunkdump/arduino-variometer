@@ -30,6 +30,11 @@ int lightfat16::init(int sspin, uint8_t sckDivisor) {
     return -1;
   }
 
+  return 0;
+}
+
+int lightfat16::begin(void) {
+
   /*************************/
   /* find fat 16 partition */
   /*************************/
