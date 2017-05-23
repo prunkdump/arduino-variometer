@@ -29,9 +29,9 @@
 #define HAVE_SDCARD
 #define HAVE_BLUETOOTH
 
-#define VARIOSCREEN_DC_PIN 4
+#define VARIOSCREEN_DC_PIN 2
 #define VARIOSCREEN_CS_PIN 3
-#define VARIOSCREEN_RST_PIN 2
+#define VARIOSCREEN_RST_PIN 4
 #define SDCARD_CS_PIN 14
 
 //adjust if needed
@@ -84,8 +84,9 @@
 /* General objects */
 /*******************/
 #define VARIOMETER_STATE_INITIAL 0
-#define VARIOMETER_STATE_CALIBRATED 1
-#define VARIOMETER_STATE_FLIGHT_STARTED 2
+#define VARIOMETER_STATE_DATE_RECORDED 1
+#define VARIOMETER_STATE_CALIBRATED 2
+#define VARIOMETER_STATE_FLIGHT_STARTED 3
 
 #ifdef HAVE_GPS
 uint8_t variometerState = VARIOMETER_STATE_INITIAL;
@@ -151,7 +152,6 @@ beeper beeper(VARIOMETER_SINKING_THRESHOLD, VARIOMETER_CLIMBING_THRESHOLD, VARIO
 #ifdef HAVE_GPS
 
 NmeaParser nmeaParser;
-uint8_t gpsDate[6];
 
 #ifdef HAVE_BLUETOOTH
 boolean lastSentence = false;
@@ -195,9 +195,11 @@ void setup() {
   /****************/
   /* init SD Card */
   /****************/
+#ifdef HAVE_SDCARD
   if( file.init(SDCARD_CS_PIN, SDCARD_SPEED) >= 0 ) {
     sdcardState = SDCARD_STATE_INITIALIZED;  //useless to set error
   }
+#endif //HAVE_SDCARD
  
   /***************/
   /* init screen */
@@ -230,23 +232,6 @@ void setup() {
 #if defined(HAVE_BLUETOOTH) || defined(HAVE_GPS)
 #ifdef HAVE_GPS
   serialNmea.begin(GPS_BLUETOOTH_BAUDS, true);
-  
-  /* get date on RMC sentence */
-  while( !serialNmea.lockRMC() ) { //wait for RMC
-  }
-  
-  uint8_t commaCount = 1; //serialNmea don't give the first comma
-  while( commaCount < NMEA_PARSER_RMC_DATE_POS ) {  //wait for date
-    if( serialNmea.read() == ',' ) {
-      commaCount++;
-    }
-  }
-  
-  for(int i=0; i<6; i++) {  //read date
-    gpsDate[i] = serialNmea.read();
-  }
-  serialNmea.release();  
-  
 #else
   serialNmea.begin(GPS_BLUETOOTH_BAUDS, false);
 #endif //HAVE_GPS
@@ -283,6 +268,9 @@ void setup() {
    
 }
 
+#ifdef HAVE_SDCARD
+void createSDCardTrackFile(void);
+#endif //HAVE_SDCARD
 
 /*----------------*/
 /*      LOOP      */
@@ -410,9 +398,16 @@ void loop() {
     /*    (after parsing)      */
     /***************************/
     if( variometerState < VARIOMETER_STATE_FLIGHT_STARTED ) {
-      
-      /* check if we need to calibrate */
+
+      /* if initial state check if date is recorded  */
       if( variometerState == VARIOMETER_STATE_INITIAL ) {
+        if( nmeaParser.haveDate() ) {
+          variometerState = VARIOMETER_STATE_DATE_RECORDED;
+        }
+      }
+      
+      /* check if we need to calibrate the altimeter */
+      else if( variometerState == VARIOMETER_STATE_DATE_RECORDED ) {
         
         /* we need a good quality value */
         if( nmeaParser.haveNewAltiValue() && nmeaParser.precision < VARIOMETER_GPS_ALTI_CALIBRATION_PRECISION_THRESHOLD ) {
@@ -421,35 +416,8 @@ void loop() {
           double gpsAlti = nmeaParser.getAlti();
           kalmanvert.calibratePosition(gpsAlti);
           variometerState = VARIOMETER_STATE_CALIBRATED;
-          
-         
 #if defined(HAVE_SDCARD) && ! defined(VARIOMETER_RECORD_WHEN_FLIGHT_START)
-          /* start the sdcard record */
-          if( sdcardState == SDCARD_STATE_INITIALIZED ) {
-            if( file.begin() >= 0 ) {
-              sdcardState = SDCARD_STATE_READY;
-            
-              /* write the header */
-              int16_t datePos = header.begin();
-              if( datePos >= 0 ) {
-                while( datePos ) {
-                  file.write(header.get());
-                  datePos--;
-                }
-            
-                for(datePos = 0; datePos < 6; datePos++) {
-                  file.write(gpsDate[datePos]);
-                  header.get();
-                }
-            
-                while( header.availiable() ) {
-                  file.write(header.get());
-                }
-              }
-            } else {
-              sdcardState = SDCARD_STATE_ERROR; //avoid retry 
-            }
-          }
+          createSDCardTrackFile();
 #endif //defined(HAVE_SDCARD) && ! defined(VARIOMETER_RECORD_WHEN_FLIGHT_START)
         }
       }
@@ -471,32 +439,7 @@ void loop() {
           beeper.setGlidingBeepState(true);
 #endif
 #if defined(HAVE_SDCARD) && defined(VARIOMETER_RECORD_WHEN_FLIGHT_START)
-          /* start the sdcard record */
-          if( sdcardState == SDCARD_STATE_INITIALIZED ) {
-            if( file.begin() >= 0 ) {
-              sdcardState = SDCARD_STATE_READY;
-            
-              /* write the header */
-              int16_t datePos = header.begin();
-              if( datePos >= 0 ) {
-                while( datePos ) {
-                  file.write(header.get());
-                  datePos--;
-                }
-            
-                for(datePos = 0; datePos < 6; datePos++) {
-                  file.write(gpsDate[datePos]);
-                  header.get();
-                }
-            
-                while( header.availiable() ) {
-                  file.write(header.get());
-                }
-              }
-            } else {
-              sdcardState = SDCARD_STATE_ERROR; //avoid retry 
-            }
-          }
+          createSDCardTrackFile();
 #endif//defined(HAVE_SDCARD) && defined(VARIOMETER_RECORD_WHEN_FLIGHT_START)
         }
       }
@@ -574,3 +517,41 @@ void loop() {
 #endif //HAVE_GPS
 #endif //HAVE_SCREEN 
 }
+
+
+
+#ifdef HAVE_SDCARD
+void createSDCardTrackFile(void) {
+  /* start the sdcard record */
+  if( sdcardState == SDCARD_STATE_INITIALIZED ) {
+    if( file.begin() >= 0 ) {
+      sdcardState = SDCARD_STATE_READY;
+            
+      /* write the header */
+      int16_t datePos = header.begin();
+      if( datePos >= 0 ) {
+        while( datePos ) {
+        file.write(header.get());
+          datePos--;
+        }
+
+        /* write date */
+        uint32_t date = nmeaParser.date;
+        uint32_t exp = 100000;
+        for(int i=0; i<6; i++) {
+          file.write(((uint8_t)(date/exp)) + '0');
+          date %= exp;
+          exp /= 10;
+          header.get();
+        }
+            
+        while( header.availiable() ) {
+          file.write(header.get());
+        }
+      }
+    } else {
+      sdcardState = SDCARD_STATE_ERROR; //avoid retry 
+    }
+  }
+}
+#endif //HAVE_SDCARD

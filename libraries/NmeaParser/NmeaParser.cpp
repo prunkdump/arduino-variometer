@@ -11,6 +11,7 @@
 #define DIGIT_PARSED 2
 #define HAVE_NEW_SPEED_VALUE 3
 #define HAVE_NEW_ALTI_VALUE 4
+#define HAVE_DATE 5
 
 #define KNOTS_TO_KMH 1.852 
 
@@ -67,6 +68,12 @@ void NmeaParser::feed(uint8_t c) {
 	  parserState_set(HAVE_NEW_SPEED_VALUE);
 	}
 
+	/* RMC date */
+        else if( commaCount == NMEA_PARSER_RMC_DATE_POS ) {
+	  date = value;
+	  parserState_set(HAVE_DATE);
+	}
+
       }
 
       /* GGA case */
@@ -74,7 +81,7 @@ void NmeaParser::feed(uint8_t c) {
 
 	/* GGA time */
 	if( commaCount == NMEA_PARSER_GGA_TIME_POS ) {
-	  time = value;
+	  time = value/NMEA_PARSER_GGA_TIME_PRECISION;
 	}
 
 	/* GGA satellite count */
@@ -111,6 +118,11 @@ bool NmeaParser::haveNewAltiValue(void) {
 bool NmeaParser::haveNewSpeedValue(void) {
 
   return parserState_isset(HAVE_NEW_SPEED_VALUE);
+}
+
+bool NmeaParser::haveDate(void) {
+
+  return parserState_isset(HAVE_DATE);
 }
 
 double NmeaParser::getAlti(void) {
