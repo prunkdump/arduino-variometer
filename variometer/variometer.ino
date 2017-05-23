@@ -29,9 +29,9 @@
 #define HAVE_SDCARD
 #define HAVE_BLUETOOTH
 
-#define VARIOSCREEN_DC_PIN 2
+#define VARIOSCREEN_DC_PIN 4
 #define VARIOSCREEN_CS_PIN 3
-#define VARIOSCREEN_RST_PIN 4
+#define VARIOSCREEN_RST_PIN 2
 #define SDCARD_CS_PIN 14
 
 //adjust if needed
