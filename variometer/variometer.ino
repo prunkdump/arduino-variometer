@@ -70,7 +70,8 @@
 
 /* best precision is 100 */
 #define VARIOMETER_GPS_ALTI_CALIBRATION_PRECISION_THRESHOLD 200
-//#define VARIOMETER_SEND_CALIBRATED_ALTITUDE 
+//#define VARIOMETER_SDCARD_SEND_CALIBRATED_ALTITUDE
+//#define VARIOMETER_BLUETOOTH_SEND_CALIBRATED_ALTITUDE
 
 /* flight start detection */
 #define FLIGHT_START_MIN_TIMESTAMP 15000
@@ -335,7 +336,7 @@ void loop() {
   /* check the last vario nmea sentence */
   if( millis() - lastVarioSentenceTimestamp > VARIOMETER_SENTENCE_DELAY ) {
     lastVarioSentenceTimestamp = millis();
-#ifdef VARIOMETER_SEND_CALIBRATED_ALTITUDE
+#ifdef VARIOMETER_BLUETOOTH_SEND_CALIBRATED_ALTITUDE
     lxnav.begin(kalmanvert.getCalibratedPosition(), kalmanvert.getVelocity());
 #else
     lxnav.begin(kalmanvert.getPosition(), kalmanvert.getVelocity());
@@ -370,7 +371,7 @@ void loop() {
 #ifdef HAVE_SDCARD      
       /* start to write IGC B frames */
       if( sdcardState == SDCARD_STATE_READY ) {
-#ifdef VARIOMETER_SEND_CALIBRATED_ALTITUDE
+#ifdef VARIOMETER_SDCARD_SEND_CALIBRATED_ALTITUDE
         file.write( igc.begin( kalmanvert.getCalibratedPosition() ) );
 #else
         file.write( igc.begin( kalmanvert.getPosition() ) );
@@ -404,7 +405,7 @@ void loop() {
       /* we can send our sentences */
       if( lastSentence ) {
           lastSentence = false;
-#ifdef VARIOMETER_SEND_CALIBRATED_ALTITUDE
+#ifdef VARIOMETER_BLUETOOTH_SEND_CALIBRATED_ALTITUDE
           lxnav.begin(kalmanvert.getCalibratedPosition(), kalmanvert.getVelocity());
 #else
           lxnav.begin(kalmanvert.getPosition(), kalmanvert.getVelocity());
