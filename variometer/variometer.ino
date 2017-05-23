@@ -201,11 +201,11 @@ void setup() {
   /****************/
   /* init SD Card */
   /****************/
-#ifdef HAVE_SDCARD
+#if defined(HAVE_SDCARD) && defined(HAVE_GPS)
   if( file.init(SDCARD_CS_PIN, SDCARD_SPEED) >= 0 ) {
     sdcardState = SDCARD_STATE_INITIALIZED;  //useless to set error
   }
-#endif //HAVE_SDCARD
+#endif //defined(HAVE_SDCARD) && defined(HAVE_GPS)
  
   /***************/
   /* init screen */
@@ -274,9 +274,10 @@ void setup() {
    
 }
 
-#ifdef HAVE_SDCARD
+#ifdef defined(HAVE_SDCARD) && defined(HAVE_GPS)
 void createSDCardTrackFile(void);
-#endif //HAVE_SDCARD
+#endif //defined(HAVE_SDCARD) && defined(HAVE_GPS)
+void enableflightStartComponents(void);
 
 /*----------------*/
 /*      LOOP      */
@@ -451,17 +452,7 @@ void loop() {
             (kalmanvert.getVelocity() < FLIGHT_START_VARIO_LOW_THRESHOLD || kalmanvert.getVelocity() > FLIGHT_START_VARIO_HIGH_THRESHOLD) &&
             (nmeaParser.getSpeed() > FLIGHT_START_MIN_SPEED) ) {
           variometerState = VARIOMETER_STATE_FLIGHT_STARTED;
-              
-          /* enable near climbing */
-#ifdef VARIOMETER_ENABLE_NEAR_CLIMBING_ALARM
-          beeper.setGlidingAlarmState(true);
-#endif
-#ifdef VARIOMETER_ENABLE_NEAR_CLIMBING_BEEP
-          beeper.setGlidingBeepState(true);
-#endif
-#if defined(HAVE_SDCARD) && defined(VARIOMETER_RECORD_WHEN_FLIGHT_START)
-          createSDCardTrackFile();
-#endif//defined(HAVE_SDCARD) && defined(VARIOMETER_RECORD_WHEN_FLIGHT_START)
+          enableflightStartComponents();
         }
       }
     }
@@ -469,6 +460,17 @@ void loop() {
   }
 #endif //HAVE_BLUETOOTH
 #endif //HAVE_GPS
+
+  /* if no GPS, we can't calibrate, and we have juste to check flight start */
+#ifndef HAVE_GPS
+  if( variometerState == VARIOMETER_STATE_CALIBRATED ) { //already calibrated at start 
+    if( (millis() > FLIGHT_START_MIN_TIMESTAMP) &&
+        (kalmanvert.getVelocity() < FLIGHT_START_VARIO_LOW_THRESHOLD || kalmanvert.getVelocity() > FLIGHT_START_VARIO_HIGH_THRESHOLD) ) {
+      variometerState = VARIOMETER_STATE_FLIGHT_STARTED;
+      enableflightStartComponents();
+    }
+  }
+#endif // !HAVE_GPS
 
    
   /*****************/
@@ -541,7 +543,7 @@ void loop() {
 
 
 
-#ifdef HAVE_SDCARD
+#if defined(HAVE_SDCARD) && defined(HAVE_GPS)
 void createSDCardTrackFile(void) {
   /* start the sdcard record */
   if( sdcardState == SDCARD_STATE_INITIALIZED ) {
@@ -575,4 +577,20 @@ void createSDCardTrackFile(void) {
     }
   }
 }
-#endif //HAVE_SDCARD
+#endif //defined(HAVE_SDCARD) && defined(HAVE_GPS)
+
+
+
+void enableflightStartComponents(void) {
+  /* enable near climbing */
+#ifdef VARIOMETER_ENABLE_NEAR_CLIMBING_ALARM
+  beeper.setGlidingAlarmState(true);
+#endif
+#ifdef VARIOMETER_ENABLE_NEAR_CLIMBING_BEEP
+  beeper.setGlidingBeepState(true);
+#endif
+#if defined(HAVE_SDCARD) && defined(HAVE_GPS) && defined(VARIOMETER_RECORD_WHEN_FLIGHT_START)
+  createSDCardTrackFile();
+#endif // defined(HAVE_SDCARD) && defined(VARIOMETER_RECORD_WHEN_FLIGHT_START)
+}
+
