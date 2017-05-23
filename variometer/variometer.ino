@@ -79,6 +79,9 @@
 #define FLIGHT_START_MIN_SPEED 10.0
 //#define VARIOMETER_RECORD_WHEN_FLIGHT_START
 
+/* when there is no GPS to sync variometer sentences */
+#define VARIOMETER_SENTENCE_DELAY 2000
+
 
 /*******************/
 /* General objects */
@@ -184,6 +187,9 @@ int8_t sdcardState = SDCARD_STATE_INITIAL;
 /*********************/
 #ifdef HAVE_BLUETOOTH
 LxnavSentence lxnav;
+#ifndef HAVE_GPS
+unsigned long lastVarioSentenceTimestamp = 0;
+#endif // !HAVE_GPS
 #endif //HAVE_BLUETOOTH
 
 
@@ -311,18 +317,33 @@ void loop() {
   beeper.update();
 #endif //HAVE_SPEAKER
 
+
   /********************/
   /* update bluetooth */
   /********************/
 #ifdef HAVE_BLUETOOTH
+#ifdef HAVE_GPS
   /* in priority send vario nmea sentence */
   if( lxnav.availiable() ) {
     while( lxnav.availiable() ) {
        serialNmea.write( lxnav.get() );
     }
-    
     serialNmea.release();
   }
+#else //!HAVE_GPS
+  /* check the last vario nmea sentence */
+  if( millis() - lastVarioSentenceTimestamp > VARIOMETER_SENTENCE_DELAY ) {
+    lastVarioSentenceTimestamp = millis();
+#ifdef VARIOMETER_SEND_CALIBRATED_ALTITUDE
+    lxnav.begin(kalmanvert.getCalibratedPosition(), kalmanvert.getVelocity());
+#else
+    lxnav.begin(kalmanvert.getPosition(), kalmanvert.getVelocity());
+#endif
+    while( lxnav.availiable() ) {
+       serialNmea.write( lxnav.get() );
+    }
+  }
+#endif //!HAVE_GPS
 #endif //HAVE_BLUETOOTH
 
 
