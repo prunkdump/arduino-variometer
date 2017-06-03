@@ -45,7 +45,7 @@ void Digit::begin(double value) {
 
   /* check before dot digits */
   exp = 10;
-  while( exp < value ) {
+  while( exp <= value ) {
     exp *= 10;
     pos--;
   }
