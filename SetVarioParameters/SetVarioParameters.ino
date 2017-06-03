@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <VarioSettings.h>
 #include <I2Cdev.h>
 #include <ms5611.h>
 #include <vertaccel.h>
@@ -10,17 +11,17 @@
 #include <IGCSentence.h>
 #include <digit.h>
 
-/* set the params here */
-#define VARIOMETER_MODEL "GNUVario"
-#define PILOT_NAME "Prunk Dump"
-#define GLIDER_NAME "ITV Dolpo 2"
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*!!            !!! WARNING  !!!              !!*/
+/*!! Before building check :                  !!*/
+/*!! libraries/VarioSettings/VarioSettings.h  !!*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
 
 #define BEEP_FREQ 800
-
-
 const char model[] PROGMEM = VARIOMETER_MODEL;
-const char pilot[] PROGMEM = PILOT_NAME;
-const char glider[] PROGMEM = GLIDER_NAME;
+const char pilot[] PROGMEM = VARIOMETER_PILOT_NAME;
+const char glider[] PROGMEM = VARIOMETER_GLIDER_NAME;
 
 IGCHeader header;
 

@@ -1,4 +1,6 @@
 #include <Arduino.h>
+#include <SPI.h>
+#include <VarioSettings.h>
 #include <I2Cdev.h>
 #include <ms5611.h>
 #include <vertaccel.h>
@@ -7,7 +9,6 @@
 #include <kalmanvert.h>
 #include <beeper.h>
 #include <toneAC.h>
-#include <SPI.h>
 #include <avr/pgmspace.h>
 #include <varioscreen.h>
 #include <digit.h>
@@ -19,69 +20,12 @@
 #include <IGCSentence.h>
 #include <FirmwareUpdater.h>
 
-/*!!!!!!!!!!!!!!!!!!!!!!!*/
-/* VARIOMETER STRUCTURE  */
-/*!!!!!!!!!!!!!!!!!!!!!!!*/
-#define HAVE_SPEAKER
-#define HAVE_ACCELEROMETER
-#define HAVE_SCREEN
-#define HAVE_GPS
-#define HAVE_SDCARD
-#define HAVE_BLUETOOTH
 
-#define VARIOSCREEN_DC_PIN 4
-#define VARIOSCREEN_CS_PIN 3
-#define VARIOSCREEN_RST_PIN 2
-#define SDCARD_CS_PIN 14
-
-//adjust if needed
-#define VARIOSCREEN_CONTRAST 60
-
-//GPS and bluetooth must have the same bauds
-#define GPS_BLUETOOTH_BAUDS 9600
-
-//you can try 800 on <8mhz microcontrollers (not always work)
-#define FASTWIRE_SPEED 400
-
-// the variometer seems to be more stable at half speed
-// don't hesitate to experiment
-#if F_CPU >= 16000000L
-#define VARIOSCREEN_SPEED SPI_CLOCK_DIV4
-#define SDCARD_SPEED SPI_CLOCK_DIV4
-#else
-#define VARIOSCREEN_SPEED SPI_CLOCK_DIV2
-#define SDCARD_SPEED SPI_CLOCK_DIV2
-#endif //CPU_FREQ
-
-/*!!!!!!!!!!!!!!!!!!!!!!!*/
-/* VARIOMETER PARAMETERS */
-/*!!!!!!!!!!!!!!!!!!!!!!!*/
-#define VARIOMETER_BEEP_VOLUME 10
-
-#define VARIOMETER_SINKING_THRESHOLD -2.0
-#define VARIOMETER_CLIMBING_THRESHOLD 0.2
-#define VARIOMETER_NEAR_CLIMBING_SENSITIVITY 0.5
-
-//#define VARIOMETER_ENABLE_NEAR_CLIMBING_ALARM
-//#define VARIOMETER_ENABLE_NEAR_CLIMBING_BEEP
-
-/* mean filter duration = filter size * 2 seconds */
-#define VARIOMETER_SPEED_FILTER_SIZE 5
-
-/* best precision is 100 */
-#define VARIOMETER_GPS_ALTI_CALIBRATION_PRECISION_THRESHOLD 200
-//#define VARIOMETER_SDCARD_SEND_CALIBRATED_ALTITUDE
-//#define VARIOMETER_BLUETOOTH_SEND_CALIBRATED_ALTITUDE
-
-/* flight start detection */
-#define FLIGHT_START_MIN_TIMESTAMP 15000
-#define FLIGHT_START_VARIO_LOW_THRESHOLD (-0.5)
-#define FLIGHT_START_VARIO_HIGH_THRESHOLD 0.5
-#define FLIGHT_START_MIN_SPEED 10.0
-//#define VARIOMETER_RECORD_WHEN_FLIGHT_START
-
-/* when there is no GPS to sync variometer sentences */
-#define VARIOMETER_SENTENCE_DELAY 2000
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*!!            !!! WARNING  !!!              !!*/
+/*!! Before building check :                  !!*/
+/*!! libraries/VarioSettings/VarioSettings.h  !!*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
 
 /*******************/

@@ -21,8 +21,7 @@
 #ifndef _INV_MPU_H_
 #define _INV_MPU_H_
 
-#define MPU9250 
-
+#include <VarioSettings.h>
 #include "I2Cdev.h"
 
 //  Define this symbol to get debug messages
