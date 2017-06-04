@@ -8,7 +8,8 @@
 /*----------------------------*/
 
 /* Set your personnal info here and launch */
-/* the SetVarioParameters Sketch           */
+/* the SetVarioParameters Sketch to store  */
+/* them in EEPROM.                         */
 #define VARIOMETER_MODEL "GNUVario"
 #define VARIOMETER_PILOT_NAME "Prunk Dump"
 #define VARIOMETER_GLIDER_NAME "ITV Dolpo 2"
@@ -24,8 +25,8 @@
 /* (near climbing beep is not enabled by default)                             */
 /*                                                                            */
 /* <--LOW-BEEP--|------SILENT------|--NEAR-CLIMBING-BEEP--|--CLIMBING-BEEP--> */
-/*              |                  |           |          |                   */
-/*           SINKING         CLIMBING-SENS  CLIMBING  CLIMBING+SENS           */
+/*              |                  |                      |                   */
+/*           SINKING         CLIMBING-SENSITIVITY      CLIMBING               */
 #define VARIOMETER_SINKING_THRESHOLD -2.0
 #define VARIOMETER_CLIMBING_THRESHOLD 0.2
 #define VARIOMETER_NEAR_CLIMBING_SENSITIVITY 0.5
@@ -50,12 +51,12 @@
 
 /* Speed filtering :                                               */
 /* Greater values give smoother speed. The base unit is 2 seconds  */
-/* so size = 5 use the last 10 seconds to average speed            */
+/* so size = 5 use the last 10 seconds to average speed.           */
 #define VARIOMETER_SPEED_FILTER_SIZE 5
 
 /* Set the GPS precision needed to use the GPS altitude value  */
 /* to calibrate the barometric altitude.                       */
-/*         !!! the best precision is 100 !!!                   */ 
+/*      !!! the best possible precision is 100 !!!             */ 
 #define VARIOMETER_GPS_ALTI_CALIBRATION_PRECISION_THRESHOLD 200
 
 
@@ -75,7 +76,7 @@
 //#define VARIOMETER_RECORD_WHEN_FLIGHT_START
 
 /* When there is no GPS to sync variometer bluetooth sentences */
-/* set the delay between sendings in milliseconds              */ 
+/* set the delay between sendings in milliseconds.             */ 
 #define VARIOMETER_SENTENCE_DELAY 2000
 
 
@@ -109,7 +110,7 @@
 #define VARIOSCREEN_CONTRAST 60
 
 /* The bauds rate used by the GPS and Bluetooth modules. */
-/* GPS and bluetooth need to have the same bauds rate    */
+/* GPS and bluetooth need to have the same bauds rate.   */
 #define GPS_BLUETOOTH_BAUDS 9600
 
 /* I2C speed                                   */
