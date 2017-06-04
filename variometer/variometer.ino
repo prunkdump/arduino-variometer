@@ -492,7 +492,19 @@ void loop() {
 void createSDCardTrackFile(void) {
   /* start the sdcard record */
   if( sdcardState == SDCARD_STATE_INITIALIZED ) {
-    if( file.begin() >= 0 ) {
+
+    /* build date */
+    uint8_t dateChar[8]; //two bytes are used for incrementing number on filename
+    uint32_t date = nmeaParser.date;
+    uint32_t exp = 100000;
+    for(int i=0; i<6; i++) {
+      dateChar[i] = ((uint8_t)(date/exp)) + '0';
+      date %= exp;
+      exp /= 10;
+    }
+
+    /* create file */    
+    if( file.begin(dateChar, 8) >= 0 ) {
       sdcardState = SDCARD_STATE_READY;
             
       /* write the header */
@@ -504,12 +516,8 @@ void createSDCardTrackFile(void) {
         }
 
         /* write date */
-        uint32_t date = nmeaParser.date;
-        uint32_t exp = 100000;
         for(int i=0; i<6; i++) {
-          file.write(((uint8_t)(date/exp)) + '0');
-          date %= exp;
-          exp /= 10;
+          file.write(dateChar[i]);
           header.get();
         }
             

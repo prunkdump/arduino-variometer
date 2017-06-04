@@ -1,6 +1,8 @@
 #include <LightFat16.h>
 #include <SdCard.h>
 
+#define BLOCK_SIZE LF16_BLOCK_SIZE
+
 #define FAT16_ID_POS 0x0036
 #define MBR_FIRST_PART_POS 0x1be
 #define MBR_PART_LBA_POS 0x08
@@ -33,7 +35,16 @@ int lightfat16::init(int sspin, uint8_t sckDivisor) {
   return 0;
 }
 
+
 int lightfat16::begin(void) {
+
+  /* begin with default filename */
+  char fileName[] = LF16_DEFAULT_BASE_FILE_NAME;
+  begin(fileName, sizeof(fileName)-1);
+}
+
+
+int lightfat16::begin(char* fileName, uint8_t fileNameSize) {
 
   /*************************/
   /* find fat 16 partition */
@@ -73,13 +84,12 @@ int lightfat16::begin(void) {
   /* load root directory block */
   data = this->blockSet(rootDirectoryBlock, 0);
 
-  uint8_t fileName[] = BASE_FILE_NAME;
-  for(int fileNumber = 0; fileNumber<FILE_NAME_NUMBER_LIMIT; fileNumber++) {
+  for(int fileNumber = 0; fileNumber<LF16_FILE_NAME_NUMBER_LIMIT; fileNumber++) {
   
     /* build file name */
     int digit = fileNumber;
-    int base = FILE_NAME_NUMBER_LIMIT/10;
-    for(int i = sizeof(fileName)-1 - FILE_NAME_NUMBER_SIZE; i<sizeof(fileName)-1; i++) {
+    int base = LF16_FILE_NAME_NUMBER_LIMIT/10;
+    for(int i = fileNameSize - LF16_FILE_NAME_NUMBER_SIZE; i<fileNameSize; i++) {
       fileName[i] = '0' + digit/base;
       digit %= base;
       base /= 10;
@@ -90,7 +100,7 @@ int lightfat16::begin(void) {
     while( data[0x00] != 0x00 ) {
       if( data[0x00] != ROOT_ENTRY_FREE_TAG ) {
 	boolean nameFound = true;
-	for( int i = sizeof(fileName)-1 - FILE_NAME_NUMBER_SIZE; i<sizeof(fileName)-1; i++) {
+	for( int i = 0; i<fileNameSize; i++) {
 	  if( fileName[i] != data[i] ) {
 	    nameFound = false;
 	    break;
@@ -146,16 +156,16 @@ int lightfat16::begin(void) {
   this->blockWriteEnable(false);
 
   /* write filename */
-  for(int i = 0; i<sizeof(fileName)-1; i++) {
+  for(int i = 0; i<fileNameSize; i++) {
     data[i] = fileName[i];
   }
-  for(int i = sizeof(fileName)-1; i<FAT_FILENAME_SIZE; i++) {
+  for(int i = fileNameSize; i<FAT_FILENAME_SIZE; i++) {
     data[i] = ' ';
   }
 
   /* write constant part */
-  uint8_t fileConstants[] = FILE_ENTRY_CONSTANTS;
-  for(int i=0; i<FILE_ENTRY_CONSTANTS_SIZE; i++) {
+  uint8_t fileConstants[] = LF16_FILE_ENTRY_CONSTANTS;
+  for(int i=0; i<LF16_FILE_ENTRY_CONSTANTS_SIZE; i++) {
     data[i+8] = fileConstants[i];
   }
 

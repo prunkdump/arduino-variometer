@@ -3,17 +3,16 @@
 
 #include <SdCard.h>
 
-#define FILE_NAME_NUMBER_SIZE 3
-#define FILE_NAME_NUMBER_LIMIT 1000
-#define BASE_FILE_NAME "GPS000"
-
-#define BLOCK_SIZE 512
+#define LF16_FILE_NAME_NUMBER_SIZE 2
+#define LF16_FILE_NAME_NUMBER_LIMIT 100
+#define LF16_DEFAULT_BASE_FILE_NAME "GPS00"
 
 /* the first 3 characters give the extension */
 /* ex : TXT -> 0x54,0x58,0x54 */
-#define FILE_ENTRY_CONSTANTS {0x49,0x47,0x43,0x20,0x00,0x64,0xD0,0x89,0x26,0x49,0x26,0x49,0x00,0x00,0xD0,0x89,0x26,0x49}
-#define FILE_ENTRY_CONSTANTS_SIZE 18
+#define LF16_FILE_ENTRY_CONSTANTS {0x49,0x47,0x43,0x20,0x00,0x64,0xD0,0x89,0x26,0x49,0x26,0x49,0x00,0x00,0xD0,0x89,0x26,0x49}
+#define LF16_FILE_ENTRY_CONSTANTS_SIZE 18
 
+#define LF16_BLOCK_SIZE 512
 
 class lightfat16 {
 
@@ -21,6 +20,7 @@ class lightfat16 {
   lightfat16();
   int init(int sspin, uint8_t sckDivisor = SPI_CLOCK_DIV2);
   int begin(void);
+  int begin(char* fileName, uint8_t fileNameSize); //!! last bytes are used for the incrementing number
   void write(uint8_t inByte);
   void sync();
   
@@ -29,7 +29,7 @@ class lightfat16 {
   SdCard card;
   uint32_t currentBlock;
   unsigned currentPos;
-  uint8_t blockBuffer[BLOCK_SIZE];
+  uint8_t blockBuffer[LF16_BLOCK_SIZE];
   boolean blockWriteEnabled;
 
   uint8_t blocksPerCluster;
