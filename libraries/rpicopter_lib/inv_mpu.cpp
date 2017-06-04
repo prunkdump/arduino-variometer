@@ -42,10 +42,11 @@
 #define i2c_read    !I2Cdev::readBytes
 #define delay_ms    delay
 
-static inline int reg_int_cb(struct int_param_s *int_param)
+//static inline int reg_int_cb(struct int_param_s *int_param)
+static inline void reg_int_cb(struct int_param_s *int_param)
 {
 }
-#define min(a,b) ((a<b)?a:b)
+#define inv_min(a,b) ((a<b)?a:b)
 
 #if !defined MPU6050 && !defined MPU9150 && !defined MPU6500 && !defined MPU9250
 #error  Which gyro are you using? Define MPUxxxx in your compiler options.
@@ -1203,7 +1204,7 @@ int mpu_set_sample_rate(unsigned short rate)
         st->chip_cfg.sample_rate = 1000 / (1 + data);
 
 #ifdef AK89xx_SECONDARY
-        mpu_set_compass_sample_rate(min(st->chip_cfg.compass_sample_rate, MAX_COMPASS_SAMPLE_RATE));
+        mpu_set_compass_sample_rate(inv_min(st->chip_cfg.compass_sample_rate, MAX_COMPASS_SAMPLE_RATE));
 #endif
 
         /* Automatically set LPF to 1/2 sampling rate. */
@@ -2164,9 +2165,9 @@ int mpu_load_firmware(unsigned short start_addr, unsigned short sample_rate)
     inv_dmp_uncompress_reset();
     
     for (ii = 0; ii < UNCOMPRESSED_DMP_CODE_SIZE; ii += this_write) {
-        this_write = min(LOAD_CHUNK, UNCOMPRESSED_DMP_CODE_SIZE - ii);
+        this_write = inv_min(LOAD_CHUNK, UNCOMPRESSED_DMP_CODE_SIZE - ii);
         
-        for (int progIndex = 0; progIndex < this_write; progIndex++)
+        for (unsigned progIndex = 0; progIndex < this_write; progIndex++)
 	    progBuffer[progIndex] = inv_dmp_uncompress();
             
         if ((errCode = mpu_write_mem(ii, this_write, progBuffer))) {
@@ -2658,7 +2659,7 @@ int mpu_lp_motion_interrupt(unsigned short thresh, unsigned char time,
 #endif
     } else {
         /* Don't "restore" the previous state if no state has been saved. */
-        int ii;
+        unsigned ii;
         char *cache_ptr = (char*)&st->chip_cfg.cache;
         for (ii = 0; ii < sizeof(st->chip_cfg.cache); ii++) {
             if (cache_ptr[ii] != 0)

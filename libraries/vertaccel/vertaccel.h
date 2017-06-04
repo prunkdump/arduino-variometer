@@ -5,7 +5,6 @@
 
 #include <inv_mpu.h>
 #include <inv_mpu_dmp_motion_driver.h>
-#include <EEPROM.h>
 
 /* eeprom calibration adresses */
 #define VERTACCEL_EPROM_TAG 9806

@@ -21,7 +21,7 @@
 class NmeaParser {
 
  public :
- NmeaParser() : state(0), satelliteCount(0) { }
+ NmeaParser() : satelliteCount(0), state(0) { }
   uint8_t satelliteCount;
   uint32_t time;
   uint32_t date;

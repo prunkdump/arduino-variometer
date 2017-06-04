@@ -219,7 +219,7 @@ void setup() {
    
 }
 
-#ifdef defined(HAVE_SDCARD) && defined(HAVE_GPS)
+#if defined(HAVE_SDCARD) && defined(HAVE_GPS)
 void createSDCardTrackFile(void);
 #endif //defined(HAVE_SDCARD) && defined(HAVE_GPS)
 void enableflightStartComponents(void);
@@ -504,7 +504,7 @@ void createSDCardTrackFile(void) {
     }
 
     /* create file */    
-    if( file.begin(dateChar, 8) >= 0 ) {
+    if( file.begin((char*)dateChar, 8) >= 0 ) {
       sdcardState = SDCARD_STATE_READY;
             
       /* write the header */

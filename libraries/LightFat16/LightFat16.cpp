@@ -40,7 +40,7 @@ int lightfat16::begin(void) {
 
   /* begin with default filename */
   char fileName[] = LF16_DEFAULT_BASE_FILE_NAME;
-  begin(fileName, sizeof(fileName)-1);
+  return begin(fileName, sizeof(fileName)-1);
 }
 
 

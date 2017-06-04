@@ -1,6 +1,7 @@
 #ifndef LIGHT_FAT_16_H
 #define LIGHT_FAT_16_H
 
+#include <Arduino.h>
 #include <SdCard.h>
 
 #define LF16_FILE_NAME_NUMBER_SIZE 2

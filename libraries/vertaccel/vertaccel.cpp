@@ -40,7 +40,7 @@ void vertaccel_readCalibration(void) {
   } else {
     /* read calibration settings */
     uint8_t* datap = (uint8_t*)accelCal;
-    for( int i = 0; i<sizeof(accelCal); i++ ) {
+    for( unsigned i = 0; i<sizeof(accelCal); i++ ) {
       datap[i] =  EEPROM.read(VERTACCEL_EPROM_ADDR + 0x02 + i);
     }
   }
@@ -56,7 +56,7 @@ void vertaccel_saveCalibration(double* cal) {
 
   /* save calibration settings */
   uint8_t* datap = (uint8_t*)cal;
-  for( int i = 0; i<3*sizeof(double); i++ ) {
+  for( unsigned i = 0; i<3*sizeof(double); i++ ) {
     EEPROM.write(VERTACCEL_EPROM_ADDR + 0x02 + i, datap[i]);
   }
 
@@ -220,6 +220,9 @@ boolean vertaccel_rawReady(double* accel, double* upVector, double* vertAccel) {
     
         
     /* compute vertical acceleration */
+    upVector[0] = ux;
+    upVector[1] = uy;
+    upVector[2] = uz;
     *vertAccel = (ux*rax + uy*ray + uz*raz);
   }
  
