@@ -94,6 +94,7 @@
 #define HAVE_GPS
 #define HAVE_SDCARD
 #define HAVE_BLUETOOTH
+#define HAVE_VOLTAGE_DIVISOR
 
 /* If you embed an accelerometer set the model here. */
 /* Possible values are :                             */
@@ -105,9 +106,14 @@
 #define VARIOSCREEN_CS_PIN 3
 #define VARIOSCREEN_RST_PIN 2
 #define SDCARD_CS_PIN 14
+#define VOLTAGE_DIVISOR_PIN 16
 
 /* The screen contrast */
 #define VARIOSCREEN_CONTRAST 60
+
+/* The voltage divisor */
+#define VOLTAGE_DIVISOR_VALUE 1.27
+#define VOLTAGE_DIVISOR_REF_VOLTAGE 3.3
 
 /* The bauds rate used by the GPS and Bluetooth modules. */
 /* GPS and bluetooth need to have the same bauds rate.   */

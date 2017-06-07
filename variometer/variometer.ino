@@ -42,14 +42,18 @@ uint8_t variometerState = VARIOMETER_STATE_INITIAL;
 uint8_t variometerState = VARIOMETER_STATE_CALIBRATED;
 #endif //HAVE_GPS
 
+#define LOW_FREQ_DIVISOR 14;  //every 2^14 milliseconds
+unsigned long lastLowFreqUpdate = (unsigned long)-1;
+
 /*****************/
 /* screen objets */
 /*****************/
 #ifdef HAVE_SCREEN
+
 #ifdef HAVE_GPS 
-#define VARIOSCREEN_ALTI_ANCHOR_X 58
+#define VARIOSCREEN_ALTI_ANCHOR_X 52
 #define VARIOSCREEN_ALTI_ANCHOR_Y 0
-#define VARIOSCREEN_VARIO_ANCHOR_X 58
+#define VARIOSCREEN_VARIO_ANCHOR_X 52
 #define VARIOSCREEN_VARIO_ANCHOR_Y 2
 #define VARIOSCREEN_SPEED_ANCHOR_X 22
 #define VARIOSCREEN_SPEED_ANCHOR_Y 4
@@ -58,11 +62,17 @@ uint8_t variometerState = VARIOMETER_STATE_CALIBRATED;
 #define RATIO_MAX_VALUE 30.0
 #define RATIO_MIN_SPEED 10.0
 #else
-#define VARIOSCREEN_ALTI_ANCHOR_X 58
+#define VARIOSCREEN_ALTI_ANCHOR_X 52
 #define VARIOSCREEN_ALTI_ANCHOR_Y 1
-#define VARIOSCREEN_VARIO_ANCHOR_X 58
+#define VARIOSCREEN_VARIO_ANCHOR_X 52
 #define VARIOSCREEN_VARIO_ANCHOR_Y 3
 #endif //HAVE_GPS
+
+#define VARIOSCREEN_BAT_ANCHOR_X 68
+#define VARIOSCREEN_BAT_ANCHOR_Y 1
+#define VARIOSCREEN_SAT_ANCHOR_X 68
+#define VARIOSCREEN_SAT_ANCHOR_Y 0
+
 
 VarioScreen screen(VARIOSCREEN_DC_PIN,VARIOSCREEN_CS_PIN,VARIOSCREEN_RST_PIN);
 MSUnit msunit(screen, VARIOSCREEN_VARIO_ANCHOR_X, VARIOSCREEN_VARIO_ANCHOR_Y);
@@ -74,18 +84,34 @@ ScreenDigit speedDigit(screen, VARIOSCREEN_SPEED_ANCHOR_X, VARIOSCREEN_SPEED_ANC
 ScreenDigit ratioDigit(screen, VARIOSCREEN_GR_ANCHOR_X, VARIOSCREEN_GR_ANCHOR_Y, 1, false);
 KMHUnit kmhunit(screen, VARIOSCREEN_SPEED_ANCHOR_X, VARIOSCREEN_SPEED_ANCHOR_Y);
 GRUnit grunit(screen, VARIOSCREEN_GR_ANCHOR_X, VARIOSCREEN_GR_ANCHOR_Y);
+SATLevel satLevel(screen, VARIOSCREEN_SAT_ANCHOR_X, VARIOSCREEN_SAT_ANCHOR_Y);
 #endif //HAVE_GPS
+#ifdef HAVE_VOLTAGE_DIVISOR
+BATLevel batLevel(screen, VARIOSCREEN_BAT_ANCHOR_X, VARIOSCREEN_BAT_ANCHOR_Y, VOLTAGE_DIVISOR_VALUE, VOLTAGE_DIVISOR_REF_VOLTAGE);
+#endif //HAVE_VOLTAGE_DIVISOR
 
-#ifdef HAVE_GPS 
-VarioScreenObject* screenObjects[] = { &msunit, &munit, &kmhunit, &grunit, &altiDigit, &varioDigit, &speedDigit, &ratioDigit };
-uint8_t screenObjectPages[] =        { 0,       0,      0,        0,       0,          0,           0,           0           };
-ScreenScheduler varioScreen(screen, screenObjects, screenObjectPages, sizeof(screenObjectPages));
-#else
-VarioScreenObject* screenObjects[] = { &msunit, &munit, &altiDigit, &varioDigit };
-uint8_t screenObjectPages[] =        { 0,       0,      0,          0           };
-ScreenScheduler varioScreen(screen, screenObjects, screenObjectPages, sizeof(screenObjectPages));
-#endif
 
+VarioScreenObject* screenObjects[] = {
+  &msunit, &munit, &altiDigit, &varioDigit
+#ifdef HAVE_GPS
+  , &kmhunit, &grunit, &speedDigit, &ratioDigit, &satLevel
+#endif //HAVE_GPS
+#ifdef HAVE_VOLTAGE_DIVISOR
+  , &batLevel
+#endif //HAVE_VOLTAGE_DIVISOR
+};
+
+uint8_t screenObjectPages[] = {
+  0, 0, 0, 0
+#ifdef HAVE_GPS
+  , 0, 0, 0, 0, 0
+#endif //HAVE_GPS
+#ifdef HAVE_VOLTAGE_DIVISOR
+  , 0
+#endif //HAVE_VOLTAGE_DIVISOR
+};
+
+ScreenScheduler varioScreen(screen, screenObjects, screenObjectPages, sizeof(screenObjectPages));
 #endif //HAVE_SCREEN
 
 /**********************/
@@ -427,6 +453,26 @@ void loop() {
     }
   }
 #endif // !HAVE_GPS
+
+  /***************************/
+  /* update low freq objects */
+  /***************************/
+#if defined(HAVE_GPS) || defined(HAVE_VOLTAGE_DIVISOR)
+  unsigned long dividedTimestamp = millis() >> LOW_FREQ_DIVISOR;
+  if( dividedTimestamp != lastLowFreqUpdate ) {
+    lastLowFreqUpdate = dividedTimestamp;
+
+#ifdef HAVE_GPS
+    /* update satelite count */
+    satLevel.setSatelliteCount( nmeaParser.satelliteCount );
+#endif //HAVE_GPS  
+
+#ifdef HAVE_VOLTAGE_DIVISOR
+    /* update battery level */
+    batLevel.setVoltage( analogRead(VOLTAGE_DIVISOR_PIN) );
+#endif //HAVE_VOLTAGE_DIVISOR
+  }
+#endif //defined(HAVE_GPS) || defined(HAVE_VOLTAGE_DIVISOR)
 
    
   /*****************/

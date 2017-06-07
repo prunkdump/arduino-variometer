@@ -8,6 +8,13 @@
 /* minimum drift to update digit */
 #define VARIOSCREEN_DIGIT_DISPLAY_THRESHOLD 0.65
 
+/*  lipo battery percentage to voltage linear interpolation */
+/*    voltage = a * percent + b                             */ 
+#define VARIOSCREEN_BAT_A_COEFF 0.0059
+#define VARIOSCREEN_BAT_B_COEFF 3.5534
+#define VARIOSCREEN_BAT_PIXEL_COUNT 10
+#define VARIOSCREEN_BAT_MULTIPLIER 6
+
 
 /********************/
 /* The screen class */
@@ -126,6 +133,46 @@ class GRUnit : public VarioScreenObject {
 };
 
 
+/* battery level */
+class BATLevel : public VarioScreenObject {
+
+ public :
+ BATLevel(VarioScreen& screen, uint8_t posX, uint8_t posY, double divisor, double refVoltage)
+   : VarioScreenObject(screen, 0), posX(posX), posY(posY),
+    base((uint16_t)((VARIOSCREEN_BAT_B_COEFF * 1023 * (1<<VARIOSCREEN_BAT_MULTIPLIER))/(divisor*refVoltage))),
+    inc((uint16_t)((VARIOSCREEN_BAT_A_COEFF * 1023 * 100 * (1<<VARIOSCREEN_BAT_MULTIPLIER))/(divisor*refVoltage*(VARIOSCREEN_BAT_PIXEL_COUNT+1))))
+    { }
+
+  void setVoltage(int voltage = 0);
+  void display(void);
+
+ private :
+  uint16_t uVoltage;
+  const uint8_t posX;
+  const uint8_t posY;
+  const uint16_t base;
+  const uint16_t inc;
+};
+
+/* satellite level */
+class SATLevel : public VarioScreenObject {
+
+ public:
+ SATLevel(VarioScreen& screen, uint8_t posX, uint8_t posY)
+   : VarioScreenObject(screen, 0), posX(posX), posY(posY) { }
+
+  void setSatelliteCount(uint8_t count);
+  void display(void);
+  
+ private:
+  const uint8_t posX;
+  const uint8_t posY;
+  uint8_t satelliteCount;
+};
+  
+  
+  
+  
 
 
 /************************/

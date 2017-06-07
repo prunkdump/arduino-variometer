@@ -365,6 +365,86 @@ void GRUnit::display() {
 }
 
 
+/* !!! always reset !!! */
+void BATLevel::setVoltage(int voltage) {
+
+  /* shift voltage to 16 bit */
+  uint16_t uVoltage = voltage;
+  uVoltage <<= VARIOSCREEN_BAT_MULTIPLIER;
+  
+  reset();
+}
+
+void BATLevel::display(void) {
+
+  /* battery base */
+  screen.beginDisplay(posX, posY);
+  screen.display(0xff);
+
+  /* battery level */
+  uint16_t baseVoltage = base + inc;
+  uint8_t pixelCount = 0;
+
+  while( pixelCount < VARIOSCREEN_BAT_PIXEL_COUNT ) {
+    if( baseVoltage < uVoltage ) {
+      screen.display( 0xff );
+    } else {
+      screen.display( 0x81 );
+    }
+
+    baseVoltage += inc;
+    pixelCount++;
+  }
+
+  /* battery end */
+  screen.display( 0xff  );
+  screen.display( 0x3c  );
+  screen.display( 0x3c );
+  screen.endDisplay();
+  
+  screen.flush();
+}
+
+
+
+/* !!! always reset !!! */
+void SATLevel::setSatelliteCount(uint8_t count) {
+
+  satelliteCount = count;
+  reset();
+}
+  
+void SATLevel::display(void) {
+
+  screen.beginDisplay(posX, posY);
+
+  uint8_t satCmp = 1;
+  uint8_t satBar = 0x60;
+  while( satCmp < 16 ) {
+
+    /* check level and display bar or blank */
+    if( satelliteCount > satCmp ) {
+      screen.display(satBar);
+      screen.display(satBar);
+    } else {
+      screen.display(0x00);
+      screen.display(0x00);
+    }
+
+    /* separator */
+    screen.display(0x00);
+
+    /* next comparison */
+    satCmp <<= 1;
+    satBar = (satBar >> 2) + 0x60;
+  }
+   
+  screen.endDisplay();
+  screen.flush();
+}
+   
+
+
 /************************/
 /* The screen scheduler */
 /************************/

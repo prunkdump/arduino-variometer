@@ -47,7 +47,7 @@ class FPDigit : public Digit {
 class FPSDigit : public FPDigit {
  public :
   FPSDigit(uint8_t precision, boolean plusDisplay = false)
-    : FPDigit(precision, plusDisplay), lastDisplayValue(0) { }
+    : FPDigit(precision, plusDisplay), lastDisplayValue(100000000000.5) { }
 
   bool begin(double value); //return true if the stabilized value has changed
 
