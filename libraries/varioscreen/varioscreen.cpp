@@ -95,6 +95,7 @@ const uint8_t varioscreenGR[] PROGMEM = {
 #define PCD8544_SETVOP 0x80
 
 VarioScreen::VarioScreen(int8_t DC, int8_t CS, int8_t RST) {
+  clearingStep = 0;
   _dc = DC;
   _rst = RST;
   _cs = CS;
@@ -170,16 +171,37 @@ void VarioScreen::flush() {
 }
 
 void VarioScreen::clear() {
-  for(int line = 0; line<LCDHEIGHT; line++) {
-    this->beginDisplay(0, line);
-    for(int i = 0; i<LCDWIDTH; i++) {
-      this->display(0);
-    }
-    this->endDisplay();
+  beginDisplay(0, 0);
+  for(int i = 0; i<LCDWIDTH*LCDHEIGHT; i++) {
+    display(0x00);
   }
-  this->flush();  
+  endDisplay();
+  flush();
 }
 
+void VarioScreen::beginClear() {
+  clearingStep = 0;
+}
+
+bool VarioScreen::clearStep() {
+
+  /* check if clear is needed */
+  if( clearingStep == LCDHEIGHT ) {
+    return false;
+  }
+
+  /* clear one line */
+  beginDisplay(0, clearingStep);
+  for(int i = 0; i<LCDWIDTH; i++) {
+    display(0x00);
+  }
+  endDisplay();
+
+  /* next */
+  clearingStep++;
+  return true;
+}
+  
 void VarioScreen::command(uint8_t c) {
   digitalWrite(_dc, LOW);
   digitalWrite(_cs, LOW);
@@ -187,12 +209,43 @@ void VarioScreen::command(uint8_t c) {
   digitalWrite(_cs, HIGH);
 }
 
-/*****************/
-/* digit display */
-/*****************/
+
+/*****************************************/
+/*  methods common to all screen objects */
+/*****************************************/
+#define display_needed() (state & 0x01)
+#define display_done() state &= ~(0x01)
+#define setDisplayFlag() state |= (0x01)
+
+bool VarioScreenObject::update(void) {
+
+  if( display_needed() ) {
+    display();
+    display_done();
+    return true;
+  }
+
+  return false;
+}
+
+void VarioScreenObject::reset(void) {
+  setDisplayFlag();
+}
+
+
+/* digit */
 #define MAX_CHAR_IN_LINE 7
 
-void ScreenDigit::display(double value) {
+void ScreenDigit::setValue(double value) {
+
+  /* build digit and check changes */
+  if( digit.begin(value) ) {
+    reset();
+  }
+}
+  
+
+void ScreenDigit::display() {
 
   /***************/
   /* build digit */
@@ -203,7 +256,6 @@ void ScreenDigit::display(double value) {
   uint8_t digitSize = 0;
 
   /* compute the total digit width in pixels */
-  digit.begin(value);
   uint8_t digitWidth = digit.size(VARIOSCREEN_DIGIT_WIDTH, VARIOSCREEN_DIGIT_WIDTH, VARIOSCREEN_DOT_WIDTH);
 
   /* get characters */
@@ -291,24 +343,74 @@ void displayElement(VarioScreen& screen, const uint8_t* pointer, uint8_t posX, u
 }
 
 
-void MSUnit::display(uint8_t posX, uint8_t posY) {
-  /* display init */
+void MSUnit::display() {
+  
   displayElement(screen, varioscreenMS, posX, posY, VARIOSCREEN_MS_WIDTH, VARIOSCREEN_FONT_HEIGHT);
 }
 
-void MUnit::display(uint8_t posX, uint8_t posY) {
-  /* display init */
+void MUnit::display() {
+  
   displayElement(screen, varioscreenM, posX, posY, VARIOSCREEN_M_WIDTH, VARIOSCREEN_FONT_HEIGHT);
 }
 
-void KMHUnit::display(uint8_t posX, uint8_t posY) {
-  /* display init */
+void KMHUnit::display() {
+  
   displayElement(screen, varioscreenKMH, posX, posY, VARIOSCREEN_KMH_WIDTH, VARIOSCREEN_FONT_HEIGHT);
 }
 
 
-void GRUnit::display(uint8_t posX, uint8_t posY) {
-  /* display init */
+void GRUnit::display() {
+ 
   displayElement(screen, varioscreenGR, posX, posY, VARIOSCREEN_GR_WIDTH, VARIOSCREEN_FONT_HEIGHT);
 }
 
+
+/************************/
+/* The screen scheduler */
+/************************/
+
+void ScreenScheduler::displayStep(void) {
+
+  /* first check if screen need to be cleared */
+  if( screen.clearStep() ) {
+    return;
+  }
+
+  /* next try to find something to display */
+  /* for the current page                  */
+  uint8_t n = 0;
+  while( n != objectCount ) {
+    if( page[pos] == currentPage && object[pos]->update() ) {
+      return;
+    }
+
+    /* next */
+    pos++;
+    if( pos == objectCount) {
+      pos = 0;
+    }
+    n++;
+  }
+}
+
+void ScreenScheduler::setPage(uint8_t page)  {
+
+  /* set the new page */
+  currentPage = page;
+
+  /* screen need to by cleared */
+  screen.beginClear();
+
+  /* all the page object need to be redisplayed */
+  /* but no problem to reset all the objects */
+  for(uint8_t i = 0; i<objectCount; i++) {
+    object[i]->reset();
+  }
+}
+  
+    
+    
+      
+    
+  
+  

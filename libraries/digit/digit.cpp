@@ -10,11 +10,12 @@
 #define digitState_isset(bit) (state & (1 << bit))
 
 
-Digit::Digit(uint8_t digitPrecision, boolean plusDisplay) {
+
+
+Digit::Digit(boolean plusDisplay) {
 
   state = 0;
-  precision = digitPrecision;
-
+ 
   if( plusDisplay ) {
     digitState_set(PLUS_DISPLAY);
   }
@@ -22,12 +23,39 @@ Digit::Digit(uint8_t digitPrecision, boolean plusDisplay) {
   exp = 0; //exp is used to known if digits are availiable
 }
 
-void Digit::begin(double value) {
+void Digit::computeExponent(void) {
 
+  /* base pos */
+  pos = -1;
+
+  /* check before dot digits */
+  exp = 10;
+  while( exp <= ival ) {
+    exp *= 10;
+    pos--;
+  }
+  
+  exp /= 10;
+}
+
+unsigned long Digit::treatPrecision(double& value, uint8_t precision) {
+  
   /* unset flags */
   digitState_unset(DISPLAY_PLUS);
   digitState_unset(DISPLAY_MINUS);
-  
+
+  /* make precision power */
+  unsigned long pExp = 1;
+  for( uint8_t i = 0; i<precision; i++) {
+    pExp *= 10;
+    value *= 10.0;
+  }
+
+  return pExp;
+}
+
+void Digit::treatSignLeadingZeros(double& value, unsigned long pExp, uint8_t precision) {
+
   /* check sign */
   if( value < 0.0 ) {
     value *= -1.0;
@@ -38,50 +66,113 @@ void Digit::begin(double value) {
     }
   }
 
-  /******************/
-  /* analyse digits */
-  /******************/
-  pos = 0;
+  /* round */
+  value += 0.5; //make rounding by casting
 
-  /* check before dot digits */
-  exp = 10;
-  while( exp <= value ) {
-    exp *= 10;
-    pos--;
-  }
-
-  exp /= 10;
-  pos--;
-
-  /* check after dot digits : precision */
-  uint8_t p = precision;
-  while( p > 0 ) {
-    p--;
-    exp *= 10;
-    value *= 10.0;
-  }
-
-  /* store result as int */
+  /* save ival */
   ival = (unsigned long)value;
+
+  /* compute ival exponent */
+  computeExponent();
+
+  /* check leading 0 */
+  if( ival < pExp ) {
+    pos = -1;
+    exp *= pExp;
+  } else {
+    pos += precision;
+  }
 }
 
 
-void Digit::begin(double value, uint8_t digitPrecision) {
+void Digit::begin(double value, uint8_t precision) {
 
-  precision = digitPrecision;
-  begin(value);
+  /* treat value and get corresponding precision exponent */
+  unsigned long pExp = treatPrecision(value, precision);
+
+  /* treat leading zeros */
+  treatSignLeadingZeros(value, pExp, precision);
+}
+
+/* !!! never display "+" !!! */
+void Digit::begin(unsigned long value) {
+
+  digitState_unset(DISPLAY_PLUS);
+  digitState_unset(DISPLAY_MINUS);
+
+  /* save value */
+  ival = value;
+  
+  /* compute exp */
+  computeExponent();
+}
+
+void Digit::begin(long value) {
+
+  /* check sign */
+  boolean neg = false;
+  if( value < 0 ) {
+    value *= -1;
+    neg = true;
+  }
+
+  /* begin with unsigned */
+  begin( (unsigned long)value );
+
+  /* set sign */
+  if( neg ) {
+    digitState_set(DISPLAY_MINUS);
+  } else {
+    if( digitState_isset(PLUS_DISPLAY) ) {
+      digitState_set(DISPLAY_PLUS);
+    }
+  }
+}
+
+
+void FPDigit::begin(double value) {
+  Digit::begin(value, precision);
+}
+
+bool FPSDigit::begin(double value) {
+  
+  /* treat value and get corresponding precision exponent */
+  unsigned long pExp = treatPrecision(value, precision);
+
+  /* check if the value need to be updated */
+  if( value > lastDisplayValue - DIGIT_STABILIZATION_THRESHOLD &&
+      value < lastDisplayValue + DIGIT_STABILIZATION_THRESHOLD ) {
+    return false;
+  }
+  
+  /* save displayed value */
+  lastDisplayValue = value;
+  
+  /* treat leading zeros */
+  treatSignLeadingZeros(value, pExp, precision);
+
+  /* save displayed value */
+  /*
+  lastDisplayValue = (double)ival;
+  if( digitState_isset(DISPLAY_MINUS) ) {
+    lastDisplayValue *= -1.0;
+  }
+  */
+  
+  return true;
 }
   
-
 unsigned Digit::size(unsigned signSize, unsigned digitSize, unsigned dotSize) {
   
   unsigned long e = exp;
   unsigned size = 0;
+  int8_t currPos = pos;
 
   /* number of digits */
   while( e > 0 ) {
     e /= 10;
     size += digitSize;
+    currPos++;
   }
 
   /* plus or minus needed ? */
@@ -90,7 +181,7 @@ unsigned Digit::size(unsigned signSize, unsigned digitSize, unsigned dotSize) {
   }
 
   /* dot needed ? */
-  if( precision > 0 ) {
+  if( currPos > 0 ) {
     size += dotSize;
   }
 
@@ -131,6 +222,12 @@ uint8_t Digit::get(void) {
   exp /= 10;
   pos++;
   return rchar;
+}
+
+
+unsigned long Digit::getIntegerDigit(void) {
+
+  return ival;
 }
 
 

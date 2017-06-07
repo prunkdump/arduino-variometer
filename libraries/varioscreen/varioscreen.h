@@ -5,7 +5,13 @@
 #include <SPI.h>
 #include <digit.h>
 
-#define VARIOSCREEN_DISPLAY_THRESHOLD 0.65
+/* minimum drift to update digit */
+#define VARIOSCREEN_DIGIT_DISPLAY_THRESHOLD 0.65
+
+
+/********************/
+/* The screen class */
+/********************/
 
 class VarioScreen {
  public:
@@ -16,67 +22,131 @@ class VarioScreen {
   void endDisplay();
   void flush();
   void clear();
+  void beginClear(); //multi step clear
+  bool clearStep(); //return true while clearing
 
  private:
   void command(uint8_t c);
+  uint8_t clearingStep;
   int8_t _dc, _rst, _cs;
 };
 
 
-class ScreenDigit {
+/**********************/
+/* The screen objects */
+/**********************/
+
+/* the main abstract class for all the objects */ 
+/*----------------------------*/
+class VarioScreenObject {
 
  public:
-  ScreenDigit(VarioScreen& screen, uint8_t anchorX, uint8_t anchorY, uint8_t precision, boolean plusDisplay = false) : screen(screen), digit(precision, plusDisplay), anchorX(anchorX), anchorY(anchorY) { lastDisplayWidth = 0; lastDisplayValue = 10000000.0; }
+  bool update(void);  //return true if an update was done
+  void reset(void);   //force redisplay 
+  virtual void display(void) = 0;
   
-  void display(double value);
+ protected:
+ VarioScreenObject(VarioScreen& screen, uint8_t state) : screen(screen), state(state) { }
+  VarioScreen& screen;
+  uint8_t state; //the first byte is used to know is redisplay is needed
+                 //the other can be used freely
+};
+/*----------------------------*/
 
+
+/* screen digit */
+class ScreenDigit: public VarioScreenObject {
+
+ public :
+ ScreenDigit(VarioScreen& screen, uint8_t anchorX, uint8_t anchorY, uint8_t precision, boolean plusDisplay = false)
+   : VarioScreenObject(screen, 0), digit(precision, plusDisplay), anchorX(anchorX), anchorY(anchorY)
+  { lastDisplayWidth = 0; }
+  void display(void);
+  void setValue(double value);
+  
  private:
   void displayCharacter(const uint8_t* pointer, uint8_t width, uint8_t line);
-  VarioScreen& screen;
-  Digit digit;
-  uint8_t anchorX, anchorY;
+  FPSDigit digit;
+  const uint8_t anchorX, anchorY;
   uint8_t lastDisplayWidth;
-  double lastDisplayValue;
 };
 
-class MSUnit {
+/* meters per second unit */
+class MSUnit : public VarioScreenObject {
 
  public :
-  MSUnit(VarioScreen& screen) : screen(screen) { }
-  void display(uint8_t posX, uint8_t posY);
-
+ MSUnit(VarioScreen& screen, uint8_t posX, uint8_t posY)
+   : VarioScreenObject(screen, 1), posX(posX), posY(posY) { }
+  void display(void);
+  
  private :
-  VarioScreen& screen;
+  const uint8_t posX;
+  const uint8_t posY;
 };
 
-class MUnit {
+/* meters unit */
+class MUnit : public VarioScreenObject {
 
  public :
-  MUnit(VarioScreen& screen) : screen(screen) { }
-  void display(uint8_t posX, uint8_t posY);
-
+  MUnit(VarioScreen& screen, uint8_t posX, uint8_t posY)
+   : VarioScreenObject(screen, 1), posX(posX), posY(posY) { }
+  void display(void);
+  
  private :
-  VarioScreen& screen;
+  const uint8_t posX;
+  const uint8_t posY;
 };
 
-class KMHUnit {
+
+/* kilometers per hour unit */
+class KMHUnit : public VarioScreenObject {
 
  public :
-  KMHUnit(VarioScreen& screen) : screen(screen) { }
-  void display(uint8_t posX, uint8_t posY);
+  KMHUnit(VarioScreen& screen, uint8_t posX, uint8_t posY)
+   : VarioScreenObject(screen, 1), posX(posX), posY(posY) { }
+  void display(void);
 
  private :
-  VarioScreen& screen;
+  const uint8_t posX;
+  const uint8_t posY;
 };
 
-class GRUnit {
+
+/* glide ratio unit */
+class GRUnit : public VarioScreenObject {
 
  public :
-  GRUnit(VarioScreen& screen) : screen(screen) { }
-  void display(uint8_t posX, uint8_t posY);
+  GRUnit(VarioScreen& screen, uint8_t posX, uint8_t posY)
+   : VarioScreenObject(screen, 1), posX(posX), posY(posY) { }
+  void display(void);
 
  private :
+  const uint8_t posX;
+  const uint8_t posY;
+};
+
+
+
+
+/************************/
+/* The screen scheduler */
+/************************/
+class ScreenScheduler {
+
+ public:
+ ScreenScheduler(VarioScreen& screen, VarioScreenObject** object, uint8_t* page, uint8_t objectCount)
+   : screen(screen), object(object), page(page), objectCount(objectCount), pos(0), currentPage(0) { }
+  void displayStep(void);
+  void setPage(uint8_t page);  
+  
+ private:
   VarioScreen& screen;
+  VarioScreenObject** object;
+  uint8_t* page;
+  uint8_t objectCount;
+  uint8_t pos;
+  uint8_t currentPage;
+
 };
 
 

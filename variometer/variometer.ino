@@ -65,17 +65,27 @@ uint8_t variometerState = VARIOMETER_STATE_CALIBRATED;
 #endif //HAVE_GPS
 
 VarioScreen screen(VARIOSCREEN_DC_PIN,VARIOSCREEN_CS_PIN,VARIOSCREEN_RST_PIN);
-MSUnit msunit(screen);
-MUnit munit(screen);
+MSUnit msunit(screen, VARIOSCREEN_VARIO_ANCHOR_X, VARIOSCREEN_VARIO_ANCHOR_Y);
+MUnit munit(screen, VARIOSCREEN_ALTI_ANCHOR_X, VARIOSCREEN_ALTI_ANCHOR_Y);
 ScreenDigit altiDigit(screen, VARIOSCREEN_ALTI_ANCHOR_X, VARIOSCREEN_ALTI_ANCHOR_Y, 0, false);
 ScreenDigit varioDigit(screen, VARIOSCREEN_VARIO_ANCHOR_X, VARIOSCREEN_VARIO_ANCHOR_Y, 1, true);
 #ifdef HAVE_GPS 
 ScreenDigit speedDigit(screen, VARIOSCREEN_SPEED_ANCHOR_X, VARIOSCREEN_SPEED_ANCHOR_Y, 0, false);
 ScreenDigit ratioDigit(screen, VARIOSCREEN_GR_ANCHOR_X, VARIOSCREEN_GR_ANCHOR_Y, 1, false);
-KMHUnit kmhunit(screen);
-GRUnit grunit(screen);
+KMHUnit kmhunit(screen, VARIOSCREEN_SPEED_ANCHOR_X, VARIOSCREEN_SPEED_ANCHOR_Y);
+GRUnit grunit(screen, VARIOSCREEN_GR_ANCHOR_X, VARIOSCREEN_GR_ANCHOR_Y);
 #endif //HAVE_GPS
-unsigned char screenStatus;
+
+#ifdef HAVE_GPS 
+VarioScreenObject* screenObjects[] = { &msunit, &munit, &kmhunit, &grunit, &altiDigit, &varioDigit, &speedDigit, &ratioDigit };
+uint8_t screenObjectPages[] =        { 0,       0,      0,        0,       0,          0,           0,           0           };
+ScreenScheduler varioScreen(screen, screenObjects, screenObjectPages, sizeof(screenObjectPages));
+#else
+VarioScreenObject* screenObjects[] = { &msunit, &munit, &altiDigit, &varioDigit };
+uint8_t screenObjectPages[] =        { 0,       0,      0,          0           };
+ScreenScheduler varioScreen(screen, screenObjects, screenObjectPages, sizeof(screenObjectPages));
+#endif
+
 #endif //HAVE_SCREEN
 
 /**********************/
@@ -157,12 +167,6 @@ void setup() {
   /***************/
 #ifdef HAVE_SCREEN
   screen.begin(VARIOSCREEN_SPEED, VARIOSCREEN_CONTRAST);
-  munit.display(VARIOSCREEN_ALTI_ANCHOR_X, VARIOSCREEN_ALTI_ANCHOR_Y);
-  msunit.display(VARIOSCREEN_VARIO_ANCHOR_X, VARIOSCREEN_VARIO_ANCHOR_Y);
-#ifdef HAVE_GPS
-  kmhunit.display(VARIOSCREEN_SPEED_ANCHOR_X, VARIOSCREEN_SPEED_ANCHOR_Y);
-  grunit.display(VARIOSCREEN_GR_ANCHOR_X, VARIOSCREEN_GR_ANCHOR_Y);
-#endif //HAVE_GPS
 #endif //HAVE_SCREEN
   
   /************************************/
@@ -253,6 +257,13 @@ void loop() {
 #ifdef HAVE_SPEAKER
     beeper.setVelocity( kalmanvert.getVelocity() );
 #endif //HAVE_SPEAKER
+
+    /* set screen */
+#ifdef HAVE_SCREEN
+    altiDigit.setValue(kalmanvert.getCalibratedPosition());
+    varioDigit.setValue(kalmanvert.getVelocity() );
+#endif //HAVE_SCREEN
+   
     
   }
 
@@ -422,15 +433,7 @@ void loop() {
   /* update screen */
   /*****************/
 #ifdef HAVE_SCREEN
-  /* alternate display : alti / vario */
-  if( screenStatus == 0 ) {
-    altiDigit.display( kalmanvert.getCalibratedPosition() );
-    screenStatus = 1;
-  } else {
-    varioDigit.display( kalmanvert.getVelocity() );
-    screenStatus = 0;
-  }
-  
+   
 #ifdef HAVE_GPS
   /* when getting speed from gps, display speed and ratio */
   if ( nmeaParser.haveNewSpeedValue() ) {
@@ -475,14 +478,18 @@ void loop() {
     double ratio = (meanDistance/3600.0)/deltaAlti;
 
     /* display speed and ratio */    
-    speedDigit.display( currentSpeed );
+    speedDigit.setValue( currentSpeed );
     if( currentSpeed >= RATIO_MIN_SPEED && ratio >= 0.0 && ratio < RATIO_MAX_VALUE ) {
-      ratioDigit.display(ratio);
+      ratioDigit.setValue(ratio);
     } else {
-      ratioDigit.display(0.0);
+      ratioDigit.setValue(0.0);
     }
   }
 #endif //HAVE_GPS
+
+  /* screen update */
+  varioScreen.displayStep();
+
 #endif //HAVE_SCREEN 
 }
 
