@@ -26,8 +26,8 @@ class Nmea {
 
  public:
   Nmea();
-  void feed(uint8_t c);                   //feed data from GPS. ONE BYTE AT TIME and check availiable.
-  boolean availiable(void);               //can return multiple characters
+  void feed(uint8_t c);                   //feed data from GPS. ONE BYTE AT TIME and check available.
+  boolean available(void);                //can return multiple characters
   uint8_t read(void);
   boolean ready(void);                    //when ready, now output nmea, you can calibrate alti from GPS data
   double getAlti(void);                   //read alti from GPS data

@@ -20,7 +20,7 @@ Digit::Digit(boolean plusDisplay) {
     digitState_set(PLUS_DISPLAY);
   }
 
-  exp = 0; //exp is used to known if digits are availiable
+  exp = 0; //exp is used to known if digits are available
 }
 
 void Digit::computeExponent(void) {
@@ -38,23 +38,25 @@ void Digit::computeExponent(void) {
   exp /= 10;
 }
 
-unsigned long Digit::treatPrecision(double& value, uint8_t precision) {
+void Digit::treatPrecision(double& value, uint8_t precision) {
   
   /* unset flags */
   digitState_unset(DISPLAY_PLUS);
   digitState_unset(DISPLAY_MINUS);
 
   /* make precision power */
+  for( uint8_t i = 0; i<precision; i++) {
+    value *= 10.0;
+  }
+}
+
+void Digit::treatSignLeadingZeros(double& value, uint8_t precision) {
+
+  /* compute precision exponent */
   unsigned long pExp = 1;
   for( uint8_t i = 0; i<precision; i++) {
     pExp *= 10;
-    value *= 10.0;
   }
-
-  return pExp;
-}
-
-void Digit::treatSignLeadingZeros(double& value, unsigned long pExp, uint8_t precision) {
 
   /* check sign */
   if( value < 0.0 ) {
@@ -88,10 +90,10 @@ void Digit::treatSignLeadingZeros(double& value, unsigned long pExp, uint8_t pre
 void Digit::begin(double value, uint8_t precision) {
 
   /* treat value and get corresponding precision exponent */
-  unsigned long pExp = treatPrecision(value, precision);
+  treatPrecision(value, precision);
 
   /* treat leading zeros */
-  treatSignLeadingZeros(value, pExp, precision);
+  treatSignLeadingZeros(value, precision);
 }
 
 /* !!! never display "+" !!! */
@@ -136,8 +138,8 @@ void FPDigit::begin(double value) {
 
 bool FPSDigit::begin(double value) {
   
-  /* treat value and get corresponding precision exponent */
-  unsigned long pExp = treatPrecision(value, precision);
+  /* treat value for precision */
+  treatPrecision(value, precision);
 
   /* check if the value need to be updated */
   if( value > lastDisplayValue - DIGIT_STABILIZATION_THRESHOLD &&
@@ -149,7 +151,7 @@ bool FPSDigit::begin(double value) {
   lastDisplayValue = value;
   
   /* treat leading zeros */
-  treatSignLeadingZeros(value, pExp, precision);
+  treatSignLeadingZeros(value, precision);
 
   /* save displayed value */
   /*
@@ -161,6 +163,12 @@ bool FPSDigit::begin(double value) {
   
   return true;
 }
+
+void FPSDigit::rebuild(void) {
+  
+  treatSignLeadingZeros(lastDisplayValue, precision);
+}
+  
   
 unsigned Digit::size(unsigned signSize, unsigned digitSize, unsigned dotSize) {
   
@@ -188,7 +196,7 @@ unsigned Digit::size(unsigned signSize, unsigned digitSize, unsigned dotSize) {
   return size;
 }
 
-boolean Digit::availiable(void) {
+boolean Digit::available(void) {
   if( exp > 0 ) {
     return true;
   } else {
@@ -236,7 +244,7 @@ void HexDigit::begin(uint8_t hexValue) {
   pos = 2;
 }
 
-boolean  HexDigit::availiable(void) {
+boolean  HexDigit::available(void) {
   if( pos > 0 ) {
     return true;
   } else {

@@ -15,7 +15,7 @@ void LxnavSentence::begin(double startAlti, double startVario) {
   tagPos = 0;
 }
 
-bool LxnavSentence::availiable(void) {
+bool LxnavSentence::available(void) {
   
   if( commaCount < LXNAV_SENTENCE_PARITY_POS + 4 ) {
     return true;
@@ -40,7 +40,7 @@ uint8_t LxnavSentence::get(void) {
   }
 
   /* next the alti or the vario */
-  else if( commaCount >= LXNAV_SENTENCE_ALTI_POS && valueDigit.availiable() ) {
+  else if( commaCount >= LXNAV_SENTENCE_ALTI_POS && valueDigit.available() ) {
     outc = valueDigit.get();
   }
 
@@ -52,9 +52,9 @@ uint8_t LxnavSentence::get(void) {
   }
 
   /* finally the parity */
-  else if( parityDigit.availiable() ) {
+  else if( parityDigit.available() ) {
     outc = parityDigit.get();
-    if( ! parityDigit.availiable() ) {
+    if( ! parityDigit.available() ) {
       commaCount++; //end sentence
     }
   }

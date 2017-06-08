@@ -18,7 +18,7 @@ const char povTag[] PROGMEM = {"$POV,E,\r\n"};
 /**************/
 /* state byte */
 /**************/
-#define AVAILIABLE 0
+#define AVAILABLE 0
 #define RMC_FOUND 1
 #define GGA_FOUND 2
 #define PARITY_FOUND 3
@@ -42,7 +42,7 @@ void Nmea::feed(uint8_t c) {
 
   /* by default we suppose that this input byte will be outputed */
   outChar = c;
-  nmeaState_set(AVAILIABLE);
+  nmeaState_set(AVAILABLE);
   inParity ^= c;   //parity will be reverted later if must not be done
 
   switch( c ) {
@@ -144,7 +144,7 @@ void Nmea::feed(uint8_t c) {
 
 	/* for GGA we need to subsitute value */
 	if( commaCount == GGA_ALTI_COMMA_COUNT && nmeaState_isset(GGA_FOUND) ) {
-	  nmeaState_unset(AVAILIABLE); //don't output the digits
+	  nmeaState_unset(AVAILABLE); //don't output the digits
 	  digitParity ^= c; //store parity to correct the parity tag
 	}
       }
@@ -185,7 +185,7 @@ void Nmea::feed(uint8_t c) {
 	    speedCalibrationStep++;
 	    if( speedCalibrationStep == NMEA_SPEED_CALIBRATION_PASS ) {
 	      nmeaState_set(READY);
-	      nmeaState_unset(AVAILIABLE); //don't output only the last parity digit
+	      nmeaState_unset(AVAILABLE); //don't output only the last parity digit
 	    }
 	  }
 	
@@ -199,21 +199,21 @@ void Nmea::feed(uint8_t c) {
 
       /* if GGA don't output parity as it will be substitued */
       if( nmeaState_isset(GGA_FOUND) ) {
-	nmeaState_unset(AVAILIABLE);
+	nmeaState_unset(AVAILABLE);
       }
     }
   }
 
   /* don't output before ready */
   if( ! nmeaState_isset(READY) ) {
-    nmeaState_unset(AVAILIABLE);
+    nmeaState_unset(AVAILABLE);
   }
 }
 
 
-boolean Nmea::availiable(void) {
+boolean Nmea::available(void) {
   
-  if(  nmeaState_isset(AVAILIABLE) ) {
+  if(  nmeaState_isset(AVAILABLE) ) {
     return true;
   } else {
     return false;
@@ -224,7 +224,7 @@ boolean Nmea::availiable(void) {
 uint8_t Nmea::read(void) {
 
   /* by default output the outChar */
-  /* at the end AVAILIABLE will be disabled if no more output characters */
+  /* at the end AVAILABLE will be disabled if no more output characters */
   uint8_t readChar = outChar;
 
   /*****************************************/
@@ -274,28 +274,28 @@ uint8_t Nmea::read(void) {
     }
 
     /* check value digit */
-    else if( valueDigit.availiable() ) {
+    else if( valueDigit.available() ) {
       readChar = valueDigit.get();
       digitParity ^= readChar;
 
       /* check if we are writing the POV sentence */
-      if( ! valueDigit.availiable() ) {
+      if( ! valueDigit.available() ) {
 	if( outChar == 1 ) {
 	  outChar = '*'; //launch parity output
 	} else {
-	  nmeaState_unset(AVAILIABLE);
+	  nmeaState_unset(AVAILABLE);
 	}
       }
     }
 
     /* check parity digit */
-    else if( parityDigit.availiable() ) {
+    else if( parityDigit.available() ) {
       readChar = parityDigit.get();
 
-      if( ! parityDigit.availiable() ) {
+      if( ! parityDigit.available() ) {
 	/* if we not writing POV sentence */
 	if( povTagPos >= POV_TAG_FULL_SIZE  ) {
-	  nmeaState_unset(AVAILIABLE);
+	  nmeaState_unset(AVAILABLE);
 	}
       }
     }
@@ -305,7 +305,7 @@ uint8_t Nmea::read(void) {
       readChar =  pgm_read_byte_near(povTag + povTagPos);
       povTagPos++;
       if( povTagPos == POV_TAG_FULL_SIZE ) {
-	nmeaState_unset(AVAILIABLE);
+	nmeaState_unset(AVAILABLE);
       }
     }
   }
@@ -314,7 +314,7 @@ uint8_t Nmea::read(void) {
   /* standard output */
   else {
     if( outChar == readChar ) {
-      nmeaState_unset(AVAILIABLE);
+      nmeaState_unset(AVAILABLE);
     }
   }
 

@@ -36,6 +36,16 @@
 //#define VARIOMETER_ENABLE_NEAR_CLIMBING_ALARM
 //#define VARIOMETER_ENABLE_NEAR_CLIMBING_BEEP
 
+
+/*******************/
+/* Screen behavior */
+/*******************/
+
+/* the duration of the two screen pages in milliseconds */
+#define VARIOMETER_BASE_PAGE_DURATION 10000
+#define VARIOMETER_ALTERNATE_PAGE_DURATION 2000
+
+
 /********************/
 /* Measure behavior */
 /********************/

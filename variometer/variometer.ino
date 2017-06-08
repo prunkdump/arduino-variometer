@@ -42,8 +42,9 @@ uint8_t variometerState = VARIOMETER_STATE_INITIAL;
 uint8_t variometerState = VARIOMETER_STATE_CALIBRATED;
 #endif //HAVE_GPS
 
-#define LOW_FREQ_DIVISOR 14;  //every 2^14 milliseconds
-unsigned long lastLowFreqUpdate = (unsigned long)-1;
+unsigned long lastLowFreqUpdate = 0;
+uint8_t lowFreqUpdateStep = 1;
+
 
 /*****************/
 /* screen objets */
@@ -55,6 +56,10 @@ unsigned long lastLowFreqUpdate = (unsigned long)-1;
 #define VARIOSCREEN_ALTI_ANCHOR_Y 0
 #define VARIOSCREEN_VARIO_ANCHOR_X 52
 #define VARIOSCREEN_VARIO_ANCHOR_Y 2
+#define VARIOSCREEN_TIME_ANCHOR_X 5
+#define VARIOSCREEN_TIME_ANCHOR_Y 0
+#define VARIOSCREEN_ELAPSED_TIME_ANCHOR_X 5
+#define VARIOSCREEN_ELAPSED_TIME_ANCHOR_Y 3
 #define VARIOSCREEN_SPEED_ANCHOR_X 22
 #define VARIOSCREEN_SPEED_ANCHOR_Y 4
 #define VARIOSCREEN_GR_ANCHOR_X 72
@@ -79,6 +84,8 @@ MSUnit msunit(screen, VARIOSCREEN_VARIO_ANCHOR_X, VARIOSCREEN_VARIO_ANCHOR_Y);
 MUnit munit(screen, VARIOSCREEN_ALTI_ANCHOR_X, VARIOSCREEN_ALTI_ANCHOR_Y);
 ScreenDigit altiDigit(screen, VARIOSCREEN_ALTI_ANCHOR_X, VARIOSCREEN_ALTI_ANCHOR_Y, 0, false);
 ScreenDigit varioDigit(screen, VARIOSCREEN_VARIO_ANCHOR_X, VARIOSCREEN_VARIO_ANCHOR_Y, 1, true);
+ScreenTime screenTime(screen, VARIOSCREEN_TIME_ANCHOR_X, VARIOSCREEN_TIME_ANCHOR_Y);
+ScreenElapsedTime screenElapsedTime(screen, VARIOSCREEN_ELAPSED_TIME_ANCHOR_X, VARIOSCREEN_ELAPSED_TIME_ANCHOR_Y);
 #ifdef HAVE_GPS 
 ScreenDigit speedDigit(screen, VARIOSCREEN_SPEED_ANCHOR_X, VARIOSCREEN_SPEED_ANCHOR_Y, 0, false);
 ScreenDigit ratioDigit(screen, VARIOSCREEN_GR_ANCHOR_X, VARIOSCREEN_GR_ANCHOR_Y, 1, false);
@@ -92,7 +99,7 @@ BATLevel batLevel(screen, VARIOSCREEN_BAT_ANCHOR_X, VARIOSCREEN_BAT_ANCHOR_Y, VO
 
 
 VarioScreenObject* screenObjects[] = {
-  &msunit, &munit, &altiDigit, &varioDigit
+  &msunit, &munit, &altiDigit, &varioDigit, &screenTime, &screenElapsedTime
 #ifdef HAVE_GPS
   , &kmhunit, &grunit, &speedDigit, &ratioDigit, &satLevel
 #endif //HAVE_GPS
@@ -102,7 +109,7 @@ VarioScreenObject* screenObjects[] = {
 };
 
 uint8_t screenObjectPages[] = {
-  0, 0, 0, 0
+  0, 0, 0, 0, 1, 1
 #ifdef HAVE_GPS
   , 0, 0, 0, 0, 0
 #endif //HAVE_GPS
@@ -307,8 +314,8 @@ void loop() {
 #ifdef HAVE_BLUETOOTH
 #ifdef HAVE_GPS
   /* in priority send vario nmea sentence */
-  if( lxnav.availiable() ) {
-    while( lxnav.availiable() ) {
+  if( lxnav.available() ) {
+    while( lxnav.available() ) {
        serialNmea.write( lxnav.get() );
     }
     serialNmea.release();
@@ -322,7 +329,7 @@ void loop() {
 #else
     lxnav.begin(kalmanvert.getPosition(), kalmanvert.getVelocity());
 #endif
-    while( lxnav.availiable() ) {
+    while( lxnav.available() ) {
        serialNmea.write( lxnav.get() );
     }
   }
@@ -373,7 +380,7 @@ void loop() {
         /* if GGA, convert to IGC and write to sdcard */
         if( sdcardState == SDCARD_STATE_READY && nmeaParser.isParsingGGA() ) {
           igc.feed(c);
-          while( igc.availiable() ) {
+          while( igc.available() ) {
             file.write( igc.get() );
           }
         }
@@ -457,22 +464,34 @@ void loop() {
   /***************************/
   /* update low freq objects */
   /***************************/
-#if defined(HAVE_GPS) || defined(HAVE_VOLTAGE_DIVISOR)
-  unsigned long dividedTimestamp = millis() >> LOW_FREQ_DIVISOR;
-  if( dividedTimestamp != lastLowFreqUpdate ) {
-    lastLowFreqUpdate = dividedTimestamp;
+  unsigned long lowFreqDuration = millis() - lastLowFreqUpdate;
+  if( lowFreqUpdateStep == 0 ) {
+    if( lowFreqDuration > VARIOMETER_BASE_PAGE_DURATION ) {
+      lowFreqUpdateStep = 1;
+      varioScreen.setPage(1);
+    }
+  } else {
+    if( lowFreqDuration > VARIOMETER_BASE_PAGE_DURATION + VARIOMETER_ALTERNATE_PAGE_DURATION ) {
+      lowFreqUpdateStep = 0;
+      lastLowFreqUpdate = millis();
 
+      /* set time */
+      screenTime.setTime( nmeaParser.time );
+      screenElapsedTime.setCurrentTime( screenTime.getTime() );
+      
 #ifdef HAVE_GPS
-    /* update satelite count */
-    satLevel.setSatelliteCount( nmeaParser.satelliteCount );
+      /* update satelite count */
+      satLevel.setSatelliteCount( nmeaParser.satelliteCount );
 #endif //HAVE_GPS  
 
 #ifdef HAVE_VOLTAGE_DIVISOR
-    /* update battery level */
-    batLevel.setVoltage( analogRead(VOLTAGE_DIVISOR_PIN) );
+      /* update battery level */
+      batLevel.setVoltage( analogRead(VOLTAGE_DIVISOR_PIN) );
 #endif //HAVE_VOLTAGE_DIVISOR
+      
+      varioScreen.setPage(0);
+    }
   }
-#endif //defined(HAVE_GPS) || defined(HAVE_VOLTAGE_DIVISOR)
 
    
   /*****************/
@@ -574,7 +593,7 @@ void createSDCardTrackFile(void) {
           header.get();
         }
             
-        while( header.availiable() ) {
+        while( header.available() ) {
           file.write(header.get());
         }
       }
@@ -588,6 +607,9 @@ void createSDCardTrackFile(void) {
 
 
 void enableflightStartComponents(void) {
+  /* set base time */
+  screenElapsedTime.setBaseTime( screenTime.getTime() );
+  
   /* enable near climbing */
 #ifdef VARIOMETER_ENABLE_NEAR_CLIMBING_ALARM
   beeper.setGlidingAlarmState(true);

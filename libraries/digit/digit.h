@@ -15,15 +15,15 @@ class Digit {
   void begin(unsigned long value);             //display unsigned integer
   void begin(long value);                      //diplay signed integer
   unsigned size(unsigned signSize = 1, unsigned digitSize = 1, unsigned dotSize = 1); //!! work only just after begin
-  boolean availiable(void);
+  boolean available(void);
   uint8_t get(void);
   unsigned long getIntegerDigit(void); //the integer formed by the digit displayed
 
   
  protected:
   void computeExponent(void);
-  unsigned long treatPrecision(double& value, uint8_t precision);
-  void treatSignLeadingZeros(double& value, unsigned long pExp, uint8_t precision);
+  void treatPrecision(double& value, uint8_t precision);
+  void treatSignLeadingZeros(double& value, uint8_t precision);
   uint8_t state;
   unsigned long ival;
   unsigned long exp;
@@ -50,6 +50,7 @@ class FPSDigit : public FPDigit {
     : FPDigit(precision, plusDisplay), lastDisplayValue(100000000000.5) { }
 
   bool begin(double value); //return true if the stabilized value has changed
+  void rebuild(void); //rebuild with the last displayed value
 
  private:
   double lastDisplayValue;
@@ -63,7 +64,7 @@ class HexDigit {
 
  public:
   void begin(uint8_t hexValue);
-  boolean availiable(void);
+  boolean available(void);
   uint8_t get(void);
 
  private:

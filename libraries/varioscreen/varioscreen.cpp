@@ -233,6 +233,10 @@ void VarioScreenObject::reset(void) {
 }
 
 
+/*******************/
+/*  screen objects */
+/*******************/
+
 /* digit */
 #define MAX_CHAR_IN_LINE 7
 
@@ -251,6 +255,11 @@ void ScreenDigit::display() {
   /* build digit */
   /***************/
 
+  /* check if digit need to be rebuilded */
+  if( ! digit.available() ) {
+    digit.rebuild();
+  }
+
   /* to store the characters to be displayed */
   uint8_t digitCharacters[MAX_CHAR_IN_LINE];
   uint8_t digitSize = 0;
@@ -259,7 +268,7 @@ void ScreenDigit::display() {
   uint8_t digitWidth = digit.size(VARIOSCREEN_DIGIT_WIDTH, VARIOSCREEN_DIGIT_WIDTH, VARIOSCREEN_DOT_WIDTH);
 
   /* get characters */
-  while( digit.availiable() ) {
+  while( digit.available() ) {
     digitCharacters[digitSize] = digit.get();
     digitSize++;
   }
@@ -300,19 +309,19 @@ void ScreenDigit::display() {
       
       switch( c ) {
       case '+':
-	displayCharacter(varioscreenPlus, VARIOSCREEN_DIGIT_WIDTH, line);
+	displayElementLine(varioscreenPlus, VARIOSCREEN_DIGIT_WIDTH, line);
 	break;
 
       case '-':
-	displayCharacter(varioscreenMinus, VARIOSCREEN_DIGIT_WIDTH, line);
+	displayElementLine(varioscreenMinus, VARIOSCREEN_DIGIT_WIDTH, line);
 	break;
 
       case '.':
-	displayCharacter(varioscreenDot, VARIOSCREEN_DOT_WIDTH, line);
+	displayElementLine(varioscreenDot, VARIOSCREEN_DOT_WIDTH, line);
 	break;
 
       default:
-	displayCharacter(varioscreenDigit[c - '0'], VARIOSCREEN_DIGIT_WIDTH, line);
+	displayElementLine(varioscreenDigit[c - '0'], VARIOSCREEN_DIGIT_WIDTH, line);
 	break;
       }
     }
@@ -324,19 +333,16 @@ void ScreenDigit::display() {
 }
 
 
-void ScreenDigit::displayCharacter(const uint8_t* pointer, uint8_t width, uint8_t line) {
+void VarioScreenObject::displayElementLine(const uint8_t* pointer, uint8_t width, uint8_t line) {
   for(int i = 0; i<width; i++) {
     screen.display( pgm_read_byte( &pointer[i + line * width] ) );
   }
 }
 
-
-void displayElement(VarioScreen& screen, const uint8_t* pointer, uint8_t posX, uint8_t posY, uint8_t width, uint8_t height) {
+void VarioScreenObject::displayElement(VarioScreen& screen, const uint8_t* pointer, uint8_t posX, uint8_t posY, uint8_t width, uint8_t height) {
   for(int line=0; line<height; line++) {
     screen.beginDisplay(posX, posY + line);
-    for( int i=0; i<width; i++ ) {
-      screen.display( pgm_read_byte( &pointer[i + line * width] ) );
-    }
+    displayElementLine(pointer, width, line);
     screen.endDisplay();
   }
   screen.flush();
@@ -442,7 +448,80 @@ void SATLevel::display(void) {
   screen.endDisplay();
   screen.flush();
 }
-   
+
+/* time */
+void ScreenTime::setTime(uint32_t newTime) {
+
+  for( uint8_t i = 0; i<3; i++) {
+    time[i] = (int8_t)(newTime % 100);
+    newTime /= 100;
+  }
+}
+
+void ScreenTime::setTime(int8_t* newTime) {
+
+  for(uint8_t i = 0; i<3; i++) {
+    time[i] = newTime[i];
+  }
+}
+
+int8_t* ScreenTime::getTime(void) {
+
+  return time;
+}
+
+/* !!! never reset, only on page change !!! */
+void ScreenTime::display(void) {
+
+  /* for each line */
+  for(uint8_t line = 0; line<VARIOSCREEN_FONT_HEIGHT; line++ ) {
+    screen.beginDisplay(posX, posY + line);
+
+    /* display each time element */
+    for(int8_t i = 2; i>=0; i--) {
+
+      /* the digit */
+      int8_t c;
+      c = time[i]/10;
+      displayElementLine(varioscreenDigit[c], VARIOSCREEN_DIGIT_WIDTH, line);
+      c = time[i]%10;
+      displayElementLine(varioscreenDigit[c], VARIOSCREEN_DIGIT_WIDTH, line);
+
+      /* the dot (not at the end) */
+      if( i ) {
+	screen.display(0x18);
+	screen.display(0x18);
+      }
+    }
+    screen.endDisplay();
+  }
+  screen.flush();
+}
+
+
+void ScreenElapsedTime::setBaseTime(int8_t* time) {
+
+  for(uint8_t i = 0; i<3; i++) {
+    baseTime[i] = time[i];
+  }
+}
+
+void ScreenElapsedTime::setCurrentTime(int8_t* currentTime) {
+
+  /* compute elapsed time */
+  int8_t rem = 0;
+  int8_t v;
+  for(uint8_t i = 0; i<3; i++) {
+    v = (currentTime[i] - baseTime[i]) - rem;
+    if( v < 0 ) {
+      v += 60;
+      rem = 1;
+    } else {
+      rem = 0;
+    }
+    time[i] = v;
+  }
+}
 
 
 /************************/

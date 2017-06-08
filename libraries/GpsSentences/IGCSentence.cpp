@@ -174,7 +174,7 @@ int16_t IGCHeader::begin(void) {
   return val[2];
 }
 
-bool IGCHeader::availiable(void) {
+bool IGCHeader::available(void) {
 
   return (bool)size;
 }
@@ -303,7 +303,7 @@ void IGCSentence::feed(uint8_t c) {
   }
 }
  
-bool IGCSentence::availiable() {
+bool IGCSentence::available() {
 
   return (bool)outc;
 }

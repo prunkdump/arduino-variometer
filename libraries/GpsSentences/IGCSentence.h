@@ -20,7 +20,7 @@ class IGCHeader {
  public :
   bool saveParams(const char* model, const char* pilot, const char* glider);
   int16_t begin(void);
-  bool availiable(void);
+  bool available(void);
   uint8_t get(void);
   
  private :
@@ -36,7 +36,7 @@ class IGCSentence {
  public:
   uint8_t begin(double baroAlti);
   void feed(uint8_t c);
-  bool availiable();
+  bool available();
   uint8_t get();
 
  private:

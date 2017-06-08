@@ -18,7 +18,7 @@ class LxnavSentence {
  public:
  LxnavSentence() : valueDigit() { } 
   void begin(double alti, double vario);
-  bool availiable(void);
+  bool available(void);
   uint8_t get(void);
 
  private:

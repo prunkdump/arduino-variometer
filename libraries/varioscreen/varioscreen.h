@@ -54,6 +54,8 @@ class VarioScreenObject {
   
  protected:
  VarioScreenObject(VarioScreen& screen, uint8_t state) : screen(screen), state(state) { }
+  void displayElementLine(const uint8_t* pointer, uint8_t width, uint8_t line);
+  void displayElement(VarioScreen& screen, const uint8_t* pointer, uint8_t posX, uint8_t posY, uint8_t width, uint8_t height);
   VarioScreen& screen;
   uint8_t state; //the first byte is used to know is redisplay is needed
                  //the other can be used freely
@@ -72,7 +74,6 @@ class ScreenDigit: public VarioScreenObject {
   void setValue(double value);
   
  private:
-  void displayCharacter(const uint8_t* pointer, uint8_t width, uint8_t line);
   FPSDigit digit;
   const uint8_t anchorX, anchorY;
   uint8_t lastDisplayWidth;
@@ -169,6 +170,46 @@ class SATLevel : public VarioScreenObject {
   const uint8_t posY;
   uint8_t satelliteCount;
 };
+
+/* time */
+class ScreenTime : public VarioScreenObject {
+
+ public:
+  ScreenTime(VarioScreen& screen, uint8_t posX, uint8_t posY)
+    : VarioScreenObject(screen, 0), posX(posX), posY(posY) { }
+
+  void setTime(uint32_t newTime);
+  void setTime(int8_t* newTime);
+  int8_t* getTime(void);
+  void display(void);
+
+ protected:
+  const uint8_t posX;
+  const uint8_t posY;
+  int8_t time[3];
+};
+
+
+class ScreenElapsedTime : public ScreenTime {
+
+ public:
+  ScreenElapsedTime(VarioScreen& screen, uint8_t posX, uint8_t posY) 
+  : ScreenTime(screen, posX, posY) { }
+
+  void setBaseTime(int8_t* time);
+  void setCurrentTime(int8_t* time);
+
+ protected:
+  int8_t baseTime[3];
+  
+};
+  
+
+  
+
+
+
+  
   
   
   
