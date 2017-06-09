@@ -375,7 +375,7 @@ void GRUnit::display() {
 void BATLevel::setVoltage(int voltage) {
 
   /* shift voltage to 16 bit */
-  uint16_t uVoltage = voltage;
+  uVoltage = (uint16_t)voltage;
   uVoltage <<= VARIOSCREEN_BAT_MULTIPLIER;
   
   reset();
