@@ -180,6 +180,7 @@ class ScreenTime : public VarioScreenObject {
 
   void setTime(uint32_t newTime);
   void setTime(int8_t* newTime);
+  void correctTimeZone(int8_t UTCDrift);
   int8_t* getTime(void);
   void display(void);
 

@@ -14,6 +14,9 @@
 #define VARIOMETER_PILOT_NAME "Prunk Dump"
 #define VARIOMETER_GLIDER_NAME "ITV Dolpo 2"
 
+/* time zone relative to UTC */
+#define VARIOMETER_TIME_ZONE (+2) 
+
 /*********/
 /* Beeps */
 /*********/

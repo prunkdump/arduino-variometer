@@ -465,6 +465,17 @@ void ScreenTime::setTime(int8_t* newTime) {
   }
 }
 
+void ScreenTime::correctTimeZone(int8_t UTCDrift) {
+  
+  time[2] += UTCDrift;
+  if( time[2] < 0 ) {
+    time[2] += 24;
+  }
+  if( time[2] >= 24 ) {
+    time[2] -= 24;
+  }
+}
+
 int8_t* ScreenTime::getTime(void) {
 
   return time;

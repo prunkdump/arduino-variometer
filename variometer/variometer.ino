@@ -477,6 +477,7 @@ void loop() {
 
       /* set time */
       screenTime.setTime( nmeaParser.time );
+      screenTime.correctTimeZone( VARIOMETER_TIME_ZONE );
       screenElapsedTime.setCurrentTime( screenTime.getTime() );
       
 #ifdef HAVE_GPS
