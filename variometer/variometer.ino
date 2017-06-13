@@ -42,14 +42,13 @@ uint8_t variometerState = VARIOMETER_STATE_INITIAL;
 uint8_t variometerState = VARIOMETER_STATE_CALIBRATED;
 #endif //HAVE_GPS
 
-unsigned long lastLowFreqUpdate = 0;
-uint8_t lowFreqUpdateStep = 1;
-
-
 /*****************/
 /* screen objets */
 /*****************/
 #ifdef HAVE_SCREEN
+
+unsigned long lastLowFreqUpdate = 0;
+uint8_t lowFreqUpdateStep = 1;
 
 #ifdef HAVE_GPS 
 #define VARIOSCREEN_ALTI_ANCHOR_X 52
@@ -84,14 +83,14 @@ MSUnit msunit(screen, VARIOSCREEN_VARIO_ANCHOR_X, VARIOSCREEN_VARIO_ANCHOR_Y);
 MUnit munit(screen, VARIOSCREEN_ALTI_ANCHOR_X, VARIOSCREEN_ALTI_ANCHOR_Y);
 ScreenDigit altiDigit(screen, VARIOSCREEN_ALTI_ANCHOR_X, VARIOSCREEN_ALTI_ANCHOR_Y, 0, false);
 ScreenDigit varioDigit(screen, VARIOSCREEN_VARIO_ANCHOR_X, VARIOSCREEN_VARIO_ANCHOR_Y, 1, true);
-ScreenTime screenTime(screen, VARIOSCREEN_TIME_ANCHOR_X, VARIOSCREEN_TIME_ANCHOR_Y);
-ScreenElapsedTime screenElapsedTime(screen, VARIOSCREEN_ELAPSED_TIME_ANCHOR_X, VARIOSCREEN_ELAPSED_TIME_ANCHOR_Y);
-#ifdef HAVE_GPS 
+#ifdef HAVE_GPS
 ScreenDigit speedDigit(screen, VARIOSCREEN_SPEED_ANCHOR_X, VARIOSCREEN_SPEED_ANCHOR_Y, 0, false);
 ScreenDigit ratioDigit(screen, VARIOSCREEN_GR_ANCHOR_X, VARIOSCREEN_GR_ANCHOR_Y, 1, false);
 KMHUnit kmhunit(screen, VARIOSCREEN_SPEED_ANCHOR_X, VARIOSCREEN_SPEED_ANCHOR_Y);
 GRUnit grunit(screen, VARIOSCREEN_GR_ANCHOR_X, VARIOSCREEN_GR_ANCHOR_Y);
 SATLevel satLevel(screen, VARIOSCREEN_SAT_ANCHOR_X, VARIOSCREEN_SAT_ANCHOR_Y);
+ScreenTime screenTime(screen, VARIOSCREEN_TIME_ANCHOR_X, VARIOSCREEN_TIME_ANCHOR_Y);
+ScreenElapsedTime screenElapsedTime(screen, VARIOSCREEN_ELAPSED_TIME_ANCHOR_X, VARIOSCREEN_ELAPSED_TIME_ANCHOR_Y);
 #endif //HAVE_GPS
 #ifdef HAVE_VOLTAGE_DIVISOR
 BATLevel batLevel(screen, VARIOSCREEN_BAT_ANCHOR_X, VARIOSCREEN_BAT_ANCHOR_Y, VOLTAGE_DIVISOR_VALUE, VOLTAGE_DIVISOR_REF_VOLTAGE);
@@ -99,9 +98,9 @@ BATLevel batLevel(screen, VARIOSCREEN_BAT_ANCHOR_X, VARIOSCREEN_BAT_ANCHOR_Y, VO
 
 
 VarioScreenObject* screenObjects[] = {
-  &msunit, &munit, &altiDigit, &varioDigit, &screenTime, &screenElapsedTime
+  &msunit, &munit, &altiDigit, &varioDigit
 #ifdef HAVE_GPS
-  , &kmhunit, &grunit, &speedDigit, &ratioDigit, &satLevel
+  , &kmhunit, &grunit, &speedDigit, &ratioDigit, &satLevel, &screenTime, &screenElapsedTime
 #endif //HAVE_GPS
 #ifdef HAVE_VOLTAGE_DIVISOR
   , &batLevel
@@ -109,9 +108,9 @@ VarioScreenObject* screenObjects[] = {
 };
 
 uint8_t screenObjectPages[] = {
-  0, 0, 0, 0, 1, 1
+  0, 0, 0, 0
 #ifdef HAVE_GPS
-  , 0, 0, 0, 0, 0
+  , 0, 0, 0, 0, 0, 1, 1
 #endif //HAVE_GPS
 #ifdef HAVE_VOLTAGE_DIVISOR
   , 0
@@ -461,9 +460,10 @@ void loop() {
   }
 #endif // !HAVE_GPS
 
-  /***************************/
-  /* update low freq objects */
-  /***************************/
+  /**********************************/
+  /* update low freq screen objects */
+  /**********************************/
+#ifdef HAVE_SCREEN
   unsigned long lowFreqDuration = millis() - lastLowFreqUpdate;
   if( lowFreqUpdateStep == 0 ) {
     if( lowFreqDuration > VARIOMETER_BASE_PAGE_DURATION ) {
@@ -475,12 +475,12 @@ void loop() {
       lowFreqUpdateStep = 0;
       lastLowFreqUpdate = millis();
 
+#ifdef HAVE_GPS
       /* set time */
       screenTime.setTime( nmeaParser.time );
       screenTime.correctTimeZone( VARIOMETER_TIME_ZONE );
       screenElapsedTime.setCurrentTime( screenTime.getTime() );
-      
-#ifdef HAVE_GPS
+
       /* update satelite count */
       satLevel.setSatelliteCount( nmeaParser.satelliteCount );
 #endif //HAVE_GPS  
@@ -498,8 +498,6 @@ void loop() {
   /*****************/
   /* update screen */
   /*****************/
-#ifdef HAVE_SCREEN
-   
 #ifdef HAVE_GPS
   /* when getting speed from gps, display speed and ratio */
   if ( nmeaParser.haveNewSpeedValue() ) {
@@ -609,8 +607,10 @@ void createSDCardTrackFile(void) {
 
 void enableflightStartComponents(void) {
   /* set base time */
+#if defined(HAVE_SCREEN) && defined(HAVE_GPS)
   screenElapsedTime.setBaseTime( screenTime.getTime() );
-  
+#endif //defined(HAVE_SCREEN) && defined(HAVE_GPS)
+
   /* enable near climbing */
 #ifdef VARIOMETER_ENABLE_NEAR_CLIMBING_ALARM
   beeper.setGlidingAlarmState(true);
