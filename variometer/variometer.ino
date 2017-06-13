@@ -564,14 +564,16 @@ void createSDCardTrackFile(void) {
   /* start the sdcard record */
   if( sdcardState == SDCARD_STATE_INITIALIZED ) {
 
-    /* build date */
+    /* build date : convert from DDMMYY to YYMMDD*/
     uint8_t dateChar[8]; //two bytes are used for incrementing number on filename
+    uint8_t* dateCharP = dateChar;
     uint32_t date = nmeaParser.date;
-    uint32_t exp = 100000;
-    for(int i=0; i<6; i++) {
-      dateChar[i] = ((uint8_t)(date/exp)) + '0';
-      date %= exp;
-      exp /= 10;
+    for(uint8_t i=0; i<3; i++) {
+      uint8_t num = ((uint8_t)(date%100));
+      dateCharP[0] = (num/10) + '0';
+      dateCharP[1] = (num%10) + '0';
+      dateCharP += 2;
+      date /= 100;
     }
 
     /* create file */    
