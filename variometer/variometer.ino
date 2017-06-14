@@ -48,7 +48,6 @@ uint8_t variometerState = VARIOMETER_STATE_CALIBRATED;
 #ifdef HAVE_SCREEN
 
 unsigned long lastLowFreqUpdate = 0;
-uint8_t lowFreqUpdateStep = 1;
 
 #ifdef HAVE_GPS 
 #define VARIOSCREEN_ALTI_ANCHOR_X 52
@@ -97,27 +96,21 @@ BATLevel batLevel(screen, VARIOSCREEN_BAT_ANCHOR_X, VARIOSCREEN_BAT_ANCHOR_Y, VO
 #endif //HAVE_VOLTAGE_DIVISOR
 
 
-VarioScreenObject* screenObjects[] = {
-  &msunit, &munit, &altiDigit, &varioDigit
+ScreenSchedulerObject displayList[] = { {&msunit, 0}, {&munit, 0}, {&altiDigit, 0}, {&varioDigit, 0}
 #ifdef HAVE_GPS
-  , &kmhunit, &grunit, &speedDigit, &ratioDigit, &satLevel, &screenTime, &screenElapsedTime
+                                       ,{&kmhunit, 0}, {&grunit, 0}, {&speedDigit, 0}, {&ratioDigit, 0}, {&satLevel, 0}, {&screenTime, 1}, {&screenElapsedTime, 1}
 #endif //HAVE_GPS
 #ifdef HAVE_VOLTAGE_DIVISOR
-  , &batLevel
+                                       , {&batLevel, 0}
 #endif //HAVE_VOLTAGE_DIVISOR
 };
 
-uint8_t screenObjectPages[] = {
-  0, 0, 0, 0
 #ifdef HAVE_GPS
-  , 0, 0, 0, 0, 0, 1, 1
+ScreenScheduler varioScreen(screen, displayList, sizeof(displayList)/sizeof(ScreenSchedulerObject), 0, 1);
+#else
+ScreenScheduler varioScreen(screen, displayList, sizeof(displayList)/sizeof(ScreenSchedulerObject), 0, 0);
 #endif //HAVE_GPS
-#ifdef HAVE_VOLTAGE_DIVISOR
-  , 0
-#endif //HAVE_VOLTAGE_DIVISOR
-};
 
-ScreenScheduler varioScreen(screen, screenObjects, screenObjectPages, sizeof(screenObjectPages));
 #endif //HAVE_SCREEN
 
 /**********************/
@@ -465,14 +458,14 @@ void loop() {
   /**********************************/
 #ifdef HAVE_SCREEN
   unsigned long lowFreqDuration = millis() - lastLowFreqUpdate;
-  if( lowFreqUpdateStep == 0 ) {
+  if( varioScreen.getPage() == 0 ) {
     if( lowFreqDuration > VARIOMETER_BASE_PAGE_DURATION ) {
-      lowFreqUpdateStep = 1;
-      varioScreen.setPage(1);
+#ifdef HAVE_GPS //no multipage without GPS
+      varioScreen.nextPage();
     }
-  } else {
+  } else { //page == 1
     if( lowFreqDuration > VARIOMETER_BASE_PAGE_DURATION + VARIOMETER_ALTERNATE_PAGE_DURATION ) {
-      lowFreqUpdateStep = 0;
+#endif //HAVE_GPS multipage support
       lastLowFreqUpdate = millis();
 
 #ifdef HAVE_GPS
@@ -489,8 +482,10 @@ void loop() {
       /* update battery level */
       batLevel.setVoltage( analogRead(VOLTAGE_DIVISOR_PIN) );
 #endif //HAVE_VOLTAGE_DIVISOR
-      
-      varioScreen.setPage(0);
+
+#ifdef HAVE_GPS //no multipage without GPS
+      varioScreen.nextPage();
+#endif //HAVE_GPS multipage support      
     }
   }
 

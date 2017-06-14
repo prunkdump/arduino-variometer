@@ -550,7 +550,7 @@ void ScreenScheduler::displayStep(void) {
   /* for the current page                  */
   uint8_t n = 0;
   while( n != objectCount ) {
-    if( page[pos] == currentPage && object[pos]->update() ) {
+    if( displayList[pos].page == currentPage && displayList[pos].object->update() ) {
       return;
     }
 
@@ -563,7 +563,17 @@ void ScreenScheduler::displayStep(void) {
   }
 }
 
-void ScreenScheduler::setPage(uint8_t page)  {
+int8_t ScreenScheduler::getPage(void) {
+
+  return currentPage;
+}
+
+void ScreenScheduler::setPage(int8_t page)  {
+
+  /* check if page change is needed */
+  if( page == currentPage ) {
+    return;
+  }
 
   /* set the new page */
   currentPage = page;
@@ -574,11 +584,19 @@ void ScreenScheduler::setPage(uint8_t page)  {
   /* all the page object need to be redisplayed */
   /* but no problem to reset all the objects */
   for(uint8_t i = 0; i<objectCount; i++) {
-    object[i]->reset();
+    displayList[i].object->reset();
   }
 }
-  
-    
+
+void ScreenScheduler::nextPage(void) {
+
+  uint8_t newPage = currentPage + 1;
+  if( newPage > endPage ) {
+    newPage = 0;
+  }
+
+  setPage(newPage);
+}
     
       
     

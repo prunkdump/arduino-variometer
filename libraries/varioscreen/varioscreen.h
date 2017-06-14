@@ -206,36 +206,37 @@ class ScreenElapsedTime : public ScreenTime {
 };
   
 
-  
-
-
-
-  
-  
-  
-  
-  
-
-
 /************************/
 /* The screen scheduler */
 /************************/
+
+/* une negative page index for pages displayed once */
+struct ScreenSchedulerObject {
+  
+  VarioScreenObject* object;
+  int8_t page;
+};
+
+/* the scheduler loop on 0 <--> endPage */
 class ScreenScheduler {
 
  public:
- ScreenScheduler(VarioScreen& screen, VarioScreenObject** object, uint8_t* page, uint8_t objectCount)
-   : screen(screen), object(object), page(page), objectCount(objectCount), pos(0), currentPage(0) { }
+ ScreenScheduler(VarioScreen& screen,
+		 ScreenSchedulerObject* displayList, uint8_t objectCount, int8_t startPage, int8_t endPage)
+   : screen(screen), displayList(displayList), objectCount(objectCount), pos(0), currentPage(startPage), endPage(endPage) { }
+   
   void displayStep(void);
-  void setPage(uint8_t page);  
+  int8_t getPage(void);
+  void setPage(int8_t page);
+  void nextPage(void);
   
  private:
-  VarioScreen& screen;
-  VarioScreenObject** object;
-  uint8_t* page;
-  uint8_t objectCount;
+  const VarioScreen& screen;
+  const ScreenSchedulerObject* displayList;
+  const uint8_t objectCount;
   uint8_t pos;
-  uint8_t currentPage;
-
+  int8_t currentPage;
+  const int8_t endPage;
 };
 
 
