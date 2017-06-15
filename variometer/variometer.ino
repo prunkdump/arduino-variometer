@@ -559,7 +559,7 @@ void createSDCardTrackFile(void) {
   /* start the sdcard record */
   if( sdcardState == SDCARD_STATE_INITIALIZED ) {
 
-    /* build date : convert from DDMMYY to YYMMDD*/
+    /* build date : convert from DDMMYY to YYMMDD */
     uint8_t dateChar[8]; //two bytes are used for incrementing number on filename
     uint8_t* dateCharP = dateChar;
     uint32_t date = nmeaParser.date;
@@ -583,9 +583,12 @@ void createSDCardTrackFile(void) {
           datePos--;
         }
 
-        /* write date */
-        for(int i=0; i<6; i++) {
-          file.write(dateChar[i]);
+        /* write date : DDMMYY */
+        uint8_t* dateCharP = &dateChar[4];
+        for(int i=0; i<3; i++) {
+          file.write(dateCharP[0]);
+          file.write(dateCharP[1]);
+          dateCharP -= 2;
           header.get();
         }
             
