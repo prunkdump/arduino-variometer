@@ -588,8 +588,9 @@ void createSDCardTrackFile(void) {
         for(int i=0; i<3; i++) {
           file.write(dateCharP[0]);
           file.write(dateCharP[1]);
-          dateCharP -= 2;
           header.get();
+          header.get();
+          dateCharP -= 2;
         }
             
         while( header.available() ) {
