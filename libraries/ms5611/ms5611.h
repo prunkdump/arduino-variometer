@@ -42,14 +42,16 @@
 #define MS5611_STEP_READ_PRESSURE 1
 
 /* the measure period need to be greater than 8.22 ms */
-/* the library use a 64 prescale so the time unit is 64/F_CPU */
+/* the library use a 1024 prescale so the time unit is 1024/F_CPU */
 /* the INTERRUPT_COMPARE can't be greater than 255 */
 /* but a greater value give less code interrupts */
-/* the final period is 64/F_CPU * INTERRUPT_COMPARE * INTERRUPT_TIME */
+/* the final period is 1024/F_CPU * INTERRUPT_COMPARE */
 /* in seconds */
 #if F_CPU >= 16000000L
-#define MS5611_INTERRUPT_COMPARE 130
+//#define MS5611_INTERRUPT_COMPARE 130
+#define MS5611_INTERRUPT_COMPARE 154
 #else
+//#define MS5611_INTERRUPT_COMPARE 66
 #define MS5611_INTERRUPT_COMPARE 78
 #endif
 #define MS5611_INTERRUPT_START_DELAY 1000

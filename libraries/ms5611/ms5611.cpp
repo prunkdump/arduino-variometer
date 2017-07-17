@@ -120,15 +120,25 @@ void ms5611_release() {
   /* check if and interrupt was done between lock and release */ 
   if( interruptWait ) {
     ms5611_readStep(); //the interrupt can't read, do it for it
+
+#ifdef TIMER2_COMPA_vect
     TCNT2 = 0; //reset timer
+#else
+    TCNT3 = 0; //reset timer
+#endif
+    
     interruptWait = false;
   }
 }
 
 /* the main interrupt function */
 /* read at stable frequency */
+#ifdef TIMER2_COMPA_vect
 ISR(TIMER2_COMPA_vect) {
-
+#else
+ISR(TIMER3_COMPA_vect) {
+#endif
+  
   /* if mutex locked, let the main loop do the job when release */
   if( locked ) {
     interruptWait = true;
@@ -147,12 +157,21 @@ ISR(TIMER2_COMPA_vect) {
 void ms5611_setTimer() {
   noInterrupts();   // disable all interrupts
 
+#ifdef TIMER2_COMPA_vect
   TCCR2A = 0b00000010; //CTC MODE
   TCCR2B = 0b00000111; //1024 prescale
   TIMSK2 = 0b00000010; //enable CompA
   
   TCNT2  = 0;
   OCR2A = MS5611_INTERRUPT_COMPARE;
+#else
+  TCCR3A = 0b00000000; //CTC MODE
+  TCCR3B = 0b00001101; //1024 prescale
+  TIMSK3 = 0b00000010; //enable CompA
+  
+  TCNT3  = 0;
+  OCR3A = MS5611_INTERRUPT_COMPARE;
+#endif
   
   interrupts();
 }

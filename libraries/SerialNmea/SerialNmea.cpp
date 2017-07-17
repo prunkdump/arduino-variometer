@@ -42,29 +42,29 @@ void SerialNmea::begin(unsigned long baud, bool rxEnable) {
 
   /* baud setting. Try u2x first and fallback if needed */
   uint16_t baud_setting = (F_CPU / 4 / baud - 1) / 2;
-  UCSR0A = _BV(U2X0);
+  UCSRA = _BV(U2X);
 
   if ( baud_setting > 4095 ) {
-    UCSR0A = 0;
+    UCSRA = 0;
     baud_setting = (F_CPU / 8 / baud - 1) / 2;
   }
   
   /* set baud setting */
-  UBRR0H = baud_setting >> 8;
-  UBRR0L = baud_setting;
+  UBRRH = baud_setting >> 8;
+  UBRRL = baud_setting;
   
   /* set mode */
 #if defined(__AVR_ATmega8__)
-  UCSR0C = SERIAL_NMEA_MODE | 0x80; // select UCSRC register (shared with UBRRH)
+  UCSRC = SERIAL_NMEA_MODE | 0x80; // select UCSRC register (shared with UBRRH)
 #else
-  UCSR0C = SERIAL_NMEA_MODE;
+  UCSRC = SERIAL_NMEA_MODE;
 #endif
 
   /* enable serial */
   if( rxEnable ) {
-    UCSR0B = SERIAL_NMEA_INT_MODE | _BV(RXEN0) | _BV(RXCIE0);
+    UCSRB = SERIAL_NMEA_INT_MODE | _BV(RXEN) | _BV(RXCIE);
   } else {
-    UCSR0B = SERIAL_NMEA_INT_MODE;
+    UCSRB = SERIAL_NMEA_INT_MODE;
   }
   
   /*********************/
@@ -83,7 +83,7 @@ void SerialNmea::begin(unsigned long baud, bool rxEnable) {
 void SerialNmea::rxCompleteVect(void) {
 
   /* read */
-  uint8_t c = UDR0;
+  uint8_t c = UDR;
 
   /* check '$' that reset write pos */
   if( c == '$' ) {
@@ -206,7 +206,7 @@ void SerialNmea::rxCompleteVect(void) {
 
       /* send with serial */
       txHead = nextPos;
-      sbi(UCSR0B, UDRIE0);
+      sbi(UCSRB, UDRIE);
     }
   }
 }
@@ -218,11 +218,11 @@ void SerialNmea::udrEmptyVect(void) {
   uint8_t c = buffer[txTail];
   txTail = (txTail + 1) % SERIAL_NMEA_BUFFER_SIZE;
 
-  UDR0 = c;
+  UDR = c;
 
   /* if no remaining bytes, stop interrupt */
   if (txHead == txTail) {
-    cbi(UCSR0B, UDRIE0);
+    cbi(UCSRB, UDRIE);
   }
   
 }
@@ -305,7 +305,7 @@ void SerialNmea::write(uint8_t c) {
   buffer[writePos] = c;
   writePos = nextPos;
   txHead = nextPos;
-  sbi(UCSR0B, UDRIE0);
+  sbi(UCSRB, UDRIE);
 }
 
 
