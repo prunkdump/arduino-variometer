@@ -6,130 +6,109 @@ Features :
 ---------
 - High precision altitude with improved ms5611 code
 - High precision vertical velocity with InvenSense accelerometer (optionnal)
-- Screen display with Nokia 5110 : altitude, vspeed, ground speed, glide ratio (optionnal)
+- Screen display with Nokia 5110 : altitude, vertical speed, ground speed, glide ratio and more (optionnal)
 - Ground speed and glide ratio with GPS device (optionnal)
-- Flight tracking with sdcard reader and GPS (optionnal)
+- Flight tracking with SD card reader and GPS (optionnal)
+- Bluetooth communication with external device (optionnal)
+- Battery level (optionnal)
 
 
 How to build :
 --------------
-- Get a stripbord and cut the tracks as 1_tracks_cut.jpg
-- On the other side, put the wires as 2_board_wires.jpg
-- Solder as show in 3_assembly.jpg
+Pre-build kits can be found here :
 
- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
- !! to upload the code you need to  !!
- !! disable the GPS with the switch !!
- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+https://github.com/prunkdump/variometer-kits
+
+Contact me for more informations at prunkdump@gmail.com
+
+
+Variometer Wiring :
+-------------------
+
+See schematic.pdf for full diagram.
+
+ms5611/mpu9250 board :
+SDA -> Arduino A4
+SCL -> Arduino A5
+VCC -> Battery RAW +
+GND -> GND
+
+Speaker (simple) :
+Speaker + -> 120 Ohms resistor -> Arduino D9
+Speaker - -> Arduino D10
+
+Speaker (amplified with L9110) :
+L9110 IA -> Arduino D9
+L9110 IB -> Arduino D10
+L9110 OA -> Speaker +
+L9110 OB -> Speaker -
+L9110 VCC -> Battery RAW +
+L9110 GND -> GND
+
+Nokia 5110 board :
+SCLK -> Arduino D13
+DIN/MOSI -> Arduino D11
+DC -> any Arduino pin (default D4)
+CS -> any Arduino pin (default D3)
+RST -> any Arduino pin (default D2)
+VCC -> regulated 3.3V !
+GND -> GND
+
+GPS board :
+GPS TX pin -> Arduino RX pin
+GPS RX pin -> any Arduino pin (only used for GPS configuration)
+GPS VCC -> Battery RAW +
+GPS GND -> GND
+
+SD card reader :
+CS -> any Arduino pin (default A0)
+MOSI -> Arduino D11
+SCLK -> Arduino D13
+MISO -> Arduino D12
+5V -> Battery RAW +
+GND -> GND
+
+Bluetooth module :
+Bluetooth RX pin -> Arduino TX pin
+Bluetooth TX pin -> arduino pin with interrupt capatibility (default D8, used only for Bluetooth configuration)
+Bluetooth VCC -> Battery RAW +
+Bluetooth GND -> GND
+
+Battery level unit (voltage divisor) :
+Arduino Analog pin (default A2) -> 270 kOhms resistor -> Battery RAW +
+Arduino Analog pin (default A2) -> 1 MOhms resitor -> GND
+
+
+Code configuration :
+--------------------
+
+!!! Don't skip this step !!!
+Open ./libraries/VarioSettings/VarioSettings.h and check all the parameters.
+To "comment" a line put a "//" at the beginning.
+
+
+If you embed an SD card reader :
+--------------------------------
+
+Compile and upload "SetVarioParameters" sketch and run it. This store
+the "pilot" parameters in EEPROM. This must be done just one time.
+
+
+!!! Don't skip this step !!!
+Make a less than 2Go partition (typically 1,5Go) on the SS card. And
+format it in FAT16.
 
 
 If you embed an InvenSense accelerometer :
 ------------------------------------------
-- Set the model in ./libraries/rpicopter_lib/inv_mpu.h
 
-#ifndef _INV_MPU_H_
-#define _INV_MPU_H_
-...
-#define MPU9250
-or  
-#define MPU6050
-or
-#define MPU6500
-or
-#define MPU9150
+Don't forget to set the model in "VarioSettings.h". Next compile and
+upload "calibration_nointeractive" sketch. And follow this procedure :
 
-- Open calibration.ino and compile/upload the code
-- Open the Serial Monitor at 9600 baud
-- Follow the instructions
-- Replace the calibration settings in ./libraries/vertaccel/vertaccel.h
+https://www.youtube.com/watch?v=fc0vIsZJvsw
 
+This must be done just one time.
 
-How to setup code :
--------------------
-1) In variometer.ino comment or uncomment the devices embedded in your variometer 
-
-#define HAVE_SPEAKER
-#define HAVE_ACCELEROMETER
-#define HAVE_SCREEN
-//#define HAVE_GPS
-//#define HAVE_SDCARD
-
-2) Set the pins used for your screen or sdcard (optionnal)
-
-#define VARIOSCREEN_DC_PIN 6
-#define VARIOSCREEN_CS_PIN 2
-#define VARIOSCREEN_RST_PIN 4
-#define SDCARD_CS_PIN 8
-
-3) Next you can adjust the variometer behavior
-
-#define VARIOMETER_SINKING_THRESHOLD -2.0
-#define VARIOMETER_CLIMBING_THRESHOLD 0.2
-#define VARIOMETER_NEAR_CLIMBING_SENSITIVITY 0.5
-
-#define VARIOMETER_ENABLE_NEAR_CLIMBING_ALARM
-//#define VARIOMETER_ENABLE_NEAR_CLIMBING_BEEP
-
-
-Variometer wiring :
-------------------
-
-If you use multiple separated I2C devices, don't forget the pullup resistor. 
-
-1) ms5611 (can be found combined with MPU9250 or MPU6050 and the pullup resitor). Use I2C !
-SDA -> A4
-SCL -> A5
-GND -> GND
-5V -> 5V
-
-2) Speaker 
-VCC -> 100 ohms resistor -> D10
-GND -> D9 
-
-3) MPU9250 (see ms5611). Use I2C !
-SDA -> A4  
-SCL -> A5
-GND -> GND
-5V -> 5V
-
-3) Nokia 5110. Use SPI !
-LED -> 3V
-SCLK -> D13
-MOSI -> D11
-DC -> any (set on code)
-RST -> any (set on code)
-CS -> any (set on code)
-GND -> GND
-VCC -> 3V
-
-4) GPS. Use Serial !
-GND -> GND
-TXD -> RXD
-RXD -> TXD
-VCC -> 5V (put a power switch to disable the device when talking to arduino by USB)
-
-5) SDcard. Use SPI !
-GND -> GND
-5V -> 5V
-CS -> any (set on code)
-MOSI -> D11
-SCLK -> D13
-MISO -> D12
-
-
-Libraries :
------------
-
-(from me)
-ms5611 : high precision ms5611 library
-I2CDev_ms5611 : special I2CDev library that must be used with ms5611
-beeper : the variometer speaker library 
-kalmanvert : kalman filter for alti/acceleration fusion
-vertaccel: accelerometer library that compute vertical acceleration from IMU
-varioscreen : variometer screen library 
-LightNmeaParser : NMEA parsing library for speed and alti
-LightFat16 : very light fat16 writeonly library
-
-(native)
-rpicopter_lib : From Gregory see https://github.com/rpicopter/ArduinoMotionSensorExample
-toneAC : https://bitbucket.org/teckel12/arduino-toneac/wiki/Home
+---------------------------------
+YOU CAN NOW TRY YOUR VARIOMETER !
+---------------------------------
