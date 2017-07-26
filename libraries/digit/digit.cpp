@@ -25,17 +25,17 @@ Digit::Digit(boolean plusDisplay) {
 
 void Digit::computeExponent(void) {
 
-  /* base pos */
+  /* base pos/exp */
   pos = -1;
+  exp = 1;
 
-  /* check before dot digits */
-  exp = 10;
-  while( exp <= ival ) {
+  /* check number of digits */
+  unsigned long val = ival;
+  while( val >= 10 ) {
     exp *= 10;
     pos--;
+    val /= 10;
   }
-  
-  exp /= 10;
 }
 
 void Digit::treatPrecision(double& value, uint8_t precision) {
@@ -74,14 +74,12 @@ void Digit::treatSignLeadingZeros(double& value, uint8_t precision) {
   /* save ival */
   ival = (unsigned long)value;
 
-  /* compute ival exponent */
-  computeExponent();
-
   /* check leading 0 */
   if( ival < pExp ) {
     pos = -1;
-    exp *= pExp;
+    exp = pExp;
   } else {
+    computeExponent();
     pos += precision;
   }
 }
