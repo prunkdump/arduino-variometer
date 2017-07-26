@@ -21,9 +21,13 @@ class Digit {
 
   
  protected:
+  void setPositive(void);
+  void setNegative(void);
+  void applySign(double& value);
+  void applySign(long& value);
   void computeExponent(void);
-  void treatPrecision(double& value, uint8_t precision);
-  void treatSignLeadingZeros(double& value, uint8_t precision);
+  double applyPrecision(double value, uint8_t precision);
+  void buildForPrecision(double value, uint8_t precision);
   uint8_t state;
   unsigned long ival;
   unsigned long exp;

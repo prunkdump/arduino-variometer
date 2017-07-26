@@ -11,7 +11,7 @@
 
 
 
-
+/* init */
 Digit::Digit(boolean plusDisplay) {
 
   state = 0;
@@ -23,6 +23,43 @@ Digit::Digit(boolean plusDisplay) {
   exp = 0; //exp is used to known if digits are available
 }
 
+/**********/
+/*  sign  */
+/**********/
+void Digit::setPositive(void) {
+  digitState_unset(DISPLAY_MINUS);
+  if( digitState_isset(PLUS_DISPLAY) ) {
+    digitState_set(DISPLAY_PLUS);
+  }
+}
+
+void Digit::setNegative(void) {
+  digitState_unset(DISPLAY_PLUS);
+  digitState_set(DISPLAY_MINUS);
+}
+
+void Digit::applySign(double& value) {
+  if( value < 0.0 ) {
+    value *= -1.0;
+    setNegative();
+  } else {
+    setPositive();
+  }
+}
+
+void Digit::applySign(long& value) {
+  if( value < 0 ) {
+    value *= -1;
+    setNegative();
+  } else {
+    setPositive();
+  }
+}
+
+/******************/
+/* digit exponent */
+/******************/
+/* compute exponent and dot position for an int */
 void Digit::computeExponent(void) {
 
   /* base pos/exp */
@@ -38,68 +75,55 @@ void Digit::computeExponent(void) {
   }
 }
 
-void Digit::treatPrecision(double& value, uint8_t precision) {
-  
-  /* unset flags */
-  digitState_unset(DISPLAY_PLUS);
-  digitState_unset(DISPLAY_MINUS);
+/*******************************/
+/* float precision computation */
+/*******************************/
 
-  /* make precision power */
+/* apply precision and save precision power */
+double Digit::applyPrecision(double value, uint8_t precision) {
+
+  exp = 1; 
   for( uint8_t i = 0; i<precision; i++) {
     value *= 10.0;
+    exp *= 10;
   }
+
+  return value;
 }
 
-void Digit::treatSignLeadingZeros(double& value, uint8_t precision) {
-
-  /* compute precision exponent */
-  unsigned long pExp = 1;
-  for( uint8_t i = 0; i<precision; i++) {
-    pExp *= 10;
-  }
+void Digit::buildForPrecision(double value, uint8_t precision) {
 
   /* check sign */
-  if( value < 0.0 ) {
-    value *= -1.0;
-    digitState_set(DISPLAY_MINUS);
-  } else {
-    if( digitState_isset(PLUS_DISPLAY) ) {
-      digitState_set(DISPLAY_PLUS);
-    }
-  }
+  applySign(value);
+  
+  /* save rounded ival */
+  ival = (unsigned long)(value + 0.5);
 
-  /* round */
-  value += 0.5; //make rounding by casting
-
-  /* save ival */
-  ival = (unsigned long)value;
-
-  /* check leading 0 */
-  if( ival < pExp ) {
+  /* check leading zeros */
+   if( ival < exp ) { //exp is supposed precision exponent
     pos = -1;
-    exp = pExp;
   } else {
-    computeExponent();
+    computeExponent(); //update exp relative to digits
     pos += precision;
   }
 }
+  
 
+/******************/
+/* Public methods */
+/******************/
 
 void Digit::begin(double value, uint8_t precision) {
 
-  /* treat value and get corresponding precision exponent */
-  treatPrecision(value, precision);
-
-  /* treat leading zeros */
-  treatSignLeadingZeros(value, precision);
+  value = applyPrecision(value, precision);
+  buildForPrecision(value, precision);
 }
 
-/* !!! never display "+" !!! */
+
 void Digit::begin(unsigned long value) {
 
-  digitState_unset(DISPLAY_PLUS);
-  digitState_unset(DISPLAY_MINUS);
-
+  setPositive();
+ 
   /* save value */
   ival = value;
   
@@ -109,24 +133,13 @@ void Digit::begin(unsigned long value) {
 
 void Digit::begin(long value) {
 
-  /* check sign */
-  boolean neg = false;
-  if( value < 0 ) {
-    value *= -1;
-    neg = true;
-  }
+  applySign(value);
 
-  /* begin with unsigned */
-  begin( (unsigned long)value );
-
-  /* set sign */
-  if( neg ) {
-    digitState_set(DISPLAY_MINUS);
-  } else {
-    if( digitState_isset(PLUS_DISPLAY) ) {
-      digitState_set(DISPLAY_PLUS);
-    }
-  }
+  /* save value */
+  ival = (unsigned long)value;
+  
+  /* compute exp */
+  computeExponent();
 }
 
 
@@ -137,19 +150,20 @@ void FPDigit::begin(double value) {
 bool FPSDigit::begin(double value) {
   
   /* treat value for precision */
-  treatPrecision(value, precision);
+  value = applyPrecision(value, precision);
 
   /* check if the value need to be updated */
   if( value > lastDisplayValue - DIGIT_STABILIZATION_THRESHOLD &&
       value < lastDisplayValue + DIGIT_STABILIZATION_THRESHOLD ) {
+    exp = 0;
     return false;
   }
   
   /* save displayed value */
   lastDisplayValue = value;
   
-  /* treat leading zeros */
-  treatSignLeadingZeros(value, precision);
+  /* build */
+  buildForPrecision(value, precision);
 
   /* save displayed value */
   /*
@@ -163,8 +177,8 @@ bool FPSDigit::begin(double value) {
 }
 
 void FPSDigit::rebuild(void) {
-  
-  treatSignLeadingZeros(lastDisplayValue, precision);
+  applyPrecision(0.0, precision); //just to compute precision exponent
+  buildForPrecision(lastDisplayValue, precision);
 }
   
   
