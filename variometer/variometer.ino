@@ -17,6 +17,7 @@
 #include <SerialNmea.h>
 #include <NmeaParser.h>
 #include <LxnavSentence.h>
+#include <LK8Sentence.h>
 #include <IGCSentence.h>
 #include <FirmwareUpdater.h>
 
@@ -166,7 +167,14 @@ int8_t sdcardState = SDCARD_STATE_INITIAL;
 /* bluetooth objects */
 /*********************/
 #ifdef HAVE_BLUETOOTH
-LxnavSentence lxnav;
+#if defined(VARIOMETER_SENT_LXNAV_SENTENCE)
+LxnavSentence bluetoothNMEA;
+#elif defined(VARIOMETER_SENT_LK8000_SENTENCE)
+LK8Sentence bluetoothNMEA;
+#else
+#error No bluetooth sentence type specified !
+#endif
+
 #ifndef HAVE_GPS
 unsigned long lastVarioSentenceTimestamp = 0;
 #endif // !HAVE_GPS
@@ -306,9 +314,9 @@ void loop() {
 #ifdef HAVE_BLUETOOTH
 #ifdef HAVE_GPS
   /* in priority send vario nmea sentence */
-  if( lxnav.available() ) {
-    while( lxnav.available() ) {
-       serialNmea.write( lxnav.get() );
+  if( bluetoothNMEA.available() ) {
+    while( bluetoothNMEA.available() ) {
+       serialNmea.write( bluetoothNMEA.get() );
     }
     serialNmea.release();
   }
@@ -317,12 +325,12 @@ void loop() {
   if( millis() - lastVarioSentenceTimestamp > VARIOMETER_SENTENCE_DELAY ) {
     lastVarioSentenceTimestamp = millis();
 #ifdef VARIOMETER_BLUETOOTH_SEND_CALIBRATED_ALTITUDE
-    lxnav.begin(kalmanvert.getCalibratedPosition(), kalmanvert.getVelocity());
+    bluetoothNMEA.begin(kalmanvert.getCalibratedPosition(), kalmanvert.getVelocity());
 #else
-    lxnav.begin(kalmanvert.getPosition(), kalmanvert.getVelocity());
+    bluetoothNMEA.begin(kalmanvert.getPosition(), kalmanvert.getVelocity());
 #endif
-    while( lxnav.available() ) {
-       serialNmea.write( lxnav.get() );
+    while( bluetoothNMEA.available() ) {
+       serialNmea.write( bluetoothNMEA.get() );
     }
   }
 #endif //!HAVE_GPS
@@ -386,9 +394,9 @@ void loop() {
       if( lastSentence ) {
           lastSentence = false;
 #ifdef VARIOMETER_BLUETOOTH_SEND_CALIBRATED_ALTITUDE
-          lxnav.begin(kalmanvert.getCalibratedPosition(), kalmanvert.getVelocity());
+          bluetoothNMEA.begin(kalmanvert.getCalibratedPosition(), kalmanvert.getVelocity());
 #else
-          lxnav.begin(kalmanvert.getPosition(), kalmanvert.getVelocity());
+          bluetoothNMEA.begin(kalmanvert.getPosition(), kalmanvert.getVelocity());
 #endif
           serialNmea.lock(); //will be writed at next loop
       }
@@ -613,12 +621,15 @@ void enableflightStartComponents(void) {
 #endif //defined(HAVE_SCREEN) && defined(HAVE_GPS)
 
   /* enable near climbing */
+#ifdef HAVE_SPEAKER
 #ifdef VARIOMETER_ENABLE_NEAR_CLIMBING_ALARM
   beeper.setGlidingAlarmState(true);
 #endif
 #ifdef VARIOMETER_ENABLE_NEAR_CLIMBING_BEEP
   beeper.setGlidingBeepState(true);
 #endif
+#endif //HAVE_SPEAKER
+
 #if defined(HAVE_SDCARD) && defined(HAVE_GPS) && defined(VARIOMETER_RECORD_WHEN_FLIGHT_START)
   createSDCardTrackFile();
 #endif // defined(HAVE_SDCARD) && defined(VARIOMETER_RECORD_WHEN_FLIGHT_START)

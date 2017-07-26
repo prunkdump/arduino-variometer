@@ -88,6 +88,12 @@
 /* -> When flight start is detected                     */
 //#define VARIOMETER_RECORD_WHEN_FLIGHT_START
 
+/* What type of vario NMEA sentence is sent by bluetooth. */
+/* Possible values are :                                  */
+/*  - VARIOMETER_SENT_LXNAV_SENTENCE                      */
+/*  - VARIOMETER_SENT_LK8000_SENTENCE                     */
+#define VARIOMETER_SENT_LXNAV_SENTENCE
+
 /* When there is no GPS to sync variometer bluetooth sentences */
 /* set the delay between sendings in milliseconds.             */ 
 #define VARIOMETER_SENTENCE_DELAY 2000

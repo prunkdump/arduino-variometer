@@ -4,14 +4,15 @@
 #include <Arduino.h>
 #include <digit.h>
 
+/* no special character for the first digit (alti), just for vario "V" and parity "P" */
+#define LXNAV_SENTENCE_TAG "$LXWP0,Y,,,V,,,,,,,,*P\r\n" 
+#define LXNAV_SENTENCE_TAG_SIZE 24
+#define LXNAV_SENTENCE_ALTI_POS 10
+#define LXNAV_SENTENCE_VARIO_POS 11
+#define LXNAV_SENTENCE_PARITY_POS 21
 #define LXNAV_SENTENCE_ALTI_PRECISION 1
 #define LXNAV_SENTENCE_VARIO_PRECISION 2
-#define LXNAV_SENTENCE_ALTI_POS 3
-#define LXNAV_SENTENCE_VARIO_POS 4
-#define LXNAV_SENTENCE_PARITY_POS 12
-#define LXNAV_SENTENCE_TAG {"$LXWP0,N"}
-#define LXNAV_SENTENCE_TAG_SIZE 8
-#define LXNAV_SENTENCE_TAG_PARITY 'L'^'X'^'W'^'P'^'0'^','^'N'
+
 
 class LxnavSentence {
 
@@ -26,9 +27,7 @@ class LxnavSentence {
   Digit valueDigit;
   uint8_t parity;
   HexDigit parityDigit;
-  uint8_t commaCount;
   uint8_t tagPos;
-  
 };
 
 #endif

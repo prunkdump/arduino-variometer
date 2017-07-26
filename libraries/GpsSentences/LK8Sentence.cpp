@@ -1,35 +1,35 @@
-#include <LxnavSentence.h>
+#include <Lk8Sentence.h>
 #include <Arduino.h>
 #include <digit.h>
 
-const char lxnavTag[] PROGMEM = LXNAV_SENTENCE_TAG;
+const char lk8Tag[] PROGMEM = LK8_SENTENCE_TAG;
 
 
-void LxnavSentence::begin(double startAlti, double startVario) {
+void LK8Sentence::begin(double startAlti, double startVario) {
 
-  vario = startVario; //vario is in cm/s
-  valueDigit.begin(startAlti, LXNAV_SENTENCE_ALTI_PRECISION);
+  vario = startVario*10.0; //vario is in cm/s
+  valueDigit.begin(startAlti, LK8_SENTENCE_ALTI_PRECISION);
   parity = '$';  //remove characters not in parity, patity computed before '*' 
   tagPos = 0;
 }
 
-bool LxnavSentence::available(void) {
+bool LK8Sentence::available(void) {
   
-  if( tagPos < LXNAV_SENTENCE_TAG_SIZE ) {
+  if( tagPos < LK8_SENTENCE_TAG_SIZE ) {
     return true;
   }
 
   return false;
 }
 
-uint8_t LxnavSentence::get(void) {
+uint8_t LK8Sentence::get(void) {
 
   uint8_t outc = 0;
 
   /****************/
   /* check digits */
   /****************/
-  if( valueDigit.available() && tagPos >= LXNAV_SENTENCE_ALTI_POS ) {
+  if( valueDigit.available() && tagPos >= LK8_SENTENCE_ALTI_POS ) {
     outc = valueDigit.get();
   } else if( parityDigit.available() ) {
     outc =  parityDigit.get();
@@ -39,14 +39,14 @@ uint8_t LxnavSentence::get(void) {
   /* else write tag */
   /******************/
   else {
-    outc = pgm_read_byte_near(lxnavTag + tagPos);
+    outc = pgm_read_byte_near(lk8Tag + tagPos);
     tagPos++;
 
     /* check special characters */
-    if( tagPos == LXNAV_SENTENCE_VARIO_POS ) {
-      valueDigit.begin(vario, LXNAV_SENTENCE_VARIO_PRECISION);
+    if( tagPos == LK8_SENTENCE_VARIO_POS ) {
+      valueDigit.begin(vario, LK8_SENTENCE_VARIO_PRECISION);
       tagPos++;
-    } else if( tagPos == LXNAV_SENTENCE_PARITY_POS ) {
+    } else if( tagPos == LK8_SENTENCE_PARITY_POS ) {
       parityDigit.begin(parity);
       tagPos++;
     }
@@ -58,4 +58,7 @@ uint8_t LxnavSentence::get(void) {
   parity ^= outc;
   return outc;
 }
+  
+
+  
   
