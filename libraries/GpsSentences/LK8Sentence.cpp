@@ -7,9 +7,11 @@ const char lk8Tag[] PROGMEM = LK8_SENTENCE_TAG;
 
 void LK8Sentence::begin(double startAlti, double startVario) {
 
-  vario = startVario*10.0; //vario is in cm/s
-  valueDigit.begin(startAlti, LK8_SENTENCE_ALTI_PRECISION);
-  parity = '$';  //remove characters not in parity, patity computed before '*' 
+  alti = startAlti;
+  vario = startVario*100.0; //vario is in cm/s
+  double pressure = LK8_BASE_SEA_PRESSURE * 100.0 * pow(1 - (0.0065/288.15)*startAlti, 5.255); 
+  valueDigit.begin(pressure, LK8_SENTENCE_PRESSURE_PRECISION);
+  parity = '$';  //remove characters not in parity, parity computed before '*' 
   tagPos = 0;
 }
 
@@ -29,7 +31,7 @@ uint8_t LK8Sentence::get(void) {
   /****************/
   /* check digits */
   /****************/
-  if( valueDigit.available() && tagPos >= LK8_SENTENCE_ALTI_POS ) {
+  if( valueDigit.available() && tagPos >= LK8_SENTENCE_PRESSURE_POS ) {
     outc = valueDigit.get();
   } else if( parityDigit.available() ) {
     outc =  parityDigit.get();
@@ -43,7 +45,10 @@ uint8_t LK8Sentence::get(void) {
     tagPos++;
 
     /* check special characters */
-    if( tagPos == LK8_SENTENCE_VARIO_POS ) {
+    if( tagPos == LK8_SENTENCE_ALTI_POS ) {
+      valueDigit.begin(alti, LK8_SENTENCE_ALTI_PRECISION);
+      tagPos++;
+    } else if( tagPos == LK8_SENTENCE_VARIO_POS ) {
       valueDigit.begin(vario, LK8_SENTENCE_VARIO_PRECISION);
       tagPos++;
     } else if( tagPos == LK8_SENTENCE_PARITY_POS ) {
