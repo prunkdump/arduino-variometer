@@ -1,4 +1,4 @@
-#include <Lk8Sentence.h>
+#include <LK8Sentence.h>
 #include <Arduino.h>
 #include <digit.h>
 
