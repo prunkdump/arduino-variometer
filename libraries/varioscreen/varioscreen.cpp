@@ -49,14 +49,26 @@ const uint8_t varioscreenMinus[] PROGMEM = {
 #define VARIOSCREEN_DOT_WIDTH 6
 const uint8_t varioscreenDot[] PROGMEM = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x38, 0x38, 0x00, 0x00 };
-
+  
+#ifdef HAVE_SCREEN_JPG63
+#define VARIOSCREEN_MS_WIDTH 11
+const uint8_t varioscreenMS[] PROGMEM = {
+  0x00, 0x00, 0x00, 0x70, 0x10, 0x60, 0x10, 0x60, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x01, 0x01, 0x49, 0x55, 0x55, 0x25, 0x01, 0x00, 0x00 };
+  
+/*#define VARIOSCREEN_H_WIDTH 6
+const uint8_t varioscreenH[] PROGMEM = {
+  0x00, 0x00, 0x1f, 0x04, 0x1c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };*/
+  
+#else  
 #define VARIOSCREEN_MS_WIDTH 24
 const uint8_t varioscreenMS[] PROGMEM = {
   0x00, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00, 0x00,
   0x00, 0x00, 0xc0, 0x60, 0x00, 0x00, 0x80, 0x80, 0x80, 0x80, 0x00, 0x00,
   0x00, 0x3f, 0x3f, 0x00, 0x00, 0x3f, 0x3f, 0x00, 0x00, 0x3f, 0x3f, 0x00,
   0x60, 0x3c, 0x03, 0x00, 0x00, 0x13, 0x27, 0x24, 0x24, 0x3c, 0x19, 0x00 };
-
+#endif //HAVE_SCREEN_JPG63
+  
 #define VARIOSCREEN_M_WIDTH 12
 const uint8_t varioscreenM[] PROGMEM = {
   0x00, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00, 0x00,
@@ -449,6 +461,106 @@ void SATLevel::display(void) {
   screen.flush();
 }
 
+
+void RECORDIndicator::stateRECORD(void) {
+
+  unsigned long FreqDuration = millis() - lastFreqUpdate;
+  if( FreqDuration > 1000 ) {
+      lastFreqUpdate = millis();
+	  displayRecord ^= 1;
+      reset();
+  }
+}
+
+void RECORDIndicator::setActifRECORD(void) {
+
+  recordState = STATE_RECORD;
+}
+
+void RECORDIndicator::setActifGPSFIX(void) {
+
+  recordState = STATE_GPSFIX;
+}
+  
+void RECORDIndicator::display(void) {
+
+  screen.beginDisplay(posX, posY);
+
+  if( displayRecord && recordState==STATE_RECORD) {
+      screen.display(0x0f);
+      screen.display(0x0f);
+      screen.display(0x0f);
+      screen.display(0x0f);
+    } else if  ( displayRecord && recordState==STATE_GPSFIX) {
+      screen.display(0x0f);
+      screen.display(0x0e);
+      screen.display(0x0c);
+      screen.display(0x08);
+    } else if (recordState==STATE_GPSFIX) {
+      screen.display(0x01);
+      screen.display(0x03);
+      screen.display(0x07);
+      screen.display(0x0f);
+    } else  {
+      screen.display(0x00);
+      screen.display(0x00);
+      screen.display(0x00);
+      screen.display(0x00);
+	}
+  screen.endDisplay();
+  screen.flush();
+}
+
+/* !!! always reset !!! */
+void TRENDLevel::stateTREND(int8_t state) {
+
+  trendState = state;
+  reset();
+}
+  
+void TRENDLevel::display(void) {
+
+
+  for(int line=0; line<2; line++) {
+    screen.beginDisplay(posX, posY + line);
+	
+   /* check level and display arrow or blank */
+    if( (line == 0) && (trendState == 1) )  {
+      screen.display(0x00);
+      screen.display(0x08);
+      screen.display(0x0c);
+      screen.display(0xff);
+      screen.display(0xff);
+      screen.display(0x0c);
+      screen.display(0x08);
+      screen.display(0x00);
+    } else if( (line == 1) && (trendState == -1) ) {  
+      screen.display(0x00);
+      screen.display(0x10);
+      screen.display(0x30);
+      screen.display(0xff);
+      screen.display(0xff);
+      screen.display(0x30);
+      screen.display(0x10);
+      screen.display(0x00);	
+    } else {
+      screen.display(0x00);
+      screen.display(0x00);
+      screen.display(0x00);
+      screen.display(0x00);
+      screen.display(0x00);
+      screen.display(0x00);
+      screen.display(0x00);
+      screen.display(0x00);
+    }
+	
+    screen.endDisplay();
+  }
+  screen.flush();
+   
+}
+
+
 /* time */
 void ScreenTime::setTime(uint32_t newTime) {
 
@@ -489,8 +601,12 @@ void ScreenTime::display(void) {
     screen.beginDisplay(posX, posY + line);
 
     /* display each time element */
+#ifdef HAVE_SCREEN_JPG63 
+    for(int8_t i = 2; i>0; i--) {
+#else
     for(int8_t i = 2; i>=0; i--) {
-
+#endif //HAVE_SCREEN_JPG63 
+	
       /* the digit */
       int8_t c;
       c = time[i]/10;
@@ -498,10 +614,29 @@ void ScreenTime::display(void) {
       c = time[i]%10;
       displayElementLine(varioscreenDigit[c], VARIOSCREEN_DIGIT_WIDTH, line);
 
-      /* the dot (not at the end) */
+       /* the dot (not at the end) */
+#ifdef HAVE_SCREEN_JPG63 
+      if( i==2 ) {
+       if ((line==0) & (dot_or_h==false)) {
+	      screen.display(0x1f);
+	      screen.display(0x04);
+	      screen.display(0x1c);
+		}  
+		else if (dot_or_h==false)  {
+	      screen.display(0x00);
+	      screen.display(0x00);
+	      screen.display(0x00);		
+		}
+        else {
+	      screen.display(0x00);		
+   	      screen.display(0x18);
+	      screen.display(0x18);
+        }			
+#else		   
       if( i ) {
-	screen.display(0x18);
-	screen.display(0x18);
+	    screen.display(0x18);
+	    screen.display(0x18);
+ #endif //HAVE_SCREEN_JPG63
       }
     }
     screen.endDisplay();
@@ -570,10 +705,12 @@ int8_t ScreenScheduler::getPage(void) {
 
 void ScreenScheduler::setPage(int8_t page)  {
 
+#ifndef HAVE_SCREEN_JPG63      
   /* check if page change is needed */
   if( page == currentPage ) {
     return;
   }
+#endif //HAVE_SCREEN_JPG63      
 
   /* set the new page */
   currentPage = page;
@@ -589,7 +726,7 @@ void ScreenScheduler::setPage(int8_t page)  {
 }
 
 void ScreenScheduler::nextPage(void) {
-
+  
   uint8_t newPage = currentPage + 1;
   if( newPage > endPage ) {
     newPage = 0;

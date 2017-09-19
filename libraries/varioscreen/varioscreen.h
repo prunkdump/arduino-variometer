@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include <SPI.h>
+#include <VarioSettings.h>
 #include <digit.h>
 
 /* minimum drift to update digit */
@@ -14,7 +15,6 @@
 #define VARIOSCREEN_BAT_B_COEFF 3.5534
 #define VARIOSCREEN_BAT_PIXEL_COUNT 10
 #define VARIOSCREEN_BAT_MULTIPLIER 6
-
 
 /********************/
 /* The screen class */
@@ -170,6 +170,47 @@ class SATLevel : public VarioScreenObject {
   const uint8_t posY;
   uint8_t satelliteCount;
 };
+/* record indicator */
+
+#define STATE_NOTDISPLAY 0
+#define STATE_RECORD 1
+#define STATE_GPSFIX 2
+
+
+class RECORDIndicator : public VarioScreenObject {
+
+ public:
+ RECORDIndicator(VarioScreen& screen, uint8_t posX, uint8_t posY)
+   : VarioScreenObject(screen, 0), posX(posX), posY(posY) { }
+
+  void stateRECORD(void);
+  void setActifRECORD(void);
+  void setActifGPSFIX(void);
+  void display(void);
+  
+ private:
+  const uint8_t posX;
+  const uint8_t posY;
+  bool  displayRecord=false;
+  uint8_t  recordState = STATE_NOTDISPLAY;
+  unsigned long lastFreqUpdate=0;
+};
+
+
+/* trend */
+class TRENDLevel : public VarioScreenObject {
+
+ public :
+  TRENDLevel(VarioScreen& screen, uint8_t posX, uint8_t posY)
+   : VarioScreenObject(screen, 1), posX(posX), posY(posY) { }
+  void stateTREND(int8_t state);
+  void display(void);
+
+ private :
+  const uint8_t posX;
+  const uint8_t posY;
+  int8_t trendState = 0;
+};
 
 /* time */
 class ScreenTime : public VarioScreenObject {
@@ -177,6 +218,11 @@ class ScreenTime : public VarioScreenObject {
  public:
   ScreenTime(VarioScreen& screen, uint8_t posX, uint8_t posY)
     : VarioScreenObject(screen, 0), posX(posX), posY(posY) { }
+
+#ifdef HAVE_SCREEN_JPG63
+	ScreenTime(VarioScreen& screen, uint8_t posX, uint8_t posY, bool dot_or_h)
+    : VarioScreenObject(screen, 0), posX(posX), posY(posY), dot_or_h(dot_or_h) { }
+#endif //HAVE_SCREEN_JPG63
 
   void setTime(uint32_t newTime);
   void setTime(int8_t* newTime);
@@ -188,15 +234,21 @@ class ScreenTime : public VarioScreenObject {
   const uint8_t posX;
   const uint8_t posY;
   int8_t time[3];
+  bool dot_or_h=false;
 };
 
 
 class ScreenElapsedTime : public ScreenTime {
 
  public:
+#ifdef HAVE_SCREEN_JPG63
+  ScreenElapsedTime(VarioScreen& screen, uint8_t posX, uint8_t posY) 
+  : ScreenTime(screen, posX, posY,true) { }
+#else
   ScreenElapsedTime(VarioScreen& screen, uint8_t posX, uint8_t posY) 
   : ScreenTime(screen, posX, posY) { }
-
+#endif //HAVE_SCREEN_JPG63
+  
   void setBaseTime(int8_t* time);
   void setCurrentTime(int8_t* time);
 
@@ -205,7 +257,6 @@ class ScreenElapsedTime : public ScreenTime {
   
 };
   
-
 /************************/
 /* The screen scheduler */
 /************************/

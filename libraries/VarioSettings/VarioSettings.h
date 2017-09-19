@@ -11,8 +11,8 @@
 /* the SetVarioParameters Sketch to store  */
 /* them in EEPROM.                         */
 #define VARIOMETER_MODEL "GNUVario"
-#define VARIOMETER_PILOT_NAME "Prunk Dump"
-#define VARIOMETER_GLIDER_NAME "ITV Dolpo 2"
+#define VARIOMETER_PILOT_NAME "Magali"
+#define VARIOMETER_GLIDER_NAME "MAC-PARA Muse 3"
 
 /* time zone relative to UTC */
 #define VARIOMETER_TIME_ZONE (+2) 
@@ -22,7 +22,7 @@
 /*********/
 
 /* The volume of the beeps, max = 10 */
-#define VARIOMETER_BEEP_VOLUME 10
+#define VARIOMETER_BEEP_VOLUME 3
 
 /* The variometer react like this according to vertical speed in m/s :        */
 /* (near climbing beep is not enabled by default)                             */
@@ -45,8 +45,8 @@
 /*******************/
 
 /* the duration of the two screen pages in milliseconds */
-#define VARIOMETER_BASE_PAGE_DURATION 10000
-#define VARIOMETER_ALTERNATE_PAGE_DURATION 2000
+#define VARIOMETER_BASE_PAGE_DURATION 3000
+#define VARIOMETER_ALTERNATE_PAGE_DURATION 3000
 
 
 /********************/
@@ -60,7 +60,7 @@
 #define FLIGHT_START_MIN_TIMESTAMP 15000
 #define FLIGHT_START_VARIO_LOW_THRESHOLD (-0.5)
 #define FLIGHT_START_VARIO_HIGH_THRESHOLD 0.5
-#define FLIGHT_START_MIN_SPEED 10.0
+#define FLIGHT_START_MIN_SPEED 8.0
 
 /* Speed filtering :                                               */
 /* Greater values give smoother speed. The base unit is 2 seconds  */
@@ -92,7 +92,7 @@
 /* Possible values are :                                  */
 /*  - VARIOMETER_SENT_LXNAV_SENTENCE                      */
 /*  - VARIOMETER_SENT_LK8000_SENTENCE                     */
-#define VARIOMETER_SENT_LXNAV_SENTENCE
+#define VARIOMETER_SENT_LK8000_SENTENCE
 
 /* When there is no GPS to sync variometer bluetooth sentences */
 /* set the delay between sendings in milliseconds.             */ 
@@ -112,8 +112,10 @@
 #define HAVE_SCREEN
 #define HAVE_GPS
 #define HAVE_SDCARD
-#define HAVE_BLUETOOTH
+//#define HAVE_BLUETOOTH
 #define HAVE_VOLTAGE_DIVISOR
+
+#define HAVE_SCREEN_JPG63
 
 /* If you embed an accelerometer set the model here. */
 /* Possible values are :                             */
@@ -121,9 +123,9 @@
 #define MPU9250
 
 /* Set the pins used for Screen and SD card modules */
-#define VARIOSCREEN_DC_PIN 4
+#define VARIOSCREEN_DC_PIN 2
 #define VARIOSCREEN_CS_PIN 3
-#define VARIOSCREEN_RST_PIN 2
+#define VARIOSCREEN_RST_PIN 4
 #define SDCARD_CS_PIN 14
 #define VOLTAGE_DIVISOR_PIN 16
 
@@ -154,5 +156,12 @@
 #define SDCARD_SPEED SPI_CLOCK_DIV2
 #endif //CPU_FREQ
 
+/* Alarm */
+/* Alarm SDCARD not insert */
+#define ALARM_SDCARD
+/* Alarm GPS Fix */
+#define ALARM_GPSFIX
+/* Alarm Fly begin */
+#define ALARM_FLYBEGIN
 
 #endif
