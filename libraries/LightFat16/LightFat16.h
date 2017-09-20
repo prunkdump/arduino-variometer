@@ -18,13 +18,13 @@
 class lightfat16 {
 
  public :
-  lightfat16();
-  int init(int sspin, uint8_t sckDivisor = SPI_CLOCK_DIV2);
-  int begin(void);
+ lightfat16(uint8_t sspin) : card(sspin), currentBlock(-1), blockWriteEnabled(false) { }
+  void enableSPI(void); //set just the CS line
+  int init(void);       //just search for SD card
+  int begin(void);      // create file
   int begin(char* fileName, uint8_t fileNameSize); //!! last bytes are used for the incrementing number
   void write(uint8_t inByte);
   void sync();
-  
 
  private:
   SdCard card;

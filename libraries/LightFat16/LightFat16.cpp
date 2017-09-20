@@ -18,17 +18,18 @@
 #define FAT_FILENAME_SIZE 8
 #define FAT_EOF_TAG 0xffff
 
-lightfat16::lightfat16() {
-  currentBlock = -1;
-  blockWriteEnabled = false;
+
+void lightfat16::enableSPI(void) {
+
+  card.enableSPI();
 }
 
-int lightfat16::init(int sspin, uint8_t sckDivisor) {
+int lightfat16::init() {
 
   /****************/
   /* init sd card */
   /****************/
-  if( ! card.begin(sspin, sckDivisor) ) {
+  if( ! card.begin() ) {
     return -1;
   }
 

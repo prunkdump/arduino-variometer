@@ -149,7 +149,7 @@ double speedFilterAltiValues[VARIOMETER_SPEED_FILTER_SIZE];
 int8_t speedFilterPos = 0;
 
 #ifdef HAVE_SDCARD
-lightfat16 file;
+lightfat16 file(SDCARD_CS_PIN);
 IGCHeader header;
 IGCSentence igc;
 
@@ -186,11 +186,20 @@ unsigned long lastVarioSentenceTimestamp = 0;
 /*-----------------*/
 void setup() {
 
+  /* set all SPI CS lines before talking to devices */
+#if defined(HAVE_SDCARD) && defined(HAVE_GPS)
+  file.enableSPI();
+#endif //defined(HAVE_SDCARD) && defined(HAVE_GPS)
+
+#ifdef HAVE_SCREEN
+  screen.enableSPI();
+#endif //HAVE_SCREEN
+
   /****************/
   /* init SD Card */
   /****************/
 #if defined(HAVE_SDCARD) && defined(HAVE_GPS)
-  if( file.init(SDCARD_CS_PIN, SDCARD_SPEED) >= 0 ) {
+  if( file.init() >= 0 ) {
     sdcardState = SDCARD_STATE_INITIALIZED;  //useless to set error
   }
 #endif //defined(HAVE_SDCARD) && defined(HAVE_GPS)
@@ -199,7 +208,7 @@ void setup() {
   /* init screen */
   /***************/
 #ifdef HAVE_SCREEN
-  screen.begin(VARIOSCREEN_SPEED, VARIOSCREEN_CONTRAST);
+  screen.begin(VARIOSCREEN_CONTRAST);
 #endif //HAVE_SCREEN
   
   /************************************/

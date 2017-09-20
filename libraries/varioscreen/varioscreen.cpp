@@ -94,35 +94,44 @@ const uint8_t varioscreenGR[] PROGMEM = {
 #define PCD8544_SETBIAS 0x10
 #define PCD8544_SETVOP 0x80
 
-VarioScreen::VarioScreen(int8_t DC, int8_t CS, int8_t RST) {
-  clearingStep = 0;
-  _dc = DC;
-  _rst = RST;
-  _cs = CS;
+void VarioScreen::enableSPI(void) {
+
+  /* prevent enabling hardware SS pin */ 
+  pinMode(SS, OUTPUT);
+
+  /* set real CS line */
+  digitalWrite(_cs, HIGH);
+  pinMode(_cs, OUTPUT);
+
+  /* set SPI */ 
+  SPI.begin();
 }
 
-void VarioScreen::begin(uint8_t clockDiviser, uint8_t contrast, uint8_t bias) {
+void VarioScreen::startSPI(void) {
+  if( ! spiStarted ) {
+    SPI.beginTransaction(VARIOSCREEN_SPI_SETTINGS);
+    digitalWrite(_cs, LOW);
+    spiStarted = true;
+  }
+}
+
+void VarioScreen::stopSPI(void) {
+  if( spiStarted ) {
+    digitalWrite(_cs, HIGH);
+    SPI.endTransaction();
+    spiStarted = false;
+  }
+}
+  
+
+void VarioScreen::begin(uint8_t contrast, uint8_t bias) {
+
   // ONLY HARDWARE SPI 
-
-  //don't use SPI.begin();
-  // we don't want SS pin HIGH
-  //pinMode(_cs, OUTPUT);
-  //digitalWrite(_cs, HIGH);
-  pinMode(SS, OUTPUT);
-  SPCR |= _BV(MSTR);
-  SPCR |= _BV(SPE);
-  pinMode(SCK, OUTPUT);
-  pinMode(MOSI, OUTPUT);
-
-  // set SPI
-  SPI.setClockDivider(clockDiviser);
-  SPI.setDataMode(SPI_MODE0);
-  SPI.setBitOrder(MSBFIRST);
+  enableSPI();
 
   // Set common pin outputs.
   pinMode(_dc, OUTPUT);
   pinMode(_rst, OUTPUT);
-  pinMode(_cs, OUTPUT);
 
   // toggle RST low to reset
   digitalWrite(_rst, LOW);
@@ -148,28 +157,36 @@ void VarioScreen::begin(uint8_t clockDiviser, uint8_t contrast, uint8_t bias) {
   command(PCD8544_DISPLAYCONTROL | PCD8544_DISPLAYNORMAL);
 
   // reset display
-  this->clear();
+  clear();
+  stopSPI();
 }
 
+/********************/
+/* display sequence */
+/********************/
 void VarioScreen::beginDisplay(uint8_t x, uint8_t y) {
   command(PCD8544_SETYADDR | y);
   command(PCD8544_SETXADDR | x);
   digitalWrite(_dc, HIGH);
-  digitalWrite(_cs, LOW);
 }
 
 void VarioScreen::display(uint8_t displayByte) {
   SPI.transfer(displayByte);
 }
 
+//do nothing with the new SPI library
 void VarioScreen::endDisplay() {
-  digitalWrite(_cs, HIGH);
+  
 }
 
 void VarioScreen::flush() {
   command(PCD8544_SETYADDR);
+  stopSPI();
 }
 
+/*********/
+/* clear */
+/*********/
 void VarioScreen::clear() {
   beginDisplay(0, 0);
   for(int i = 0; i<LCDWIDTH*LCDHEIGHT; i++) {
@@ -196,6 +213,7 @@ bool VarioScreen::clearStep() {
     display(0x00);
   }
   endDisplay();
+  flush();
 
   /* next */
   clearingStep++;
@@ -203,10 +221,9 @@ bool VarioScreen::clearStep() {
 }
   
 void VarioScreen::command(uint8_t c) {
+  startSPI();
   digitalWrite(_dc, LOW);
-  digitalWrite(_cs, LOW);
   SPI.transfer(c);
-  digitalWrite(_cs, HIGH);
 }
 
 

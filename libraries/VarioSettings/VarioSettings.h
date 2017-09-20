@@ -143,16 +143,4 @@
 /* (Not always work)                           */
 #define FASTWIRE_SPEED 400
 
-/* SPI speed                                 */
-/* The variometer seems to be more stable at */
-/* half speed. Don't hesitate to experiment. */
-#if F_CPU >= 16000000L
-#define VARIOSCREEN_SPEED SPI_CLOCK_DIV4
-#define SDCARD_SPEED SPI_CLOCK_DIV4
-#else
-#define VARIOSCREEN_SPEED SPI_CLOCK_DIV2
-#define SDCARD_SPEED SPI_CLOCK_DIV2
-#endif //CPU_FREQ
-
-
 #endif
