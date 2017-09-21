@@ -86,7 +86,7 @@
 /* GPS track recording on SD card starting condition :  */ 
 /* -> As soon as possible (GPS fix)                     */
 /* -> When flight start is detected                     */
-//#define VARIOMETER_RECORD_WHEN_FLIGHT_START
+#define VARIOMETER_RECORD_WHEN_FLIGHT_START
 
 /* What type of vario NMEA sentence is sent by bluetooth. */
 /* Possible values are :                                  */
@@ -144,17 +144,6 @@
 /* You can try 800 on <8mhz microcontrollers   */ 
 /* (Not always work)                           */
 #define FASTWIRE_SPEED 400
-
-/* SPI speed                                 */
-/* The variometer seems to be more stable at */
-/* half speed. Don't hesitate to experiment. */
-#if F_CPU >= 16000000L
-#define VARIOSCREEN_SPEED SPI_CLOCK_DIV4
-#define SDCARD_SPEED SPI_CLOCK_DIV4
-#else
-#define VARIOSCREEN_SPEED SPI_CLOCK_DIV2
-#define SDCARD_SPEED SPI_CLOCK_DIV2
-#endif //CPU_FREQ
 
 /* Alarm */
 /* Alarm SDCARD not insert */

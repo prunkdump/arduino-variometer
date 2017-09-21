@@ -49,10 +49,9 @@
  * 
  * v 63.3     Version hardware 3
  *            correction BT
- *            
- * v 63.4     Ajout de la gestion à 3 niveaux sur ToneAC
- *            Modification de la gestion du SPI
  *
+ * v 63.4     Ajout mode 3 niveaux dans ToneAC
+ *            Modification de la gestion SPI  
  *******************/
  
 /*******************/
@@ -294,10 +293,9 @@ void setup() {
  
  #ifdef HAVE_SCREEN_JPG63
   DisplayDuration = true;
- #endif HAVE_SCREEN_JPG63
- 
   varioScreen.setPage(1);
-#endif //HAVE_SCREEN
+ #endif HAVE_SCREEN_JPG63
+ #endif //HAVE_SCREEN
   
   /************************************/
   /* init altimeter and accelerometer */
@@ -802,15 +800,12 @@ recordIndicator.setActifRECORD();
 #endif //defined(HAVE_SCREEN) && defined(HAVE_GPS)
 
   /* enable near climbing */
-#ifdef HAVE_SPEAKER 
 #ifdef VARIOMETER_ENABLE_NEAR_CLIMBING_ALARM
   beeper.setGlidingAlarmState(true);
 #endif
 #ifdef VARIOMETER_ENABLE_NEAR_CLIMBING_BEEP
   beeper.setGlidingBeepState(true);
 #endif
-#endif //HAVE_SPEAKER
-
 #if defined(HAVE_SDCARD) && defined(HAVE_GPS) && defined(VARIOMETER_RECORD_WHEN_FLIGHT_START)
   createSDCardTrackFile();
 #endif // defined(HAVE_SDCARD) && defined(VARIOMETER_RECORD_WHEN_FLIGHT_START)

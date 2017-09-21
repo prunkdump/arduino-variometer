@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <digit.h>
+#include <VarioSettings.h>
 
 #define VARIOSCREEN_MAX_SPI_FREQ F_CPU
 #define VARIOSCREEN_SPI_SETTINGS SPISettings(F_CPU, MSBFIRST, SPI_MODE0)
@@ -25,9 +26,9 @@
 
 class VarioScreen {
  public:
-  VarioScreen(int8_t DC, int8_t CS, int8_t RST);
+ VarioScreen(int8_t DC, int8_t CS, int8_t RST) : clearingStep(0), _dc(DC), _rst(RST), _cs(CS), spiStarted(false) { }
   void enableSPI(void);
-  void begin(uint8_t clockDiviser = SPI_CLOCK_DIV2, uint8_t contrast = 40, uint8_t bias = 0x04);
+  void begin(uint8_t contrast = 40, uint8_t bias = 0x04);
   void beginDisplay(uint8_t x, uint8_t y);
   void display(uint8_t displayByte);
   void endDisplay();

@@ -135,7 +135,7 @@ void VarioScreen::stopSPI(void) {
   }
 }
   
-void VarioScreen::begin(uint8_t clockDiviser, uint8_t contrast, uint8_t bias) {
+void VarioScreen::begin(uint8_t contrast, uint8_t bias) {
  
   // ONLY HARDWARE SPI 
   enableSPI();
@@ -185,6 +185,7 @@ void VarioScreen::display(uint8_t displayByte) {
   SPI.transfer(displayByte);
 }
 
+//do nothing with the new SPI library
 void VarioScreen::endDisplay() {
 
 }
