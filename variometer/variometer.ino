@@ -33,7 +33,7 @@
 /*******************/
 
 #define VERSION 63
-#define SUB_VERSION 3
+#define SUB_VERSION 4
 
 /*******************/
 /*    Historique   */
@@ -50,6 +50,9 @@
  * v 63.3     Version hardware 3
  *            correction BT
  *            
+ * v 63.4     Ajout de la gestion à 3 niveaux sur ToneAC
+ *            Modification de la gestion du SPI
+ *
  *******************/
  
 /*******************/
@@ -215,7 +218,7 @@ double speedFilterAltiValues[VARIOMETER_SPEED_FILTER_SIZE];
 int8_t speedFilterPos = 0;
 
 #ifdef HAVE_SDCARD
-lightfat16 file;
+lightfat16 file(SDCARD_CS_PIN);
 IGCHeader header;
 IGCSentence igc;
 
@@ -252,11 +255,20 @@ unsigned long lastVarioSentenceTimestamp = 0;
 /*-----------------*/
 void setup() {
 
+  /* set all SPI CS lines before talking to devices */
+#if defined(HAVE_SDCARD) && defined(HAVE_GPS)
+  file.enableSPI();
+#endif //defined(HAVE_SDCARD) && defined(HAVE_GPS)
+
+#ifdef HAVE_SCREEN
+  screen.enableSPI();
+#endif //HAVE_SCREEN
+
   /****************/
   /* init SD Card */
   /****************/
 #if defined(HAVE_SDCARD) && defined(HAVE_GPS)
-  if( file.init(SDCARD_CS_PIN, SDCARD_SPEED) >= 0 ) {
+  if( file.init() >= 0 ) {
     sdcardState = SDCARD_STATE_INITIALIZED;  //useless to set error
   }
   else
@@ -276,7 +288,7 @@ void setup() {
   /* init screen */
   /***************/
 #ifdef HAVE_SCREEN
-  screen.begin(VARIOSCREEN_SPEED, VARIOSCREEN_CONTRAST);
+  screen.begin(VARIOSCREEN_CONTRAST);
   int8_t tmptime[] = {0,SUB_VERSION,VERSION};
   screenTime.setTime(tmptime);
  
@@ -790,12 +802,15 @@ recordIndicator.setActifRECORD();
 #endif //defined(HAVE_SCREEN) && defined(HAVE_GPS)
 
   /* enable near climbing */
+#ifdef HAVE_SPEAKER 
 #ifdef VARIOMETER_ENABLE_NEAR_CLIMBING_ALARM
   beeper.setGlidingAlarmState(true);
 #endif
 #ifdef VARIOMETER_ENABLE_NEAR_CLIMBING_BEEP
   beeper.setGlidingBeepState(true);
 #endif
+#endif //HAVE_SPEAKER
+
 #if defined(HAVE_SDCARD) && defined(HAVE_GPS) && defined(VARIOMETER_RECORD_WHEN_FLIGHT_START)
   createSDCardTrackFile();
 #endif // defined(HAVE_SDCARD) && defined(VARIOMETER_RECORD_WHEN_FLIGHT_START)
