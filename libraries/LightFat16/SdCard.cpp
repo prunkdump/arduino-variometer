@@ -53,7 +53,7 @@ STATIC_NOINLINE bool waitForToken(uint8_t token, uint16_t timeoutMillis) {
 //------------------------------------------------------------------------------
 uint8_t SdCard::cardCommand(uint8_t cmd, uint32_t arg) {
   // select card
-  chipSelectLow();
+  startSPI();
   
   // wait if busy
   waitForToken(0xff, SD_WRITE_TIMEOUT);
@@ -86,26 +86,7 @@ uint8_t SdCard::cardAcmd(uint8_t cmd, uint32_t arg) {
   cardCommand(CMD55, 0);
   return cardCommand(cmd, arg);
 }
-//------------------------------------------------------------------------------
-void SdCard::chipSelectHigh(void) {
-  if (!selected) {
-    return;
-  }
-  digitalWrite(chipSelectPin, HIGH);
-  SPI.transfer(0Xff);
-  //SPI.endTransaction();
-  selected = false;
-}
-//------------------------------------------------------------------------------
-void SdCard::chipSelectLow(void) {
-  if (selected) {
-    return;
-  }
-  //SPI.beginTransaction(SPISettings(SPI_MAX_SPEED, MSBFIRST, SPI_MODE0));
-  //SPI.setClockDivider(spiClockDivisor);
-  digitalWrite(chipSelectPin, LOW);
-  selected = true;
-}
+
 
 //------------------------------------------------------------------------------
 /**
@@ -118,35 +99,52 @@ void SdCard::chipSelectLow(void) {
  * the value zero, false, is returned for failure.
  *
  */
-bool SdCard::begin(uint8_t chipSelect, uint8_t sckDivisor) {
-  uint8_t status;
+void SdCard::enableSPI(void) {
+
+  /* prevent enabling hardware SS pin */ 
+  pinMode(SS, OUTPUT);
+
+  /* set real CS line */
+  digitalWrite(chipSelectPin, HIGH);
+  pinMode(chipSelectPin, OUTPUT);
   
-  /* save parameter */
-  chipSelectPin = chipSelect;
+  /* set SPI */ 
+  SPI.begin();
+}
+
+void SdCard::startSPI(void) {
+  if( ! spiStarted ) {
+    SPI.beginTransaction(SD_SPI_SETTINGS);
+    digitalWrite(chipSelectPin, LOW);
+    spiStarted = true;
+  }
+}
+
+void SdCard::stopSPI(void) {
+  if( spiStarted ) {
+    digitalWrite(chipSelectPin, HIGH);
+    SPI.transfer(0xff);
+    SPI.endTransaction();
+    spiStarted = false;
+  }
+}
+
+
+bool SdCard::begin(void) {
+
+  uint8_t status;
 
   // 16-bit init start time allows over a minute
   unsigned t0 = (unsigned)millis();
   uint32_t arg;
 
   // initialize SPI bus and chip select pin.
-  pinMode(chipSelectPin, OUTPUT);
-  digitalWrite(chipSelectPin, HIGH);
-
-  //don't use SPI.begin();
-  // we don't want SS pin HIGH
-  pinMode(SS, OUTPUT);
-  SPCR |= _BV(MSTR);
-  SPCR |= _BV(SPE);
-  pinMode(SCK, OUTPUT);
-  pinMode(MOSI, OUTPUT);
+  enableSPI();
 
   // set SCK rate for initialization commands.
-  SPI.setClockDivider(SPI_SCK_INIT_DIVISOR);
+  SPI.beginTransaction(SD_SPI_INIT_SETTINGS);
+  digitalWrite(chipSelectPin, LOW);
   
-  // toggle chip select and set slow SPI clock.
-  chipSelectLow();
-  chipSelectHigh();
-
   // must supply min of 74 clock cycles with CS high.
   for (uint8_t i = 0; i < 10; i++) {
     SPI.transfer(0xff);
@@ -202,12 +200,11 @@ bool SdCard::begin(uint8_t chipSelect, uint8_t sckDivisor) {
   }
 
   /* reset SPI clock */
-  chipSelectHigh();
-  SPI.setClockDivider(sckDivisor);
+  stopSPI();
   return true;
 
  fail:
-  chipSelectHigh();
+  stopSPI();
   return false;
 }
 
@@ -256,11 +253,11 @@ bool SdCard::readBlock(uint32_t blockNumber, uint8_t* dst) {
   SPI.transfer(0XFF);
 
   // ok
-  chipSelectHigh();
+  stopSPI();
   return true;
 
 fail:
-  chipSelectHigh();
+  stopSPI();
   return false;
 }
 //------------------------------------------------------------------------------
@@ -302,10 +299,10 @@ bool SdCard::writeBlock(uint32_t blockNumber, const uint8_t* src) {
   }
 
   // ok
-  chipSelectHigh();
+  stopSPI();
   return true;
   
  fail:
-  chipSelectHigh();
+  stopSPI();
   return false;
 }

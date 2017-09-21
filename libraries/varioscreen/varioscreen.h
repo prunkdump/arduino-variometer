@@ -3,8 +3,10 @@
 
 #include <Arduino.h>
 #include <SPI.h>
-#include <VarioSettings.h>
 #include <digit.h>
+
+#define VARIOSCREEN_MAX_SPI_FREQ F_CPU
+#define VARIOSCREEN_SPI_SETTINGS SPISettings(F_CPU, MSBFIRST, SPI_MODE0)
 
 /* minimum drift to update digit */
 #define VARIOSCREEN_DIGIT_DISPLAY_THRESHOLD 0.65
@@ -16,6 +18,7 @@
 #define VARIOSCREEN_BAT_PIXEL_COUNT 10
 #define VARIOSCREEN_BAT_MULTIPLIER 6
 
+
 /********************/
 /* The screen class */
 /********************/
@@ -23,6 +26,7 @@
 class VarioScreen {
  public:
   VarioScreen(int8_t DC, int8_t CS, int8_t RST);
+  void enableSPI(void);
   void begin(uint8_t clockDiviser = SPI_CLOCK_DIV2, uint8_t contrast = 40, uint8_t bias = 0x04);
   void beginDisplay(uint8_t x, uint8_t y);
   void display(uint8_t displayByte);
@@ -34,8 +38,11 @@ class VarioScreen {
 
  private:
   void command(uint8_t c);
+  void startSPI(void);
+  void stopSPI(void);
   uint8_t clearingStep;
   int8_t _dc, _rst, _cs;
+  bool spiStarted;
 };
 
 

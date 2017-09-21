@@ -26,8 +26,8 @@
 #include <Arduino.h>
 #include <SPI.h>
 
-
-#define SPI_SCK_INIT_DIVISOR SPI_CLOCK_DIV128
+#define SD_SPI_SETTINGS SPISettings(F_CPU, MSBFIRST, SPI_MODE0)
+#define SD_SPI_INIT_SETTINGS SPISettings(400000, MSBFIRST, SPI_MODE0)
 
 //------------------------------------------------------------------------------
 // SD operation timeouts
@@ -115,46 +115,18 @@ uint8_t const CARD_TYPE_SDHC = 0x03;
  */
 class SdCard  {
  public:
-  
-  bool begin(uint8_t chipSelect = SS, uint8_t sckDivisor = SPI_CLOCK_DIV2);
-  /**
-   * Initialize an SD flash memory card with default clock rate and chip
-   * select pin.  See SdCard::begin(uint8_t chipSelectPin, uint8_t sckRateID).
-   *
-   * \return true for success or false for failure.
-   */
-  bool init(void) {
-    return begin(SS, SPI_CLOCK_DIV2);
-  }
-  /**
-   * Initialize an SD flash memory card.
-   * 
-   * \param[in] halfSpeed set SCK rate to half speed if true else full speed.  
-   *
-   * \return true for success or false for failure.   
-   */
-  bool init(bool halfSpeed) {
-    return begin(halfSpeed ? SPI_CLOCK_DIV4 : SPI_CLOCK_DIV2, SS);
-  }
-  /**
-   * Initialize an SD flash memory card.
-   *
-   * \param[in] halfSpeed set SCK rate to half speed if true else full speed.
-   * \param[in] chipSelect SD card chip select pin.
-   *
-   * \return true for success or false for failure.
-   */  
-  bool init(bool halfSpeed, uint8_t chipSelect) {
-    return begin(halfSpeed ? SPI_CLOCK_DIV4 : SPI_CLOCK_DIV2, chipSelect);}
+ SdCard(uint8_t chipSelect = SS) : chipSelectPin(chipSelect), spiStarted(false) { }
+  void enableSPI(void);
+  bool begin(void);
   bool readBlock(uint32_t block, uint8_t* dst);
   bool writeBlock(uint32_t block, const uint8_t* src);
  private:
-  uint8_t chipSelectPin;
-  boolean selected;
+  const uint8_t chipSelectPin;
   uint8_t cardType;
   uint8_t cardAcmd(uint8_t cmd, uint32_t arg);
   uint8_t cardCommand(uint8_t cmd, uint32_t arg);
-  void chipSelectHigh(void);
-  void chipSelectLow(void);
+  boolean spiStarted;
+  void startSPI(void);
+  void stopSPI(void);
 };
 #endif  // SdCard_h
