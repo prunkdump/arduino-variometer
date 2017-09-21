@@ -79,7 +79,8 @@
     #include <WProgram.h>
   #endif
 
-  //#define TONEAC_TINY // Uncomment to use alternate function toneAC(frequency, length) that saves 110 bytes.
+  #define TONEAC_VOLUME  //set to have volume control
+  //#define TONEAC_LENGTH  //set to have length control
   
   #if defined (__AVR_ATmega32U4__) || defined(__AVR_ATmega640__) || defined(__AVR_ATmega1280__) || defined(__AVR_ATmega1281__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega2561__)
     #define PWMT1AMASK DDB5
@@ -102,10 +103,15 @@
     #define TIMSK1 TIMSK
   #endif
 
-  #ifndef TONEAC_TINY
-    void toneAC(unsigned long frequency = 0, uint8_t volume = 10, unsigned long length = 0, uint8_t background = false);
-  #else
-    void toneAC(unsigned long frequency = 0, unsigned long length = 0);
+  
+    void toneAC(unsigned long frequency = 0
+  #ifdef TONEAC_VOLUME
+                , uint8_t volume = 10
   #endif
+  #ifdef TONEAC_LENGTH
+		, unsigned long length = 0, uint8_t background = false
+  #endif
+		);
+
   void noToneAC();
 #endif
