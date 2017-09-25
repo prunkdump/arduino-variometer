@@ -81,6 +81,9 @@ double* vertaccel_getCalibration(void) {
 /* init vertaccel */
 void vertaccel_init(boolean giroCalibration) {
 
+  /* !!! sometimes, the Arduino board start before the IMU !!! */
+  delay(1000);
+
   /* setting imu */
   mpu_select_device(0);
   mpu_init_structures();
