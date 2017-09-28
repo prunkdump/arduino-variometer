@@ -6,18 +6,18 @@ Features :
 ---------
 - High precision altitude with improved ms5611 code
 - High precision vertical velocity with InvenSense accelerometer (optionnal)
-- Screen display with Nokia 5110 : altitude, vertical speed, ground speed, glide ratio and more (optionnal)
+- Screen display with waveshare e-paper 1,54 inch : altitude, vertical speed, ground speed, glide ratio and more (optionnal)
 - Ground speed and glide ratio with GPS device (optionnal)
 - Flight tracking with SD card reader and GPS (optionnal)
 - Bluetooth communication with external device (optionnal)
 - Battery level (optionnal)
+- Microcontroler Cortex M0+
 
 
 How to build :
 --------------
 Pre-build kits can be found here :
 
-https://github.com/prunkdump/variometer-kits
 
 Contact me for more informations at prunkdump@gmail.com
 
@@ -28,29 +28,31 @@ Variometer Wiring :
 See schematic.pdf for full diagram.
 
 ms5611/mpu9250 board :
-SDA -> Arduino A4
-SCL -> Arduino A5
+CJMCU-117 MPU9250+MS5611 circuit interface
+SDA -> Arduino D11 - SDA
+SCL -> Arduino D12 - SCL
 VCC -> Battery RAW +
 GND -> GND
 
 Speaker (simple) :
-Speaker + -> 120 Ohms resistor -> Arduino D9
-Speaker - -> Arduino D10
+Speaker + -> 120 Ohms resistor -> Arduino A3
+Speaker - -> Arduino A4
 
 Speaker (amplified with L9110) :
-L9110 IA -> Arduino D9
-L9110 IB -> Arduino D10
+L9110 IA -> Arduino A3
+L9110 IB -> Arduino A4
 L9110 OA -> Speaker +
 L9110 OB -> Speaker -
 L9110 VCC -> Battery RAW +
 L9110 GND -> GND
 
-Nokia 5110 board :
-SCLK -> Arduino D13
-DIN/MOSI -> Arduino D11
-DC -> any Arduino pin (default D4)
-CS -> any Arduino pin (default D3)
-RST -> any Arduino pin (default D2)
+Waveshare e-paper 1.54 inch board :
+SCLK -> Arduino D9 / SCK
+DIN/MOSI -> Arduino D8 / MOSI
+DC -> any Arduino pin (default D7)
+CS -> any Arduino pin (default D4)
+RST -> any Arduino pin (default D6)
+BUSY -> any Arduino pin (default D5)
 VCC -> regulated 3.3V !
 GND -> GND
 
@@ -60,23 +62,18 @@ GPS RX pin -> any Arduino pin (only used for GPS configuration)
 GPS VCC -> Battery RAW +
 GPS GND -> GND
 
-SD card reader :
-CS -> any Arduino pin (default A0)
-MOSI -> Arduino D11
-SCLK -> Arduino D13
-MISO -> Arduino D12
-5V -> Battery RAW +
-GND -> GND
-
 Bluetooth module :
 Bluetooth RX pin -> Arduino TX pin
 Bluetooth TX pin -> arduino pin with interrupt capatibility (default D8, used only for Bluetooth configuration)
 Bluetooth VCC -> Battery RAW +
 Bluetooth GND -> GND
 
-Battery level unit (voltage divisor) :
-Arduino Analog pin (default A2) -> 270 kOhms resistor -> Battery RAW +
-Arduino Analog pin (default A2) -> 1 MOhms resitor -> GND
+Push Button Left A1
+Push Button Right A2 
+Push Button Center D1  --- ON/OFF
+
+Detection USB   A6
+Alim Manager    A5    
 
 
 Code configuration :
@@ -85,29 +82,7 @@ Code configuration :
 !!! Don't skip this step !!!
 Open ./libraries/VarioSettings/VarioSettings.h and check all the parameters.
 To "comment" a line put a "//" at the beginning.
-
-
-If you embed an SD card reader :
---------------------------------
-
-Compile and upload "SetVarioParameters" sketch and run it. This store
-the "pilot" parameters in EEPROM. This must be done just one time.
-
-
-!!! Don't skip this step !!!
-Make a less than 2Go partition (typically 1,5Go) on the SS card. And
-format it in FAT16.
-
-
-If you embed an InvenSense accelerometer :
-------------------------------------------
-
-Don't forget to set the model in "VarioSettings.h". Next compile and
-upload "calibration_nointeractive" sketch. And follow this procedure :
-
-https://www.youtube.com/watch?v=fc0vIsZJvsw
-
-This must be done just one time.
+Edit, modify parameters and copy SETTINGS.TXT to SDCARD
 
 ---------------------------------
 YOU CAN NOW TRY YOUR VARIOMETER !
