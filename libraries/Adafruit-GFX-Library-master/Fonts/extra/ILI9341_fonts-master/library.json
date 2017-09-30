@@ -1,0 +1,18 @@
+{
+  "name": "ILI9341_fonts",
+  "keywords": "display, tft, lcd, graphics, font",
+  "description": "Extra fonts for use with ILI9341_t3",
+  "exclude": "extras",
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/PaulStoffregen/ILI9341_fonts.git"
+  },
+  "dependencies":
+  {
+    "name": "ILI9341_t3",
+    "frameworks": "arduino"
+  },
+  "frameworks": "*",
+  "platforms": "*"
+}

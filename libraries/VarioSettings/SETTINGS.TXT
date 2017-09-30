@@ -1,0 +1,80 @@
+[exINT=15] /*DEBBUG*/
+[exFloat=1.12345] /*DEBBUG*/
+[exBoolean=1] /*DEBBUG*/
+[exLong=2123456789] /*DEBBUG*/
+
+[VARIOMETER_PILOT_NAME=Magali]
+[VARIOMETER_GLIDER_NAME=MAC-PARA Muse 3]
+[VARIOMETER_TIME_ZONE=2] /* time zone relative to UTC */
+[VARIOMETER_BEEP_VOLUME=3] /* The volume of the beeps, max = 10 */
+
+[VARIOMETER_ENABLE_NEAR_CLIMBING_ALARM=0] /* The near climbing alarm : signal that you enter or exit the near climbing zone */
+[VARIOMETER_ENABLE_NEAR_CLIMBING_BEEP=0] /* The near climbing beep : beep when you are in near climbing zone               */
+
+[FLIGHT_START_MIN_TIMESTAMP=15000] /* -> Minimum time after poweron in milliseconds            */
+[FLIGHT_START_VARIO_LOW_THRESHOLD=-0.5] /* -> Minimum vertical velocity in m/s (low/high threshold) */
+[FLIGHT_START_VARIO_HIGH_THRESHOLD=0.5]
+[FLIGHT_START_MIN_SPEED=8.0] /* -> Minimum ground speed in km/h                          */
+
+  /* GPS track recording on SD card starting condition :  */ 
+  /* -> As soon as possible (GPS fix)                     */
+  /* -> When flight start is detected                     */
+[VARIOMETER_RECORD_WHEN_FLIGHT_START=1] /* -> When flight start is detected                     */
+
+[ALARM_SDCARD=1] /* Alarm SDCARD not insert */
+[ALARM_GPSFIX=1] /* Alarm GPS Fix */
+[ALARM_FLYBEGIN=1] /* Alarm Fly begin */
+
+[VARIOMETER_BASE_PAGE_DURATION=3000] /* the duration of the two screen pages in milliseconds */
+[VARIOMETER_ALTERNATE_PAGE_DURATION=3000]
+
+  /* The variometer react like this according to vertical speed in m/s :        */
+  /* (near climbing beep is not enabled by default)                             */
+  /*                                                                            */
+  /* <--LOW-BEEP--|------SILENT------|--NEAR-CLIMBING-BEEP--|--CLIMBING-BEEP--> */
+  /*              |                  |                      |                   */
+  /*           SINKING         CLIMBING-SENSITIVITY      CLIMBING               */
+[VARIOMETER_SINKING_THRESHOLD=-2.0]
+[VARIOMETER_CLIMBING_THRESHOLD=0.2]
+[VARIOMETER_NEAR_CLIMBING_SENSITIVITY=0.5]
+
+[VARIOMETER_ENABLE_NEAR_CLIMBING_ALARM=1] /* The near climbing alarm : signal that you enter or exit the near climbing zone */
+[VARIOMETER_ENABLE_NEAR_CLIMBING_BEEP=1] /* The near climbing beep : beep when you are in near climbing zone               */
+
+/* Flight start detection conditions :                      */
+[FLIGHT_START_MIN_TIMESTAMP=15000]     /* -> Minimum time after poweron in milliseconds            */
+[FLIGHT_START_VARIO_LOW_THRESHOLD=-0.5] /* -> Minimum vertical velocity in m/s (low/high threshold) */
+[FLIGHT_START_VARIO_HIGH_THRESHOLD=0.5] /* -> Minimum vertical velocity in m/s (low/high threshold) */
+[FLIGHT_START_MIN_SPEED=8.0]
+
+  /* What type of vario NMEA sentence is sent by bluetooth. */
+  /* Possible values are :                                  */
+  /*  - VARIOMETER_SENT_LXNAV_SENTENCE           OR         */
+  /*  - VARIOMETER_SENT_LK8000_SENTENCE                     */
+[VARIOMETER_SENT_LXNAV_SENTENCE=1] /*  - VARIOMETER_SENT_LXNAV_SENTENCE                      */
+
+[KF_ZMEAS_VARIANCE=400.0] /* Kalman filter configuration /*
+[KF_ZACCEL_VARIANCE=1000.0]
+[KF_ACCELBIAS_VARIANCE=1.0]
+
+/* Power-down timeout. Here we power down if the */
+/* vario does not see any climb or sink rate more than */
+/* 50cm/sec, for 20 minutes. */
+[SLEEP_TIMEOUT_SECONDS=1200] /* 20 minutes */
+[SLEEP_THRESHOLD_CPS=50]
+
+[VARIO_MAX_FREQHZ=4000] /* change these parameters based on the frequency bandwidth of the speaker */
+[VARIO_XOVER_FREQHZ=2000] /* change these parameters based on the frequency bandwidth of the speaker */
+[VARIO_MIN_FREQHZ=200] /* change these parameters based on the frequency bandwidth of the speaker */
+
+[VARIO_SINK_FREQHZ=400]
+[VARIO_TICK_FREQHZ=200]
+
+[BATTERY_TONE_FREQHZ=400] /* audio feedback tones */
+[CALIB_TONE_FREQHZ=800] /* audio feedback tones */
+[MPU9250_ERROR_TONE_FREQHZ=200] /* audio feedback tones */
+[MS5611_ERROR_TONE_FREQHZ=2500] /* audio feedback tones */
+[SDCARD_ERROR_TONE_FREQHZ=2000]  /* audio feedback tones */
+[BEEP_FREQ=800]
+
+
