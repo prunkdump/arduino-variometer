@@ -4,7 +4,6 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <SD.h>
-#include <FlashStorage.h>
 
 
 /*----------------------------*/
@@ -279,6 +278,10 @@ EXTERNAL_INT_11: RX, SCK*/
 #define SerialPort SerialUSB
 
 
+/* eeprom sound setting adresses */
+#define SOUND_EPROM_TAG 9806
+#define SOUND_EPROM_ADDR 0x10
+
 /******************************************************/
 /******************************************************/
 
@@ -288,7 +291,8 @@ class VarioSettings {
  public:
   boolean initSettings();
   boolean readSDSettings();
-  void writeSDSettings();
+  boolean readFlashSDSettings();
+  void writeFlashSDSettings();
   uint8_t soundSettingRead(void);
   void soundSettingWrite(uint8_t volume);
 
@@ -405,12 +409,20 @@ class VarioSettings {
     uint16_t MS5611_ERROR_TONE_FREQHZ	= 2500;
     uint16_t SDCARD_ERROR_TONE_FREQHZ	= 2000;  
 	uint16_t BEEP_FREQ                  = 800;
+	
+//Setting accelerometer
+    double ACCELCALX = 0.0;
+	double ACCELCALY = 0.0;
+	double ACCELCALZ = 0.0;
   
  protected:
   File myFile;
+  File myFile2;
   char FileName[15] = "SETTINGS.TXT";
+  char FileFlashName[15] = "flash.txt";
   
   void applySetting(String settingName, String settingValue);
+  void applyFlashSetting(String settingName, String settingValue);
   float toFloat(String settingValue);
   long toLong(String settingValue);
   boolean toBoolean(String settingValue);
@@ -422,9 +434,39 @@ class Statistic {
 
  public:
    void setTime(int8_t* timeValue);
+   int8_t* getTime(void);
+   int8_t* getTime(int8_t* timeValue);
+   void setDuration(int8_t* durationValue);
+   int8_t* getDuration(void);
+   int8_t* getDuration(int8_t* durationValue);
+   void setAlti(double alti);
+   double getMaxAlti(void);
+   double getMinAlti(void);
+   void setVario(double vario);
+   double getMaxVario(void);
+   double getMinVario(void);
+   void setSpeed(double speed);
+   double getMaxSpeed(void);
+   double getMinSpeed(void);
+   double getAltiDeco(void);
+   double getGain(void);
+
   private:
     int8_t time[3];
+	int8_t duration[3];
 
+    double currentSpeed=0;
+    double maxSpeed;
+    double minSpeed;
+    double currentAlti=0;
+    double maxAlti;
+    double minAlti;
+	double currentVario=0;
+	double maxVario;
+	double minVario;
+	
+	double altiDeco;
+	double gain;
 };
 
 #endif

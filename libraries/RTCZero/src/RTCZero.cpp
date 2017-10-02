@@ -93,6 +93,77 @@ void RTCZero::begin(bool resetTime)
   _configured = true;
 }
 
+/*//**********************Changed "begin" function from RTCZero Library**************
+void RTCZero::begin(bool resetTime)
+{
+  uint16_t tmp_reg = 0;
+  
+  PM->APBAMASK.reg |= PM_APBAMASK_RTC; // turn on digital interface clock
+  //config32kOSC();
+
+  // If the RTC is in clock mode and the reset was
+  // not due to POR or BOD, preserve the clock time
+  // POR causes a reset anyway, BOD behaviour is?
+  bool validTime = false;
+  RTC_MODE2_CLOCK_Type oldTime;
+
+  if ((!resetTime) && (PM->RCAUSE.reg & (PM_RCAUSE_SYST | PM_RCAUSE_WDT | PM_RCAUSE_EXT))) {
+    if (RTC->MODE2.CTRL.reg & RTC_MODE2_CTRL_MODE_CLOCK) {
+
+      validTime = true;
+      oldTime.reg = RTC->MODE2.CLOCK.reg;
+    }
+  }
+  // Setup clock GCLK2 with OSC32K divided by 32
+  GCLK->GENDIV.reg = GCLK_GENDIV_ID(2)|GCLK_GENDIV_DIV(4);
+  while (GCLK->STATUS.reg & GCLK_STATUS_SYNCBUSY)
+    ;                                                         /*XOSC32K*
+  GCLK->GENCTRL.reg = (GCLK_GENCTRL_GENEN | GCLK_GENCTRL_SRC_OSCULP32K | GCLK_GENCTRL_ID(2) | GCLK_GENCTRL_DIVSEL );
+  while (GCLK->STATUS.reg & GCLK_STATUS_SYNCBUSY)
+    ;
+  GCLK->CLKCTRL.reg = (uint32_t)((GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_GEN_GCLK2 | (RTC_GCLK_ID << GCLK_CLKCTRL_ID_Pos)));
+  while (GCLK->STATUS.bit.SYNCBUSY)
+    ;
+
+  RTCdisable();
+
+  RTCreset();
+
+  tmp_reg |= RTC_MODE2_CTRL_MODE_CLOCK; // set clock operating mode
+  tmp_reg |= RTC_MODE2_CTRL_PRESCALER_DIV1024; // set prescaler to 1024 for MODE2
+  tmp_reg &= ~RTC_MODE2_CTRL_MATCHCLR; // disable clear on match
+  
+  //According to the datasheet RTC_MODE2_CTRL_CLKREP = 0 for 24h
+  tmp_reg &= ~RTC_MODE2_CTRL_CLKREP; // 24h time representation
+
+  RTC->MODE2.READREQ.reg &= ~RTC_READREQ_RCONT; // disable continuously mode
+
+  RTC->MODE2.CTRL.reg = tmp_reg;
+  while (RTCisSyncing())
+    ;
+
+  NVIC_EnableIRQ(RTC_IRQn); // enable RTC interrupt 
+  NVIC_SetPriority(RTC_IRQn, 0x00);
+
+  RTC->MODE2.INTENSET.reg |= RTC_MODE2_INTENSET_ALARM0; // enable alarm interrupt
+  RTC->MODE2.Mode2Alarm[0].MASK.bit.SEL = MATCH_OFF; // default alarm match is off (disabled)
+  
+  while (RTCisSyncing())
+    ;
+
+  RTCenable();
+  RTCresetRemove();
+
+  // If desired and valid, restore the time value
+  if ((!resetTime) && (validTime)) {
+    RTC->MODE2.CLOCK.reg = oldTime.reg;
+    while (RTCisSyncing())
+      ;
+  }
+
+  _configured = true;
+}*/
+
 void RTC_Handler(void)
 {
   if (RTC_callBack != NULL) {

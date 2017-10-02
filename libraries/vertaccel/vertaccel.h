@@ -51,4 +51,6 @@ void vertaccel_saveCalibration(double* cal);
 /* give the current calibration coefficients */
 double* vertaccel_getCalibration(void);
 
+boolean vertaccel_readAvailableCalibration(void);
+
 #endif

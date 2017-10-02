@@ -27,26 +27,70 @@ static double va;
 /* calibration functions */
 /*************************/
 
+/* read calibration available from EEPROM */
+boolean vertaccel_readAvailableCalibration(void) {
+
+  /* check tag */
+  uint16_t eepromTag;
+  
+  if (!EEPROM.isValid()) {
+     Serial.println("EEPROM is empty, writing some example data:");
+ 	return false;
+  }
+  else { 
+    eepromTag = EEPROM.read(VERTACCEL_EPROM_ADDR);
+    eepromTag <<= 8;
+    eepromTag += EEPROM.read(VERTACCEL_EPROM_ADDR + 0x01);
+  
+    if( eepromTag != VERTACCEL_EPROM_TAG ) { return false;  } 
+    else { return true;  }
+  }
+}
+
 /* read calibration from EEPROM */
 void vertaccel_readCalibration(void) {
 
   /* check tag */
   uint16_t eepromTag;
-  eepromTag = EEPROM.read(VERTACCEL_EPROM_ADDR);
-  eepromTag <<= 8;
-  eepromTag += EEPROM.read(VERTACCEL_EPROM_ADDR + 0x01);
+  
+ if (!EEPROM.isValid()) {
+    Serial.println("EEPROM is empty, writing some example data:");
+	if (GnuSettings.readFlashSDSettings() == true) {
+	  if ((GnuSettings.ACCELCALX ==0) && (GnuSettings.ACCELCALY ==0) &&	(GnuSettings.ACCELCALZ ==0)) {
+	    accelCal[0] = 0.0;
+        accelCal[1] = 0.0;
+        accelCal[2] = 0.0; 
+ 
+	  }
+	  else {
+		accelCal[0] = GnuSettings.ACCELCALX;
+        accelCal[1] = GnuSettings.ACCELCALY;
+        accelCal[2] = GnuSettings.ACCELCALZ; 
+	  }
+	}
+	else {
+      accelCal[0] = 0.0;
+      accelCal[1] = 0.0;
+      accelCal[2] = 0.0; 
+	}
+ }
+ else { 
+   eepromTag = EEPROM.read(VERTACCEL_EPROM_ADDR);
+   eepromTag <<= 8;
+   eepromTag += EEPROM.read(VERTACCEL_EPROM_ADDR + 0x01);
   
   if( eepromTag != VERTACCEL_EPROM_TAG ) {
-    accelCal[0] = 0.0;
-    accelCal[1] = 0.0;
-    accelCal[2] = 0.0;
-  } else {
-    /* read calibration settings */
-    uint8_t* datap = (uint8_t*)accelCal;
-    for( unsigned i = 0; i<sizeof(accelCal); i++ ) {
-      datap[i] =  EEPROM.read(VERTACCEL_EPROM_ADDR + 0x02 + i);
-    }
-  }
+     accelCal[0] = 0.0;
+     accelCal[1] = 0.0;
+     accelCal[2] = 0.0;
+   } else {
+     /* read calibration settings */
+     uint8_t* datap = (uint8_t*)accelCal;
+     for( unsigned i = 0; i<sizeof(accelCal); i++ ) {
+       datap[i] =  EEPROM.read(VERTACCEL_EPROM_ADDR + 0x02 + i);
+     }
+   }
+ }
 }
 
 /* save calibration to EEPROM */
@@ -56,17 +100,26 @@ void vertaccel_saveCalibration(double* cal) {
   uint16_t eepromTag = VERTACCEL_EPROM_TAG;
   EEPROM.write(VERTACCEL_EPROM_ADDR, (eepromTag>>8) & 0xff);
   EEPROM.write(VERTACCEL_EPROM_ADDR + 0x01, eepromTag & 0xff);
+  EEPROM.commit();
 
+  
   /* save calibration settings */
   uint8_t* datap = (uint8_t*)cal;
   for( unsigned i = 0; i<3*sizeof(double); i++ ) {
     EEPROM.write(VERTACCEL_EPROM_ADDR + 0x02 + i, datap[i]);
   }
 
+  EEPROM.commit();
+  
   /* save in global var */
   accelCal[0] = cal[0];
   accelCal[1] = cal[1];
   accelCal[2] = cal[2];
+  
+  GnuSettings.ACCELCALX = cal[0];
+  GnuSettings.ACCELCALY = cal[1];
+  GnuSettings.ACCELCALZ = cal[2];
+  GnuSettings.writeFlashSDSettings();
 } 
 
 /* give calibration coefficients */

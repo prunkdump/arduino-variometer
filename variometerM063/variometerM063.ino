@@ -312,8 +312,8 @@ beeper beeper;
 void indicateUncalibratedAccelerometer() {
   for (int cnt = 0; cnt < 5; cnt++) {
 #ifdef HAVE_SPEAKER
-    beeper.GenerateTone(200,500); 
-    beeper.GenerateTone(2000,500);
+    beeper.GenerateTone(200,100); 
+    beeper.GenerateTone(2000,100);
 #endif //HAVE_SPEAKER
     }
   }
@@ -618,7 +618,7 @@ beeper.init(GnuSettings.VARIOMETER_SINKING_THRESHOLD, GnuSettings.VARIOMETER_CLI
 #endif //HAVE_BLUETOOTH
 
 #ifdef HAVE_SPEAKER
-  volLevel.setVolume(GnuSettings.VARIOMETER_BEEP_VOLUME);
+  beeper.setVolume(8);
 #else
   volLevel.setVolume(0);
 #endif //HAVE_SPEAKER
@@ -666,7 +666,7 @@ beeper.init(GnuSettings.VARIOMETER_SINKING_THRESHOLD, GnuSettings.VARIOMETER_CLI
 #endif //IMU_DEBUG
   
 #ifdef HAVE_ACCELEROMETER
-  vertaccel_init();
+ // vertaccel_init();
 
 #ifdef IMU_DEBUG
   Serial.println("Init MPU9250");
@@ -675,9 +675,12 @@ beeper.init(GnuSettings.VARIOMETER_SINKING_THRESHOLD, GnuSettings.VARIOMETER_CLI
    // if we got this far, MPU9250 and MS5611 look OK
   // Read calibrated accelerometer and gyro bias values saved in M0 flash
 
-  double *tmpAccelCal = vertaccel_getCalibration();
+   if (vertaccel_readAvailableCalibration() == false) {
+    
+#ifdef IMU_DEBUG
+  Serial.println("Uncalibrated Accelerometre");
+#endif //IMU_DEBUG
 
-  if (tmpAccelCal[0] == 0 && tmpAccelCal[1] == 0 && tmpAccelCal[2] == 0) {
     indicateUncalibratedAccelerometer(); // series of alternating low/high tones
   }
 
@@ -696,19 +699,34 @@ beeper.init(GnuSettings.VARIOMETER_SINKING_THRESHOLD, GnuSettings.VARIOMETER_CLI
 #ifdef HAVE_SPEAKER
     beeper.GenerateTone(GnuSettings.CALIB_TONE_FREQHZ,50); 
 #endif //HAVE_SPEAKER
-    if (stateLeftInterrup == HIGH) {
-      stateLeftInterrup = LOW;
+    if (stateRightInterrup == HIGH) {
+      
+#ifdef IMU_DEBUG
+      Serial.println("Right Button detected");
+#endif //IMU_DEBUG
+
       delay(100); // debounce the button
-      if (stateLeftInterrup == HIGH) {
+      if (digitalRead (VARIOBTN_RIGHT_PIN) == HIGH) {
+        
+#ifdef IMU_DEBUG
+        Serial.println("Second Right Button detected");
+#endif //IMU_DEBUG
+
         bCalibrateAccelerometer = 1;
+        stateRightInterrup = LOW;
         break;
-        }
       }
+      stateRightInterrup = LOW;    
     }
+  }
     
   if (bCalibrateAccelerometer) {  
     // acknowledge calibration button press with long tone
 #ifdef HAVE_SPEAKER
+#ifdef IMU_DEBUG
+      Serial.println("Calibration");
+#endif //IMU_DEBUG
+
     beeper.GenerateTone(GnuSettings.CALIB_TONE_FREQHZ, 3000);
     // allow 10 seconds for the unit to be placed in calibration position with the 
     // accelerometer +z pointing downwards. Indicate this delay with a series of short beeps
@@ -827,6 +845,12 @@ beeper.init(GnuSettings.VARIOMETER_SINKING_THRESHOLD, GnuSettings.VARIOMETER_CLI
                   millis());
 
 
+#ifdef HAVE_SPEAKER
+  beeper.setVolume(GnuSettings.VARIOMETER_BEEP_VOLUME);
+  volLevel.setVolume(GnuSettings.VARIOMETER_BEEP_VOLUME);
+#else
+  volLevel.setVolume(0);
+#endif //HAVE_SPEAKER
 
 
 /*----------------------------------------*/
@@ -889,10 +913,13 @@ void loop(){
 
 #ifdef HAVE_SDCARD
           //Enregistrement CRC IGC
+#endif //HAVE_SDCARD
+        }
+
+#ifdef HAVE_SDCARD
           //Fermeture fichier
           file.close();
 #endif //HAVE_SDCARD
-        }
         
 	      //Sleeping M0
         //Power OFF
@@ -997,6 +1024,8 @@ void varioCode(void) {
     beeper.setVelocity( kalmanvert.getVelocity() );
 #endif //HAVE_SPEAKER
 
+  GnuStatistic.setAlti(kalmanvert.getCalibratedPosition());
+  GnuStatistic.setVario(kalmanvert.getVelocity());
     /* set screen */
 #ifdef HAVE_SCREEN
       altiDigit.setValue(kalmanvert.getCalibratedPosition());
@@ -1004,7 +1033,7 @@ void varioCode(void) {
 #ifdef IMU_DEBUG
       Serial.print("altitude : ");
       Serial.print(kalmanvert.getCalibratedPosition());
-      Serial.print("Vario : ");
+      Serial.print("    -   Vario : ");
       Serial.println(kalmanvert.getVelocity());
 #endif
 #endif //HAVE_SCREEN
@@ -1254,6 +1283,7 @@ if (maxVoltage < tmpVoltage) {maxVoltage = tmpVoltage;}
 
     double currentSpeed = nmeaParser.getSpeed();
     speedFilterSpeedValues[speedFilterPos] = currentSpeed;
+    GnuStatistic.setSpeed(currentSpeed);
 
     double meanAltitude = 0;
     double currentAlti  = RMCSentenceCurrentAlti;
@@ -1509,15 +1539,39 @@ char tmpbuffer[50];
       screen.setFont(&FreeSansBold12pt7b);
       screen.setTextSize(1);
 
-      screen.setCursor(100, 30);
-      screen.println("Version");
-      screen.setCursor(120, 50);
-      screen.println(" Beta");
-      sprintf(tmpbuffer,"%02d.%02d", VERSION, SUB_VERSION);
-      screen.setCursor(125, 70);
+      screen.setCursor(70, 30);
+      int8_t timeValue[3];
+      GnuStatistic.getTime(timeValue);
+      sprintf(tmpbuffer,"H: %02d : %02d", timeValue[0], timeValue[1]);
       screen.println(tmpbuffer);
-      sprintf(tmpbuffer,"%s", __DATE__);
-      screen.setCursor(25, 110);
+      screen.setCursor(70, 50);
+      GnuStatistic.getDuration(timeValue);
+      sprintf(tmpbuffer,"D: %02d : %02d", timeValue[0], timeValue[1]);
+      screen.println(tmpbuffer);    
+      double TmpValue    = GnuStatistic.getAltiDeco();
+      double TmpValueMax = GnuStatistic.getMaxAlti();
+      double TmpValueMin = GnuStatistic.getMinAlti();  
+      sprintf(tmpbuffer,"Deco : %4.0f m", TmpValue );
+      screen.setCursor(5, 75);
+      screen.println(tmpbuffer);
+      sprintf(tmpbuffer,"Alti m: %4.0f / %4.0f", TmpValueMin, TmpValueMax );
+      screen.setCursor(5, 95);
+      screen.println(tmpbuffer);
+      TmpValue    = GnuStatistic.getGain();
+      sprintf(tmpbuffer,"Gain : %4.0f m", TmpValue);
+      screen.setCursor(5, 120);
+      screen.println(tmpbuffer);
+     
+      TmpValueMax = GnuStatistic.getMaxSpeed();
+      TmpValueMin = GnuStatistic.getMinSpeed();  
+      sprintf(tmpbuffer,"V km/h : %3.0f / %3.0f", TmpValueMin, TmpValueMax );
+      screen.setCursor(5, 145);
+      screen.println(tmpbuffer);
+
+      TmpValueMax = GnuStatistic.getMaxVario();
+      TmpValueMin = GnuStatistic.getMinVario();  
+      sprintf(tmpbuffer,"Vario : %2.1f / %2.1f", TmpValueMin, TmpValueMax );
+      screen.setCursor(5, 175);
       screen.println(tmpbuffer);
 
       screen.updateWindow(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, false);
@@ -1616,10 +1670,9 @@ uint8_t volumeSound = GnuSettings.VARIOMETER_BEEP_VOLUME;
 #ifdef IMU_DEBUG
          Serial.print("volumeSound = ");
          Serial.println(volumeSound);
-#endif IMU_DEBUG
+#endif //IMU_DEBUG
 
           GnuSettings.soundSettingWrite(volumeSound);  
-          GnuSettings.VARIOMETER_BEEP_VOLUME=volumeSound;
           volLevel.setVolume(GnuSettings.VARIOMETER_BEEP_VOLUME);
           beeper.setVolume(GnuSettings.VARIOMETER_BEEP_VOLUME);
       }

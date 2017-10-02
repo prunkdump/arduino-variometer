@@ -11,8 +11,8 @@
 
 #include <VarioSettings.h>
 #include <Arduino.h>
+#include <FlashAsEEPROM.h>
 
-FlashStorage(setVolume, uint8_t);
 
 boolean VarioSettings::initSettings() {
     if (!SD.begin(SDCARD_CS_PIN)) {
@@ -305,43 +305,247 @@ boolean VarioSettings::toBoolean(String settingValue) {
 }
  
  // Writes A Configuration file DEBBUG
-void VarioSettings::writeSDSettings() {
-  // Delete the old One
-  SD.remove(FileName);
+void VarioSettings::writeFlashSDSettings() {
+	
+	
+File flashfile;
+  
+  // create a new file
+  char filename[] = "FLASH.TXT";
+  if (! SD.exists(filename)) {
+    // only open a new file if it doesn't exist
+    flashfile = SD.open(filename, FILE_WRITE);
+  }
+  else {
+	SD.remove(filename);
+    flashfile = SD.open(filename, FILE_WRITE);
+  }
+  
+ if (! flashfile) {
+    // if the file didn't open, print an error:
+ #ifdef IMU_DEBUG
+   Serial.println("error opening test.txt");
+    Serial.println("couldnt create file");
+ #endif //IMU_DEBUG
+  }
+  else {
+    Serial.print("Logging to: ");
+    Serial.println(filename);
+
+    flashfile.println("This is a test file");
+    // if ECHO_TO_SERIAL
+    Serial.println("This is a test file");
+  
+  
+    if (!flashfile.println() ) {
+      Serial.println("error with write header");
+    }
+ 
+    flashfile.print("Hello World");
+    Serial.println("Hello World");
+
+    if(!flashfile.println()){
+      Serial.println("SD printing failed");
+    }
+  
+    flashfile.flush();
+    flashfile.close();
+	
+/*  // Delete the old One
+ // SD.remove(FileFlashName);
   // Create new one
-  myFile = SD.open(FileName, FILE_WRITE);
-  // writing in the file works just like regular print()/println() function
-  myFile.print("[");
-  myFile.print("exINT=");
-  myFile.print(exINT);
-  myFile.println("]");
-  myFile.print("[");
-  myFile.print("exFloat=");
-  myFile.print(exFloat,5);
-  myFile.println("]");
-  myFile.print("[");
+  myFile2 = SD.open(FileFlashName, FILE_WRITE);
+  if (myFile2) {
+     // writing in the file works just like regular print()/println() function
+    myFile2.print("[");
+    myFile2.print("SOUND=");
+    myFile2.print(VARIOMETER_BEEP_VOLUME);
+    myFile2.println("]");
+    myFile2.print("[");
+    myFile2.print("ACCELCALX=");
+    myFile2.print(ACCELCALX,5);
+    myFile2.println("]");
+    myFile2.print("[");
+    myFile2.print("ACCELCALY=");
+    myFile2.print(ACCELCALY,5);
+    myFile2.println("]");
+    myFile2.print("[");
+    myFile2.print("ACCELCALZ=");
+    myFile2.print(ACCELCALZ,5);
+    myFile2.println("]");
+  
+ /* myFile.print("[");
   myFile.print("exBoolean=");
   myFile.print(exBoolean);
   myFile.println("]");
   myFile.print("[");
   myFile.print("exLong=");
   myFile.print(exLong);
-  myFile.println("]");
+  myFile.println("]");*/
   // close the file:
-  myFile.close();
-  //Serial.println("Writing done.");
+    /*myFile.flush();
+    myFile2.close();*/
+
+ }
+ 
+  
+#ifdef IMU_DEBUG
+        //Debuuging Printing
+    Serial.println("Write File SD");
+	Serial.println("Writing done.");
+#endif //IMU_DEBUG
+
 }
 
+boolean VarioSettings::readFlashSDSettings(){
+/*  char character;
+  String settingName;
+  String settingValue;
+  myFile = SD.open(FileFlashName);
+  if (myFile) {
+    while (myFile.available()) {
+      character = myFile.read();
+      while((myFile.available()) && (character != '[')){
+        character = myFile.read();
+      }
+      character = myFile.read();
+      while((myFile.available()) && (character != '=')){
+        settingName = settingName + character;
+        character = myFile.read();
+      }
+      character = myFile.read();
+      while((myFile.available()) && (character != ']')){
+        settingValue = settingValue + character;
+        character = myFile.read();
+      }
+      
+      if(character == ']'){
+ 
+#ifdef IMU_DEBUG
+
+        //Debuuging Printing
+        Serial.print("Name:");
+        Serial.println(settingName);
+        Serial.print("Value :");
+        Serial.println(settingValue);
+#endif //IMU_DEBUG
+
+        // Apply the value to the parameter
+        applyFlashSetting(settingName,settingValue);
+        // Reset Strings
+        settingName = "";
+        settingValue = "";
+      }
+    }
+ 
+    // close the file:
+    myFile.close();
+	return true;
+  } else {
+   // if the file didn't open, print an error:
+#ifdef IMU_DEBUG
+   Serial.print("error opening : ");
+   Serial.println(FileFlashName);
+#endif //IMU_DEBUG   
+   return false;
+  }*/
+  
+File flashfile;
+  
+  char filename[] = "FLASH.TXT";
+  if (! SD.exists(filename)) {
+#ifdef IMU_DEBUG
+     Serial.print("error opening : ");
+     Serial.println(FileFlashName);
+#endif //IMU_DEBUG   
+    // only open a new file if it doesn't exist
+  }
+  else {
+    flashfile = SD.open(filename);
+  }
+  
+ if (! flashfile) {
+    Serial.println("couldnt open file");
+  }
+  else {
+    Serial.print("Logging to: ");
+    Serial.println(filename);
+
+    // read from the file until there's nothing else in it:
+    while (flashfile.available()) {
+      Serial.write(flashfile.read());
+    }
+    // close the file:
+    flashfile.close();
+  }
+//}
+}
+ 
+ /* Apply the value to the parameter by searching for the parameter name
+ Using String.toInt(); for Integers
+ toFloat(string); for Float
+ toBoolean(string); for Boolean
+ toLong(string); for Long
+ */
+ void VarioSettings::applyFlashSetting(String settingName, String settingValue) {
+ 
+   if (settingName == "SOUND") {
+#ifdef IMU_DEBUG
+       Serial.println("Sound Read File : " + settingValue);
+#endif //IMU_DEBUG
+     VARIOMETER_BEEP_VOLUME = settingValue.toInt();
+   }
+   else if(settingName == "ACCELCALX") {
+     ACCELCALX=toFloat(settingValue);
+   }
+   else if(settingName == "ACCELCALY") {
+     ACCELCALY=toFloat(settingValue);
+   }
+   else if(settingName == "ACCELCALZ") {
+     ACCELCALZ=toFloat(settingValue);
+   }
+ }   
+   
+   
 uint8_t VarioSettings::soundSettingRead(void) {
-  uint8_t TmpValue;	
-  TmpValue=setVolume.read();
+  /* check tag */
+  uint16_t eepromTag;
+  uint8_t tmpValue;
+  
+  if (!EEPROM.isValid()) {
+    Serial.println("EEPROM is empty, writing some example data:");
+	VARIOMETER_BEEP_VOLUME=0;
+	readFlashSDSettings();
+	if (VARIOMETER_BEEP_VOLUME==0) { tmpValue = 5; }
+  } else {
+	  
+    eepromTag = EEPROM.read(SOUND_EPROM_ADDR);
+    eepromTag <<= 8;
+    eepromTag += EEPROM.read(SOUND_EPROM_ADDR + 0x01);
+  
+    uint8_t TmpValue;
+    if( eepromTag != SOUND_EPROM_TAG ) { 
+	  VARIOMETER_BEEP_VOLUME=0;
+	  readFlashSDSettings();
+	  if (VARIOMETER_BEEP_VOLUME==0) { tmpValue = 5; }
+    } else {
+      /* read calibration settings */
+      tmpValue =  EEPROM.read(SOUND_EPROM_ADDR + 0x02);
 #ifdef PROG_DEBUG
-  Serial.print("Read sound volume : ");
-  Serial.println(TmpValue);
+      Serial.print("Read sound value : ");
+      Serial.println(tmpValue);
 #endif //PRO_DEBBUG
 
-  if ((TmpValue<0) || (TmpValue>10)) {TmpValue=5;}
-  return TmpValue;
+    }
+  }
+
+#ifdef PROG_DEBUG
+  Serial.print("Sound value : ");
+  Serial.println(tmpValue);
+#endif //PRO_DEBBUG
+
+  if ((tmpValue<0) || (tmpValue>10)) {tmpValue=5;}
+  return tmpValue;
 }
 
 void VarioSettings::soundSettingWrite(uint8_t volume) {
@@ -350,7 +554,17 @@ void VarioSettings::soundSettingWrite(uint8_t volume) {
   Serial.println(volume);
 #endif //PRO_DEBBUG
 
-  setVolume.write(volume);	
+  /* write tag */
+  uint16_t eepromTag = SOUND_EPROM_TAG;
+  EEPROM.write(SOUND_EPROM_ADDR, (eepromTag>>8) & 0xff);
+  EEPROM.write(SOUND_EPROM_ADDR + 0x01, eepromTag & 0xff);
+
+  EEPROM.write(SOUND_EPROM_ADDR + 0x02 , volume);
+  
+  EEPROM.commit();
+  
+  VARIOMETER_BEEP_VOLUME=volume;
+  writeFlashSDSettings();
 }
 
 void Statistic::setTime(int8_t* timeValue) {
@@ -358,5 +572,89 @@ void Statistic::setTime(int8_t* timeValue) {
   for(uint8_t i = 0; i<3; i++) {
     time[i] = timeValue[i];
   }
+}
+
+int8_t* Statistic::getTime(void) {
+  return time;	
+}
+
+int8_t* Statistic::getTime(int8_t* timeValue) {
+  for(uint8_t i = 0; i<3; i++) {
+    timeValue[i] = time[i];
+  }	
+
+  return time;	
+}
+
+void Statistic::setDuration(int8_t* durationValue) {
+  for(uint8_t i = 0; i<3; i++) {
+    duration[i] = durationValue[i];
+  }	
+}
+   
+int8_t* Statistic::getDuration(void) {
+  return duration;
+}
+
+int8_t* Statistic::getDuration(int8_t* durationValue) {
+  for(uint8_t i = 0; i<3; i++) {
+    durationValue[i] = duration[i];
+  }	
+
+  return duration;	
+}   
+
+void Statistic::setAlti(double alti) {
+  if (currentAlti == 0) {
+	 currentAlti = alti;
+	 altiDeco = alti;
+	 maxAlti = alti;
+	 minAlti = alti;
+  }
+
+  if (alti > maxAlti) {maxAlti = alti;}
+  else if (alti < minAlti) {minAlti = alti;}
+}
+   
+double Statistic::getMaxAlti(void) {
+  return maxAlti;	
+}
+   
+double Statistic::getMinAlti(void) {
+  return minAlti;	
+}
+   
+void Statistic::setVario(double vario) {
+  if (vario > maxVario) {maxVario = vario;}
+  else if (vario < minVario) {minVario = vario;}	
+}
+   
+double Statistic::getMaxVario(void) {
+  return maxVario;		
+}
+   
+double Statistic::getMinVario(void) {
+  return minVario;		
+}
+   
+void Statistic::setSpeed(double speed) {
+  if (speed > maxSpeed) {maxSpeed = speed;}
+  else if (speed < minSpeed) {minSpeed = speed;}		
+}
+   
+double Statistic::getMaxSpeed(void) {
+  return maxSpeed;			
+}
+   
+double Statistic::getMinSpeed(void) {
+  return minSpeed;				
+}
+   
+double Statistic::getAltiDeco(void) {
+  return currentAlti;	
+}
+   
+double Statistic::getGain(void) {
+  return maxAlti - currentAlti;	
 }
 
