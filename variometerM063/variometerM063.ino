@@ -9,26 +9,34 @@
 // PWM   A3, A4 PWM
 //
 // A1,A2 Switch
-// D1    Detection ON/OFF
+// D6    Detection ON/OFF
 //
 // A6    Detection de connection USB
 // A5    Commande de l'alimentation des cartes
+// D0    Reset command
 // 
 // E-Ink
-// CS    D4
-// BUSY  D5
-// RST   D6
+// CS    D1
+// BUSY  D3
+// RST   D2
 // DC    D7
 // DIN   MOSI/D8
 // CLK   SCK/D9
 //
 // GPS
-// TX    D3 serialNmea  Pin 3
+// TX    D5 serialNmea  Pin 5
 // RX    TX Serial1     Pin 14
 //
 // Bluetooth
 // TX    RX Serial1      Pin 13
-// RX    D2 serialNmea   Pin 2
+// RX    D4 serialNmea   Pin 4
+
+//SERCOM 0 WIRE / I2C - SDA/SCL     - MPU
+//SERCOM 1 SPI  - MISO-MOSI-SCK     - SCREEN
+//SERCOM 2 SPI SD                   - SDCARD
+//SERCOM 3 
+//SERCOM 4 UART                     - GPS / BT
+//SERCOM 5 UART   - SERIAL1         - GPS / BT
 
 #include <SDU.h> 
 
@@ -59,7 +67,13 @@
 
 #include <accelcalibrator.h>
 
-#include <RTCZero.h>
+//#include <RTCZero.h>
+#include <EnergySaving.h>
+
+/********************/
+/* Sleeping Mode    */
+/********************/
+EnergySaving nrgSave;
 
 /*****************/
 /* screen        */
@@ -268,8 +282,9 @@ byte statePower;
 uint32_t timeNowPower;
 
 void POWERInterruptHandler() {
+    statePowerInt = HIGH;
 
-  if (statePowerInt == LOW) {
+/*  if (statePowerInt == LOW) {
     if (statePower == HIGH) {   
       statePowerInt = HIGH;
       timeNowPower = millis(); 
@@ -283,17 +298,15 @@ void POWERInterruptHandler() {
 //      initiateReset(1);
 //      tickReset();
     }
-  } 
+  } */
 } 
 
 byte stateLeftInterrup = LOW;
-
 void LEFTInterruptHandler() {
   stateLeftInterrup = HIGH;
 }
 
 byte stateRightInterrup = LOW;
-
 void RIGHTInterruptHandler() {
   stateRightInterrup = HIGH;
 }
@@ -366,7 +379,8 @@ void indicateFaultSDCARD() {
 
 /* make beeps */
 void signalBeep(double freq, unsigned long duration, int count = 1) {
- 
+
+#ifdef HAVE_SPEAKER 
   toneAC(freq);
   delay(duration);
   toneAC(0.0);
@@ -379,29 +393,44 @@ void signalBeep(double freq, unsigned long duration, int count = 1) {
       count--;
     }
   }
+#endif //HAVE_SPEAKER  
 }
 
-RTCZero rtc;
+//RTCZero rtc;
 
 void powerDown() {
   // Mettre le SAMD21 en mode veille
 
- #ifdef PROG_DEBUG
-   Serial.print("Mise en veille");
+#ifdef PROG_DEBUG
+        Serial.print("Mise en veille");
+        Serial.flush();
+        delay(100);
 #endif //PRO_DEBBUG
 
    digitalWrite(VARIO_PIN_ALIM, LOW);   // turn on power cards )
 
+//   detachInterrupt(digitalPinToInterrupt(VARIOPOWER_INT_PIN));
    detachInterrupt(digitalPinToInterrupt(VARIOBTN_LEFT_PIN));
    detachInterrupt(digitalPinToInterrupt(VARIOBTN_RIGHT_PIN));
 
    statePower = LOW;
 
-   rtc.standbyMode();
+//   nrgSave.begin(WAKE_EXT_INTERRUPT, VARIOPOWER_INT_PIN, POWERInterruptHandler);  //standby setup for external interrupts
+   nrgSave.standby();  //now mcu goes in standby mode
 
-#ifdef IMU_DEBUG
+ // rtc.standbyMode();
+
+   digitalWrite(VARIO_PIN_RST, LOW);   // Hard Reset M0 )
+   delay(500);
+
+ //  NVIC_SystemReset();      // processor software reset 
+
+     
+#ifdef PROG_DEBUG
     Serial.println("Sortie du mode veille");
-#endif IMU_DEBUG
+    Serial.flush();
+    delay(100);
+#endif //PRO_DEBBUG
 
  }
 
@@ -440,10 +469,16 @@ double speedFilterAltiValues[VARIOMETER_SPEED_FILTER_SIZE];
 int8_t speedFilterPos = 0;
 
 #ifdef HAVE_SDCARD
-VarioSettings GnuSettings;
 
 IGCHeader header;
 IGCSentence igc;
+
+#endif //HAVE_SDCARD
+
+#endif //HAVE_GPS
+
+#ifdef HAVE_SDCARD
+VarioSettings GnuSettings;
 
 #define SDCARD_STATE_INITIAL 0
 #define SDCARD_STATE_INITIALIZED 1
@@ -452,8 +487,6 @@ IGCSentence igc;
 int8_t sdcardState = SDCARD_STATE_INITIAL;
 
 #endif //HAVE_SDCARD
-
-#endif //HAVE_GPS
 
 /*********************/
 /* bluetooth objects */
@@ -504,15 +537,20 @@ void setup() {
   pinMode(VARIO_PIN_ALIM, OUTPUT);
   digitalWrite(VARIO_PIN_ALIM, HIGH);   // turn on power cards )
 
+  digitalWrite(VARIO_PIN_RST, HIGH);   // Hard Reset M0 )
+  pinMode(VARIO_PIN_RST, OUTPUT);
+
 
 /*************************/
 /*  Init interruption    */
-/*     POWER ON/OFF      */
+/*     CENTER BT         */
 /*************************/
 
-  pinMode(VARIOPOWER_INT_PIN, INPUT_PULLDOWN);
+//  pinMode(VARIOPOWER_INT_PIN, INPUT_PULLDOWN);
   statePowerInt = LOW;
-  attachInterrupt(digitalPinToInterrupt(VARIOPOWER_INT_PIN), POWERInterruptHandler, RISING);
+//  attachInterrupt(digitalPinToInterrupt(VARIOPOWER_INT_PIN), POWERInterruptHandler, RISING);
+ //  nrgSave.begin(WAKE_EXT_INTERRUPT, VARIOPOWER_INT_PIN, dummy);  //standby setup for external interrupts
+   nrgSave.begin(WAKE_EXT_INTERRUPT, VARIOPOWER_INT_PIN, POWERInterruptHandler);  //standby setup for external interrupts
 
 /*************************/
 /*  Init interruption    */
@@ -535,7 +573,7 @@ void setup() {
   /*********************/
   /* init Standby Mode */
   /*********************/
-  
+ /* 
    // Configure the regulator to run in normal mode when in standby mode
   // Otherwise it defaults to low power mode and can only supply 50 uA
   SYSCTRL->VREG.bit.RUNSTDBY = 1;
@@ -548,14 +586,25 @@ void setup() {
   // Note: you'll have to double tap the reset button to load new sketches
 //  USBDevice.detach();
 
-  rtc.begin();
+  rtc.begin();*/
  
+
+ /******************/
+/*    init Audio  */
+/******************/
+#ifdef HAVE_SPEAKER
+beeper.init(GnuSettings.VARIOMETER_SINKING_THRESHOLD, GnuSettings.VARIOMETER_CLIMBING_THRESHOLD, GnuSettings.VARIOMETER_NEAR_CLIMBING_SENSITIVITY, GnuSettings.VARIOMETER_BEEP_VOLUME);
+/*  toneAC_initClock();
+  toneAC_init();*/
+#else
+  toneAC_initClock();
+#endif
   
   /****************/
   /* init SD Card */
   /****************/
   
-#if defined(HAVE_SDCARD) && defined(HAVE_GPS)
+#ifdef HAVE_SDCARD
 #ifdef PROG_DEBUG
   Serial.print("Initializing SD card...");
 #endif //PRO_DEBBUG
@@ -587,16 +636,8 @@ void setup() {
     }
 #endif //HAVE_SPEAKER 
   }  
-#endif //defined(HAVE_SDCARD) && defined(HAVE_GPS)
+#endif //HAVE_SDCARD
 
- /******************/
-/*    init Audio  */
-/******************/
-#ifdef HAVE_SPEAKER
-beeper.init(GnuSettings.VARIOMETER_SINKING_THRESHOLD, GnuSettings.VARIOMETER_CLIMBING_THRESHOLD, GnuSettings.VARIOMETER_NEAR_CLIMBING_SENSITIVITY, GnuSettings.VARIOMETER_BEEP_VOLUME);
-/*  toneAC_initClock();
-  toneAC_init();*/
-#endif
 
   /***************/
   /* init screen */
@@ -666,7 +707,7 @@ beeper.init(GnuSettings.VARIOMETER_SINKING_THRESHOLD, GnuSettings.VARIOMETER_CLI
 #endif //IMU_DEBUG
   
 #ifdef HAVE_ACCELEROMETER
- // vertaccel_init();
+  vertaccel_init();
 
 #ifdef IMU_DEBUG
   Serial.println("Init MPU9250");
@@ -793,7 +834,8 @@ beeper.init(GnuSettings.VARIOMETER_SINKING_THRESHOLD, GnuSettings.VARIOMETER_CLI
     /* start beep */
     signalBeep(HIGH_BEEP_FREQ, BASE_BEEP_DURATION, 3);
 
-  
+    GnuSettings.writeFlashSDSettings();
+
     // indicate calibration complete
 #ifdef HAVE_SPEAKER
     beeper.GenerateTone(GnuSettings.CALIB_TONE_FREQHZ, 1000);
@@ -818,7 +860,11 @@ beeper.init(GnuSettings.VARIOMETER_SINKING_THRESHOLD, GnuSettings.VARIOMETER_CLI
   /******************/
   /* get first data */
   /******************/
-  
+
+#ifdef IMU_DEBUG
+    Serial.println("Ms5611 First data");
+#endif IMU_DEBUG
+
   /* wait for first alti and acceleration */
   while( ! (ms5611_dataReady()
 #ifdef HAVE_ACCELEROMETER
@@ -847,7 +893,9 @@ beeper.init(GnuSettings.VARIOMETER_SINKING_THRESHOLD, GnuSettings.VARIOMETER_CLI
 
 #ifdef HAVE_SPEAKER
   beeper.setVolume(GnuSettings.VARIOMETER_BEEP_VOLUME);
+#ifdef HAVE_SCREEN
   volLevel.setVolume(GnuSettings.VARIOMETER_BEEP_VOLUME);
+#endif //HAVE_SCREEN
 #else
   volLevel.setVolume(0);
 #endif //HAVE_SPEAKER
@@ -858,9 +906,14 @@ beeper.init(GnuSettings.VARIOMETER_SINKING_THRESHOLD, GnuSettings.VARIOMETER_CLI
 /*           CLEAR DISPLAY BOOT           */
 /*                                        */
 /*----------------------------------------*/
+#ifdef IMU_DEBUG
+    Serial.println("Clear Screen");
+#endif IMU_DEBUG
   
 //  delay(2000);
+#ifdef HAVE_SCREEN
   screen.fillScreen(GxEPD_WHITE);
+#endif //HAVE_SCREEN
 }
 
 #if defined(HAVE_SDCARD) && defined(HAVE_GPS)
@@ -882,6 +935,10 @@ void displaySound(int8_t volume);
 
 
 void loop(){
+
+#ifdef IMU_DEBUG
+    Serial.println("Loop");
+#endif //IMU_DEBUG
 
 /*----------------------------------------*/
 /*                                        */
@@ -906,6 +963,7 @@ void loop(){
      stateLeftInterrup = LOW;
     //Action - Left button press
 
+#ifdef HAVE_SCREEN
     if (varioScreen.getPage() == 0) {
 
       if (statistiquePage()) {
@@ -934,12 +992,14 @@ void loop(){
     {
       varioScreen.previousPage();
     }
+ #endif //HAVE_SCREEN   
   }
   else if (stateRightInterrup == HIGH) {
   // check if the pushbutton is pressed.
     stateRightInterrup = LOW;
     //Action - Right button press
 
+#ifdef HAVE_SCREEN
     if (varioScreen.getPage() == varioScreen.getMaxPage()) {
       soundPage();
     }
@@ -947,15 +1007,10 @@ void loop(){
     {
       varioScreen.nextPage();
     }
-    
+#endif //HAVE_SCRREN    
   } 
   else if (statePowerInt == HIGH) {
-    if (statePower == LOW) {  
-      //Power ON
-      statePowerInt = LOW;
-      initiateReset(1);
-      tickReset();  
-    }  
+   
   }
 
   varioCode();
@@ -1444,11 +1499,15 @@ fixgpsinfo.setFixGps();
 
   /* enable near climbing */
 if (GnuSettings.VARIOMETER_ENABLE_NEAR_CLIMBING_ALARM) {
+#ifdef HAVE_SPEAKER
   beeper.setGlidingAlarmState(true);
+#endif //HAVE_SPEAKER
 }
 
 if (GnuSettings.VARIOMETER_ENABLE_NEAR_CLIMBING_BEEP) {
+#ifdef HAVE_SPEAKER
   beeper.setGlidingBeepState(true);
+#endif //HAVE_SPEAKER
 }
 
 #if defined(HAVE_SDCARD) && defined(HAVE_GPS) 
@@ -1526,13 +1585,17 @@ char tmpbuffer[50];
       delay(200);
       stateRightInterrup = LOW;
       //Action - Right button press
+#ifdef HAVE_SCREEN      
       screen.fillScreen(GxEPD_WHITE); 
 	    varioScreen.setPage(0,true);
+#endif //HAVE_SCREEN
 	    break;     
     } 
     else if (statePowerInt == HIGH) {
       delay(200);
       statePowerInt == LOW;
+
+#ifdef HAVE_SCREEN
 
       screen.fillRect(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, GxEPD_WHITE);
       screen.drawBitmap(140, 10, logo_gnuvario50, 50, 36, GxEPD_WHITE); //94
@@ -1575,13 +1638,15 @@ char tmpbuffer[50];
       screen.println(tmpbuffer);
 
       screen.updateWindow(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, false);
-
+#endif //HAVE_SCREEN
       return true;
     }   
   }  
+#ifdef HAVE_SCREEN  
   screen.fillScreen(GxEPD_WHITE); 
 //  screen.updateWindow(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, true);
   varioScreen.setPage(0,true);  //force update  
+#endif //HAVE_SCREEN
   return false;  
 }
 
@@ -1591,7 +1656,9 @@ char tmpbuffer[50];
 /*                                      */
 /*--------------------------------------*/
 
+#ifdef HAVE_SCREEN
 ScreenDigit soundDigit(screen, 100, 150, 2, 0, false, ALIGNNONE);
+#endif //HAVE_SCREEN
 boolean state = false;
 
 void soundPage(void) {
@@ -1640,9 +1707,11 @@ uint8_t volumeSound = GnuSettings.VARIOMETER_BEEP_VOLUME;
         if (volumeSound > 0) {
           volumeSound--;
           displaySound(volumeSound);
+#ifdef HAVE_SPEAKER          
           toneAC(800,volumeSound);
           delay(1000);
           toneAC_notone();
+#endif HAVE_SPEAKER
        }
       }
     }   
@@ -1656,9 +1725,11 @@ uint8_t volumeSound = GnuSettings.VARIOMETER_BEEP_VOLUME;
         if (volumeSound < 10) {
           volumeSound++;
           displaySound(volumeSound);
+#ifdef HAVE_SPEAKER
           toneAC(800,volumeSound);
           delay(1000);
           toneAC_notone();
+#endif HAVE_SPEAKER
         }
       }      
     }   
@@ -1673,13 +1744,59 @@ uint8_t volumeSound = GnuSettings.VARIOMETER_BEEP_VOLUME;
 #endif //IMU_DEBUG
 
           GnuSettings.soundSettingWrite(volumeSound);  
+          GnuSettings.writeFlashSDSettings();
+#ifdef HAVE_SCREEN
           volLevel.setVolume(GnuSettings.VARIOMETER_BEEP_VOLUME);
+#endif //HAVE_SCREEN          
+#ifdef HAVE_SPEAKER
           beeper.setVolume(GnuSettings.VARIOMETER_BEEP_VOLUME);
+#endif HAVE_SPEAKER
+
+/*
+File myFile2;
+
+  SD.remove("FLASH.TXT");
+   myFile2 = SD.open("FLASH.TXT", FILE_WRITE);
+
+  // if the file opened okay, write to it:
+  if (myFile2) {
+    Serial.print("Writing to FLASH.TXT...");
+    myFile2.println("testing 1, 2, 3.");
+    // close the file:
+    myFile2.close();
+    Serial.println("done.");
+  } else {
+    // if the file didn't open, print an error:
+    Serial.println("error opening test.txt");
+  }
+
+  // re-open the file for reading:
+  myFile2 = SD.open("FLASH.TXT");
+  if (myFile2) {
+    Serial.println("FLASH.TXT:");
+
+    // read from the file until there's nothing else in it:
+    while (myFile2.available()) {
+      Serial.write(myFile2.read());
+    }
+    // close the file:
+    myFile2.close();
+  } else {
+    // if the file didn't open, print an error:
+    Serial.println("error opening FLASH.TXT");
+  }  
+*/
+
+
+
+          
       }
       else {
+#ifdef HAVE_SPEAKER
         toneAC(800,volumeSound);
         delay(1000);
-        toneAC_notone();      
+        toneAC_notone();
+#endif //HAVE_SPEAKER      
       }
       
       state = !state;   
@@ -1687,12 +1804,16 @@ uint8_t volumeSound = GnuSettings.VARIOMETER_BEEP_VOLUME;
       statePowerInt = LOW;
     }   
   }   
+
+#ifdef HAVE_SCREEN  
   screen.fillScreen(GxEPD_WHITE); 
 //  screen.updateWindow(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, true);
   varioScreen.setPage(0,true);  //force update
+#endif //HAVE_SCREEN
 }
 
 void displaySound(int8_t volume) {
+ #ifdef HAVE_SCREEN
   if (volume == 0)   screen.drawBitmap(36, 0, sound_0, 128, 128, GxEPD_WHITE); 
   else if (volume < 5) screen.drawBitmap(36, 0, sound_1, 128, 128, GxEPD_WHITE); 
   else if (volume < 9) screen.drawBitmap(36, 0, sound_2, 128, 128, GxEPD_WHITE); 
@@ -1708,4 +1829,5 @@ void displaySound(int8_t volume) {
   }
  // screen.update(); 
   screen.updateWindow(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, false);
+#endif //HAVE_SCREEN
 }

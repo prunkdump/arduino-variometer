@@ -29,19 +29,19 @@ const char ggaTag[] PROGMEM = {"GPGGA"};
 
 
 //TX du bluetooth à la pin RX du Serial1      pin 13
-//RX du bluetooth à la pin TX du SerialNmea   pin 2
+//RX du bluetooth à la pin TX du SerialNmea   pin 4
 //pin 2 PA10_TCC0-W2  TX --- RX BT
 
-//TX du GPS sur la pin RX du SerialNmea       pin 3
+//TX du GPS sur la pin RX du SerialNmea       pin 5
 //pin 3 PA11_TCC0-W3  RX --- TX GPS
 //RX du GPS sur la pin TX du Serial1          pin 14
 
 /* serial class declaration */
-SERCOM snsercom(SERCOM2);
+SERCOM snsercom(SERCOM4);
 
 
 SerialNmea serialNmea;
-void SERCOM2_Handler() {
+void SERCOM4_Handler() {
 
   if (snsercom.availableDataUART()) {
     serialNmea.rxCompleteVect();
@@ -57,8 +57,10 @@ void SerialNmea::begin(unsigned long baud, bool rxEnable) {
   /*******************/
   /* hardware config */
   /*******************/
-  pinPeripheral(2, PIO_SERCOM_ALT);
-  pinPeripheral(3, PIO_SERCOM_ALT);
+//  pinPeripheral(2, PIO_SERCOM_ALT);
+//  pinPeripheral(3, PIO_SERCOM_ALT);
+  pinPeripheral(4, PIO_SERCOM_ALT);
+  pinPeripheral(5, PIO_SERCOM_ALT);
 
   snsercom.initUART(UART_INT_CLOCK, SAMPLE_RATE_x16, baud);
   snsercom.initFrame(UART_CHAR_SIZE_8_BITS, LSB_FIRST, SERCOM_NO_PARITY, SERCOM_STOP_BIT_1);

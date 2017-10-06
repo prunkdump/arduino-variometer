@@ -306,56 +306,52 @@ boolean VarioSettings::toBoolean(String settingValue) {
  
  // Writes A Configuration file DEBBUG
 void VarioSettings::writeFlashSDSettings() {
-	
-	
-File flashfile;
-  
-  // create a new file
-  char filename[] = "FLASH.TXT";
-  if (! SD.exists(filename)) {
-    // only open a new file if it doesn't exist
-    flashfile = SD.open(filename, FILE_WRITE);
-  }
-  else {
-	SD.remove(filename);
-    flashfile = SD.open(filename, FILE_WRITE);
-  }
-  
- if (! flashfile) {
+		
+File myFile2;
+
+/*  SD.remove("FLASH.TXT");
+   myFile2 = SD.open("FLASH.TXT", FILE_WRITE);
+
+  // if the file opened okay, write to it:
+  if (myFile2) {
+    Serial.print("Writing to FLASH.TXT...");
+    myFile2.println("testing 1, 2, 3.");
+    // close the file:
+    myFile2.close();
+    Serial.println("done.");
+  } else {
     // if the file didn't open, print an error:
- #ifdef IMU_DEBUG
-   Serial.println("error opening test.txt");
-    Serial.println("couldnt create file");
- #endif //IMU_DEBUG
+    Serial.println("error opening test.txt");
   }
-  else {
-    Serial.print("Logging to: ");
-    Serial.println(filename);
 
-    flashfile.println("This is a test file");
-    // if ECHO_TO_SERIAL
-    Serial.println("This is a test file");
-  
-  
-    if (!flashfile.println() ) {
-      Serial.println("error with write header");
-    }
- 
-    flashfile.print("Hello World");
-    Serial.println("Hello World");
+  // re-open the file for reading:
+  myFile2 = SD.open("FLASH.TXT");
+  if (myFile2) {
+    Serial.println("FLASH.TXT:");
 
-    if(!flashfile.println()){
-      Serial.println("SD printing failed");
+    // read from the file until there's nothing else in it:
+    while (myFile2.available()) {
+      Serial.write(myFile2.read());
     }
+    // close the file:
+    myFile2.close();
+  } else {
+    // if the file didn't open, print an error:
+    Serial.println("error opening FLASH.TXT");
+  }	*/
+
   
-    flashfile.flush();
-    flashfile.close();
-	
-/*  // Delete the old One
- // SD.remove(FileFlashName);
+  // Delete the old One
+  SD.remove(FileFlashName);
   // Create new one
   myFile2 = SD.open(FileFlashName, FILE_WRITE);
   if (myFile2) {
+	  
+#ifdef IMU_DEBUG
+        //Debuuging Printing
+    Serial.println("Write File SD");
+#endif //IMU_DEBUG
+
      // writing in the file works just like regular print()/println() function
     myFile2.print("[");
     myFile2.print("SOUND=");
@@ -383,40 +379,51 @@ File flashfile;
   myFile.print(exLong);
   myFile.println("]");*/
   // close the file:
-    /*myFile.flush();
-    myFile2.close();*/
-
- }
- 
-  
+   // myFile.flush();
+    myFile2.close();
+	
 #ifdef IMU_DEBUG
         //Debuuging Printing
-    Serial.println("Write File SD");
-	Serial.println("Writing done.");
+ 	Serial.println("Writing done.");
 #endif //IMU_DEBUG
 
+   } else {
+   // if the file didn't open, print an error:
+#ifdef IMU_DEBUG
+   Serial.print("error opening : ");
+   Serial.println(FileFlashName);
+#endif //IMU_DEBUG   
+  }
 }
 
 boolean VarioSettings::readFlashSDSettings(){
-/*  char character;
+  char character;
   String settingName;
   String settingValue;
-  myFile = SD.open(FileFlashName);
-  if (myFile) {
-    while (myFile.available()) {
-      character = myFile.read();
-      while((myFile.available()) && (character != '[')){
-        character = myFile.read();
+  File myFile2;
+
+  #ifdef IMU_DEBUG
+
+        //Debuuging Printing
+        Serial.println("readFlashSDSettings");
+#endif //IMU_DEBUG
+
+  myFile2 = SD.open(FileFlashName);
+  if (myFile2) {
+    while (myFile2.available()) {
+      character = myFile2.read();
+      while((myFile2.available()) && (character != '[')){
+        character = myFile2.read();
       }
-      character = myFile.read();
-      while((myFile.available()) && (character != '=')){
+      character = myFile2.read();
+      while((myFile2.available()) && (character != '=')){
         settingName = settingName + character;
-        character = myFile.read();
+        character = myFile2.read();
       }
-      character = myFile.read();
-      while((myFile.available()) && (character != ']')){
+      character = myFile2.read();
+      while((myFile2.available()) && (character != ']')){
         settingValue = settingValue + character;
-        character = myFile.read();
+        character = myFile2.read();
       }
       
       if(character == ']'){
@@ -439,7 +446,7 @@ boolean VarioSettings::readFlashSDSettings(){
     }
  
     // close the file:
-    myFile.close();
+    myFile2.close();
 	return true;
   } else {
    // if the file didn't open, print an error:
@@ -448,37 +455,42 @@ boolean VarioSettings::readFlashSDSettings(){
    Serial.println(FileFlashName);
 #endif //IMU_DEBUG   
    return false;
-  }*/
-  
-File flashfile;
-  
-  char filename[] = "FLASH.TXT";
-  if (! SD.exists(filename)) {
-#ifdef IMU_DEBUG
-     Serial.print("error opening : ");
-     Serial.println(FileFlashName);
-#endif //IMU_DEBUG   
-    // only open a new file if it doesn't exist
   }
-  else {
-    flashfile = SD.open(filename);
+
+
+/*File myFile2;
+
+  SD.remove("FLASH.TXT");
+  myFile2 = SD.open("FLASH.TXT", FILE_WRITE);
+
+  // if the file opened okay, write to it:
+  if (myFile2) {
+    Serial.print("Writing to FLASH.TXT...");
+    myFile2.println("testing 1, 2, 3.");
+    // close the file:
+    myFile2.close();
+    Serial.println("done.");
+  } else {
+    // if the file didn't open, print an error:
+    Serial.println("error opening test.txt");
   }
-  
- if (! flashfile) {
-    Serial.println("couldnt open file");
-  }
-  else {
-    Serial.print("Logging to: ");
-    Serial.println(filename);
+
+  // re-open the file for reading:
+  myFile2 = SD.open("FLASH.TXT");
+  if (myFile2) {
+    Serial.println("FLASH.TXT:");
 
     // read from the file until there's nothing else in it:
-    while (flashfile.available()) {
-      Serial.write(flashfile.read());
+    while (myFile2.available()) {
+      Serial.write(myFile2.read());
     }
     // close the file:
-    flashfile.close();
-  }
-//}
+    myFile2.close();
+  } else {
+    // if the file didn't open, print an error:
+    Serial.println("error opening FLASH.TXT");
+  }*/
+
 }
  
  /* Apply the value to the parameter by searching for the parameter name
@@ -510,13 +522,17 @@ File flashfile;
 uint8_t VarioSettings::soundSettingRead(void) {
   /* check tag */
   uint16_t eepromTag;
-  uint8_t tmpValue;
+  uint8_t tmpValue=0;
   
   if (!EEPROM.isValid()) {
     Serial.println("EEPROM is empty, writing some example data:");
-	VARIOMETER_BEEP_VOLUME=0;
-	readFlashSDSettings();
-	if (VARIOMETER_BEEP_VOLUME==0) { tmpValue = 5; }
+	if (!readFlashSDSettings()) {
+	  VARIOMETER_BEEP_VOLUME=5;
+	  tmpValue = 5; 
+	}
+	else {
+	  tmpValue = VARIOMETER_BEEP_VOLUME;	
+	}
   } else {
 	  
     eepromTag = EEPROM.read(SOUND_EPROM_ADDR);
@@ -525,9 +541,13 @@ uint8_t VarioSettings::soundSettingRead(void) {
   
     uint8_t TmpValue;
     if( eepromTag != SOUND_EPROM_TAG ) { 
-	  VARIOMETER_BEEP_VOLUME=0;
-	  readFlashSDSettings();
-	  if (VARIOMETER_BEEP_VOLUME==0) { tmpValue = 5; }
+	  if (!readFlashSDSettings()) {
+	    VARIOMETER_BEEP_VOLUME=5;
+	    tmpValue = 5; 
+	  }
+	  else {
+	    tmpValue = VARIOMETER_BEEP_VOLUME;	
+	  }
     } else {
       /* read calibration settings */
       tmpValue =  EEPROM.read(SOUND_EPROM_ADDR + 0x02);
@@ -564,7 +584,7 @@ void VarioSettings::soundSettingWrite(uint8_t volume) {
   EEPROM.commit();
   
   VARIOMETER_BEEP_VOLUME=volume;
-  writeFlashSDSettings();
+ // writeFlashSDSettings();
 }
 
 void Statistic::setTime(int8_t* timeValue) {

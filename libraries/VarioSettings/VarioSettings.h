@@ -57,26 +57,28 @@
 // PWM   A3, A4 PWM
 //
 // A1,A2 Switch
-// D1    Detection ON/OFF
+// D6    Detection ON/OFF
 //
-// D0    Detection de connection USB
-// A5    Commande de l'alimentation des cartes
+//       A6    Detection de connection USB
+// EN    A5    Commande de l'alimentation des cartes
 // 
 // E-Ink
-// CS    D4
-// BUSY  D5
-// RST   D6
+// CS    D1
+// BUSY  D3
+// RST   D2
 // DC    D7
 // DIN   MOSI/D8
 // CLK   SCK/D9
 //
 // GPS
-// TX    D3 serialNmea  Pin 3
+// TX    D5 serialNmea  Pin 5
 // RX    TX Serial1     Pin 14
 //
 // Bluetooth
 // TX    RX Serial1      Pin 13
-// RX    D2 serialNmea   Pin 2
+// RX    D4 serialNmea   Pin 4
+
+// RST   D0
 
 /* Set the pins used for Screen modules */
 
@@ -138,10 +140,11 @@
 //GxIO_Class io(SPI, 4, 7, 6);
 //GxEPD_Class display(io, 6, 5);
 
-#define VARIOSCREEN_CS_PIN 4
+#define VARIOSCREEN_CS_PIN 1   
 #define VARIOSCREEN_DC_PIN 7
-#define VARIOSCREEN_RST_PIN 6
-#define VARIOSCREEN_BUSY_PIN 5
+#define VARIOSCREEN_RST_PIN 2
+#define VARIOSCREEN_BUSY_PIN 3
+//#define VARIOSCREEN_BUSY_PIN 5
 
 #elif defined(_BOARD_GENERIC_STM32F103C_H_)
 
@@ -215,11 +218,12 @@ EXTERNAL_INT_9: A2, 3
 EXTERNAL_INT_10: TX, MOSI
 EXTERNAL_INT_11: RX, SCK*/
 
-#define VARIOPOWER_INT_PIN 1
+#define VARIOPOWER_INT_PIN 6
 //const byte interruptPin = A5;
 
 #define VARIO_DETECT_USB A6
 #define VARIO_PIN_ALIM   A5
+#define VARIO_PIN_RST    0
 // A6    Detection de connection USB
 // A5    Commande de l'alimentation des cartes
 
@@ -417,9 +421,9 @@ class VarioSettings {
   
  protected:
   File myFile;
-  File myFile2;
+//  File myFile2;
   char FileName[15] = "SETTINGS.TXT";
-  char FileFlashName[15] = "flash.txt";
+  char FileFlashName[15] = "FLASH.TXT";
   
   void applySetting(String settingName, String settingValue);
   void applyFlashSetting(String settingName, String settingValue);
