@@ -196,16 +196,16 @@
 #define KEY_X_GRT_Y_TMP             (KEY_D_ACSZ + 1)
 #define KEY_SKIP_X_GRT_Y_TMP        (KEY_X_GRT_Y_TMP + 1)
 #define KEY_SKIP_END_COMPARE        (KEY_SKIP_X_GRT_Y_TMP + 1)
-#define KEY_END_COMPARE_Y_X_TMP2    (KEY_SKIP_END_COMPARE + 1)
+#define KEY_END_COMPARE_Y_X_TMP2    (KEY_SKIP_END_COMPARE + 1)       
 #define KEY_CFG_ANDROID_ORIENT_INT  (KEY_END_COMPARE_Y_X_TMP2 + 1)
 #define KEY_NO_ORIENT_INTERRUPT     (KEY_CFG_ANDROID_ORIENT_INT + 1)
 #define KEY_END_COMPARE_Y_X_TMP     (KEY_NO_ORIENT_INTERRUPT + 1)
 #define KEY_END_ORIENT_1            (KEY_END_COMPARE_Y_X_TMP + 1)
-#define KEY_END_COMPARE_Y_X         (KEY_END_ORIENT_1 + 1)
+#define KEY_END_COMPARE_Y_X         (KEY_END_ORIENT_1 + 1) 
 #define KEY_END_ORIENT              (KEY_END_COMPARE_Y_X + 1)
 #define KEY_X_GRT_Y                 (KEY_END_ORIENT + 1)
-#define KEY_NOT_TIME_MINUS_1        (KEY_X_GRT_Y + 1)
-#define KEY_END_COMPARE_Y_X_TMP3    (KEY_NOT_TIME_MINUS_1 + 1)
+#define KEY_NOT_TIME_MINUS_1        (KEY_X_GRT_Y + 1)       
+#define KEY_END_COMPARE_Y_X_TMP3    (KEY_NOT_TIME_MINUS_1 + 1) 
 #define KEY_X_GRT_Y_TMP2            (KEY_END_COMPARE_Y_X_TMP3 + 1)
 
 /* Authenticate Keys */
@@ -284,10 +284,9 @@
 
 #define NUM_KEYS                    (KEY_STREAM_P_ACCEL_Z + 1)
 
-typedef struct
-{
-	unsigned short key;
-	unsigned short addr;
+typedef struct {
+    unsigned short key;
+    unsigned short addr;
 } tKeyLabel;
 
 #define DINA0A 0x0a

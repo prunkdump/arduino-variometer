@@ -50,8 +50,6 @@
 #define INV_WXYZ_QUAT       (0x100)
 
 /* Set up functions. */
-void dmp_init_structures();
-int dmp_select_device(int device);
 int dmp_load_motion_driver_firmware(void);
 int dmp_set_fifo_rate(unsigned short rate);
 int dmp_get_fifo_rate(unsigned short *rate);
@@ -62,7 +60,6 @@ int dmp_set_orientation(unsigned short orient);
 int dmp_set_gyro_bias(long *bias);
 int dmp_set_accel_bias(long *bias);
 
-#ifdef MPU_MAXIMAL
 /* Tap functions. */
 int dmp_register_tap_cb(void (*func)(unsigned char, unsigned char));
 int dmp_set_tap_thresh(unsigned char axis, unsigned short thresh);
@@ -76,19 +73,16 @@ int dmp_set_shake_reject_timeout(unsigned short time);
 
 /* Android orientation functions. */
 int dmp_register_android_orient_cb(void (*func)(unsigned char));
-#endif // MPU_MAXIMAL
 
 /* LP quaternion functions. */
 int dmp_enable_lp_quat(unsigned char enable);
 int dmp_enable_6x_lp_quat(unsigned char enable);
 
-#ifdef MPU_MAXIMAL
 /* Pedometer functions. */
 int dmp_get_pedometer_step_count(unsigned long *count);
 int dmp_set_pedometer_step_count(unsigned long count);
 int dmp_get_pedometer_walk_time(unsigned long *time);
 int dmp_set_pedometer_walk_time(unsigned long time);
-#endif // MPU_MAXIMAL
 
 /* DMP gyro calibration functions. */
 int dmp_enable_gyro_cal(unsigned char enable);

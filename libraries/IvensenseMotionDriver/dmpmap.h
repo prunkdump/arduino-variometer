@@ -6,6 +6,11 @@
 #ifndef DMPMAP_H
 #define DMPMAP_H
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 #define DMP_PTAT    0
 #define DMP_XGYR    2
 #define DMP_YGYR    4
@@ -253,5 +258,7 @@
 #define DMP_BLPFNMYL    506
 #define DMP_BLPFNMZH    508
 #define DMP_BLPFNMZL    510
-
+#ifdef __cplusplus
+}
+#endif
 #endif // DMPMAP_H
