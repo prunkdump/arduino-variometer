@@ -85,17 +85,12 @@ void vertaccel_init(boolean giroCalibration) {
   delay(1000);
 
   /* setting imu */
-  mpu_select_device(0);
-  mpu_init_structures();
   mpu_init(NULL);
   mpu_set_sensors(INV_XYZ_GYRO|INV_XYZ_ACCEL); 
   mpu_set_gyro_fsr(VERTACCEL_GIRO_FSR);
   mpu_set_accel_fsr(VERTACCEL_ACCEL_FSR);
-  mpu_configure_fifo(INV_XYZ_GYRO|INV_XYZ_ACCEL);
 
   /* setting dmp */
-  dmp_select_device(0);
-  dmp_init_structures();
   dmp_load_motion_driver_firmware();
   dmp_set_fifo_rate(VERTACCEL_FIFO_RATE);
   mpu_set_dmp_state(1);

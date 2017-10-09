@@ -34,8 +34,8 @@
 /*------------------------------*/
 /* Arduino/I2Cdev implementation */
 #include <I2Cdev.h>
-#define i2c_write I2Cdev::writeBytes
-#define i2c_read I2Cdev::readBytes
+#define i2c_write !I2Cdev::writeBytes
+#define i2c_read(slave_addr, reg_addr, length, data) (I2Cdev::readBytes(slave_addr, reg_addr, length, data)<=0)
 #define delay_ms delay
 #define get_ms millis
 static inline void get_ms(unsigned long* count) {
