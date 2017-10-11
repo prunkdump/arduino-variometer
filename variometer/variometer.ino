@@ -5,7 +5,7 @@
 #include <ms5611.h>
 #include <vertaccel.h>
 #include <EEPROM.h>
-#include <inv_mpu.h>
+#include <LightInvensense.h>
 #include <kalmanvert.h>
 #include <beeper.h>
 #include <toneAC.h>

@@ -2,9 +2,7 @@
 
 #include <Arduino.h>
 
-#include <inv_mpu.h>
-#include <inv_mpu_dmp_motion_driver.h>
-
+#include <LightInvensense.h>
 #include <EEPROM.h>
 
 /******************/
@@ -79,26 +77,10 @@ double* vertaccel_getCalibration(void) {
 /********************/
 
 /* init vertaccel */
-void vertaccel_init(boolean giroCalibration) {
+void vertaccel_init(void) {
 
-  /* !!! sometimes, the Arduino board start before the IMU !!! */
-  delay(1000);
-
-  /* setting imu */
-  mpu_init(NULL);
-  mpu_set_sensors(INV_XYZ_GYRO|INV_XYZ_ACCEL); 
-  mpu_set_gyro_fsr(VERTACCEL_GIRO_FSR);
-  mpu_set_accel_fsr(VERTACCEL_ACCEL_FSR);
-
-  /* setting dmp */
-  dmp_load_motion_driver_firmware();
-  dmp_set_fifo_rate(VERTACCEL_FIFO_RATE);
-  mpu_set_dmp_state(1);
-  if( giroCalibration ) {
-    dmp_enable_feature(DMP_FEATURE_6X_LP_QUAT|DMP_FEATURE_SEND_RAW_ACCEL|DMP_FEATURE_GYRO_CAL); 
-  } else {
-    dmp_enable_feature(DMP_FEATURE_6X_LP_QUAT|DMP_FEATURE_SEND_RAW_ACCEL);
-  }
+  /* init */
+  fastMPUInit();
 
   /* init calibration settings */
   vertaccel_readCalibration();
@@ -115,12 +97,9 @@ boolean vertaccel_dataReady() {
   
   short iaccel[3];
   long iquat[4];
-  unsigned long timestamp;
-  short sensors;
-  unsigned char fifoCount;
-  
+   
   /* check if we have new data from imu */
-  while( dmp_read_fifo(NULL,iaccel,iquat,&timestamp,&sensors,&fifoCount) == 0 ) {
+  while( fastMPUReadFIFO(NULL, iaccel, iquat) >= 0 ) {
     newData = true;
   }
 
@@ -133,14 +112,14 @@ boolean vertaccel_dataReady() {
     double accel[3]; 
     double quat[4]; 
     
-    accel[0] = ((double)iaccel[0])/VERTACCEL_ACCEL_SCALE + accelCal[0];
-    accel[1] = ((double)iaccel[1])/VERTACCEL_ACCEL_SCALE + accelCal[1];
-    accel[2] = ((double)iaccel[2])/VERTACCEL_ACCEL_SCALE + accelCal[2];
+    accel[0] = ((double)iaccel[0])/LIGHT_INVENSENSE_ACCEL_SCALE + accelCal[0];
+    accel[1] = ((double)iaccel[1])/LIGHT_INVENSENSE_ACCEL_SCALE + accelCal[1];
+    accel[2] = ((double)iaccel[2])/LIGHT_INVENSENSE_ACCEL_SCALE + accelCal[2];
         
-    quat[0] = ((double)iquat[0])/VERTACCEL_QUAT_SCALE;
-    quat[1] = ((double)iquat[1])/VERTACCEL_QUAT_SCALE;
-    quat[2] = ((double)iquat[2])/VERTACCEL_QUAT_SCALE;
-    quat[3] = ((double)iquat[3])/VERTACCEL_QUAT_SCALE;
+    quat[0] = ((double)iquat[0])/LIGHT_INVENSENSE_QUAT_SCALE;
+    quat[1] = ((double)iquat[1])/LIGHT_INVENSENSE_QUAT_SCALE;
+    quat[2] = ((double)iquat[2])/LIGHT_INVENSENSE_QUAT_SCALE;
+    quat[3] = ((double)iquat[3])/LIGHT_INVENSENSE_QUAT_SCALE;
     
 
     /******************************/
@@ -173,31 +152,28 @@ boolean vertaccel_rawReady(double* accel, double* upVector, double* vertAccel) {
   
   short iaccel[3];
   long iquat[4];
-  unsigned long timestamp;
-  short sensors;
-  unsigned char fifoCount;
-  
+   
   /* check if we have new data from imu */
-  while( dmp_read_fifo(NULL,iaccel,iquat,&timestamp,&sensors,&fifoCount) == 0 ) {
+  while( fastMPUReadFIFO(NULL, iaccel, iquat) >= 0 ) {
     newData = true;
   }
 
   /* if new data compute vertical acceleration */
   if( newData ) {
-
+    
     /*************/
     /* normalize */
     /*************/ 
     double quat[4]; 
     
-    accel[0] = ((double)iaccel[0])/VERTACCEL_ACCEL_SCALE;
-    accel[1] = ((double)iaccel[1])/VERTACCEL_ACCEL_SCALE;
-    accel[2] = ((double)iaccel[2])/VERTACCEL_ACCEL_SCALE;
+    accel[0] = ((double)iaccel[0])/LIGHT_INVENSENSE_ACCEL_SCALE;
+    accel[1] = ((double)iaccel[1])/LIGHT_INVENSENSE_ACCEL_SCALE;
+    accel[2] = ((double)iaccel[2])/LIGHT_INVENSENSE_ACCEL_SCALE;
         
-    quat[0] = ((double)iquat[0])/VERTACCEL_QUAT_SCALE;
-    quat[1] = ((double)iquat[1])/VERTACCEL_QUAT_SCALE;
-    quat[2] = ((double)iquat[2])/VERTACCEL_QUAT_SCALE;
-    quat[3] = ((double)iquat[3])/VERTACCEL_QUAT_SCALE;
+    quat[0] = ((double)iquat[0])/LIGHT_INVENSENSE_QUAT_SCALE;
+    quat[1] = ((double)iquat[1])/LIGHT_INVENSENSE_QUAT_SCALE;
+    quat[2] = ((double)iquat[2])/LIGHT_INVENSENSE_QUAT_SCALE;
+    quat[3] = ((double)iquat[3])/LIGHT_INVENSENSE_QUAT_SCALE;
     
 
     /******************************/

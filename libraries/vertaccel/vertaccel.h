@@ -2,9 +2,7 @@
 #define VERTACCEL_H
 
 #include <Arduino.h>
-
-#include <inv_mpu.h>
-#include <inv_mpu_dmp_motion_driver.h>
+#include <LightInvensense.h>
 
 /* eeprom calibration adresses */
 #define VERTACCEL_EPROM_TAG 9806
@@ -13,22 +11,10 @@
 /* accelerometer parameters */
 #define VERTACCEL_G_TO_MS 9.80665
 
-#define VERTACCEL_GIRO_FSR 2000
-#define VERTACCEL_ACCEL_FSR 4
-#define VERTACCEL_FIFO_RATE 100
-
-/* 4G ~= 2^15 */
-#define VERTACCEL_ACCEL_SCALE 8192.0
-
-
-/* 2^30 */
-#define VERTACCEL_QUAT_SCALE 1073741824.0
-
-
 /*******************/
 /* init the device */
 /*******************/
-void vertaccel_init(boolean giroCalibration = true);
+void vertaccel_init(void);
 
 /***********/
 /* reading */
