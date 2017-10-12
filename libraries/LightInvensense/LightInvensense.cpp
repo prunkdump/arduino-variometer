@@ -204,6 +204,8 @@ const unsigned char compressedFirmware[] PROGMEM = {
    0xAC, 0xD0, 0x10, 0xAC, 0xDE, 0x80, 0x92, 0xA2, 0xF2, 0x4C, 0x82, 0xA8, 0xF1, 0xCA, 0xF2, 0x35,
    0xF1, 0x96, 0x88, 0xA6, 0xD9, 0x00, 0x00, 0xD8, 0xF1, 0xFF };
 #define COMPRESSED_DMP_CODE_SIZE 2666
+#define COMPRESSED_DMP_LPF_CFG (0x2)
+#define COMPRESSED_DMP_RATE_DIV_CFG (0x4)
 #define COMPRESSED_DMP_PAQUET_RAW_ACCEL
 #define COMPRESSED_DMP_PAQUET_QUAT
 #define COMPRESSED_DMP_PAQUET_LENGTH 22
@@ -360,6 +362,26 @@ int createCompressedFirmware(void) {
   Serial.print("#define COMPRESSED_DMP_CODE_SIZE ");
   Serial.print(hexValueCount, DEC);
   Serial.print("\n");
+
+  /******************/
+  /* get dmp config */
+  /******************/
+  unsigned char data;
+
+  /* start dmp */
+  mpu_set_dmp_state(1);
+
+  /* read LPF config (depend on sample rate) */
+  I2Cdev::readBytes(INV_HW_ADDR, INV_REG_LPF, 1, &data);
+  Serial.print("#define COMPRESSED_DMP_LPF_CFG (0x");
+  Serial.print(data, HEX);
+  Serial.print(")\n");
+
+  /* read sample rate (depend on DMP firmware) */
+  I2Cdev::readBytes(INV_HW_ADDR, INV_REG_RATE_DIV, 1, &data);
+  Serial.print("#define COMPRESSED_DMP_RATE_DIV_CFG (0x");
+  Serial.print(data, HEX);
+  Serial.print(")\n");
 
   /******************/
   /* paquet length  */
@@ -582,7 +604,7 @@ int fastMPUInit(void) {
   I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_ACCEL_CFG, 1, data);
 
   /* set low pass filter */
-  data[0] = LIGHT_INVENSENSE_LPF;
+  data[0] = COMPRESSED_DMP_LPF_CFG;
   I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_LPF, 1, data);
 
 #ifdef MPU6500 //MPU6500 accel/gyro dlpf separately
@@ -617,7 +639,7 @@ int fastMPUInit(void) {
   /**************/
 
   /* set sample rate */
-  data[0] = 1000 / LIGHT_INVENSENSE_DMP_SAMPLE_RATE - 1;
+  data[0] = COMPRESSED_DMP_RATE_DIV_CFG; 
   I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_RATE_DIV, 1, data);
 
   /**************/
