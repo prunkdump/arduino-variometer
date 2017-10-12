@@ -24,13 +24,13 @@
 /* TARGET CONFIG */
 /*****************/
 
-/* See InvenSense_defines.h and inv_mpu_dmp_motion_driver.h */
-/* Preferably set LPF to half of sample rate                */
+/* See InvenSense_defines.h */
 #define LIGHT_INVENSENSE_GYRO_FSR INV_FSR_2000DPS
 #define LIGHT_INVENSENSE_ACCEL_FSR INV_FSR_4G
 #define LIGHT_INVENSENSE_DMP_SAMPLE_RATE 100
 #define LIGHT_INVENSENSE_COMPASS_SAMPLE_RATE 10
 
+/* See inv_mpu_dmp_motion_driver.h */
 #ifdef LIGHT_INVENSENSE_BUILD
 #include <inv_mpu_dmp_motion_driver.h>
 #define LIGHT_INVENSENSE_DMP_FEATURES (DMP_FEATURE_6X_LP_QUAT|DMP_FEATURE_SEND_RAW_ACCEL|DMP_FEATURE_GYRO_CAL)
