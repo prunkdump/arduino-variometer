@@ -32,6 +32,8 @@
 /*******************/
 /* General objects */
 /*******************/
+#define VARIOMETER_POWER_ON_DELAY 2000 
+
 #define VARIOMETER_STATE_INITIAL 0
 #define VARIOMETER_STATE_DATE_RECORDED 1
 #define VARIOMETER_STATE_CALIBRATED 2
@@ -186,6 +188,26 @@ unsigned long lastVarioSentenceTimestamp = 0;
 /*-----------------*/
 void setup() {
 
+  /*****************************/
+  /* wait for devices power on */
+  /*****************************/
+  delay(VARIOMETER_POWER_ON_DELAY);
+
+  /**********************/
+  /* init accelerometer */
+  /**********************/
+  Fastwire::setup(FASTWIRE_SPEED, 0);
+#ifdef HAVE_ACCELEROMETER
+  vertaccel_init();
+  if( firmwareUpdateCond() ) {
+   firmwareUpdate();
+  }
+#endif //HAVE_ACCELEROMETER
+
+  /************/
+  /* init SPI */
+  /************/ 
+
   /* set all SPI CS lines before talking to devices */
 #if defined(HAVE_SDCARD) && defined(HAVE_GPS)
   file.enableSPI();
@@ -211,17 +233,10 @@ void setup() {
   screen.begin(VARIOSCREEN_CONTRAST);
 #endif //HAVE_SCREEN
   
-  /************************************/
-  /* init altimeter and accelerometer */
-  /************************************/
-  Fastwire::setup(FASTWIRE_SPEED, 0);
+  /******************/
+  /* init barometer */
+  /******************/
   ms5611_init();
-#ifdef HAVE_ACCELEROMETER
-  vertaccel_init();
-  if( firmwareUpdateCond() ) {
-   firmwareUpdate();
-  }
-#endif //HAVE_ACCELEROMETER
   
   /**************************/
   /* init gps and bluetooth */

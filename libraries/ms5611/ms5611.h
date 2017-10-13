@@ -54,7 +54,7 @@
 //#define MS5611_INTERRUPT_COMPARE 66
 #define MS5611_INTERRUPT_COMPARE 78
 #endif
-#define MS5611_INTERRUPT_START_DELAY 1000
+#define MS5611_INTERRUPT_START_DELAY 3
 
 /* ################################ */
 
