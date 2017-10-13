@@ -204,8 +204,11 @@ const unsigned char compressedFirmware[] PROGMEM = {
    0xAC, 0xD0, 0x10, 0xAC, 0xDE, 0x80, 0x92, 0xA2, 0xF2, 0x4C, 0x82, 0xA8, 0xF1, 0xCA, 0xF2, 0x35,
    0xF1, 0x96, 0x88, 0xA6, 0xD9, 0x00, 0x00, 0xD8, 0xF1, 0xFF };
 #define COMPRESSED_DMP_CODE_SIZE 2666
+<<<<<<< HEAD
 #define COMPRESSED_DMP_LPF_CFG (0x2)
 #define COMPRESSED_DMP_RATE_DIV_CFG (0x4)
+=======
+>>>>>>> origin/jpg63-version
 #define COMPRESSED_DMP_PAQUET_RAW_ACCEL
 #define COMPRESSED_DMP_PAQUET_QUAT
 #define COMPRESSED_DMP_PAQUET_LENGTH 22
@@ -364,6 +367,7 @@ int createCompressedFirmware(void) {
   Serial.print("\n");
 
   /******************/
+<<<<<<< HEAD
   /* get dmp config */
   /******************/
   unsigned char data;
@@ -384,6 +388,8 @@ int createCompressedFirmware(void) {
   Serial.print(")\n");
 
   /******************/
+=======
+>>>>>>> origin/jpg63-version
   /* paquet length  */
   /******************/
   unsigned packet_length = 0;
@@ -604,7 +610,11 @@ int fastMPUInit(void) {
   I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_ACCEL_CFG, 1, data);
 
   /* set low pass filter */
+<<<<<<< HEAD
   data[0] = COMPRESSED_DMP_LPF_CFG;
+=======
+  data[0] = LIGHT_INVENSENSE_LPF;
+>>>>>>> origin/jpg63-version
   I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_LPF, 1, data);
 
 #ifdef MPU6500 //MPU6500 accel/gyro dlpf separately
@@ -639,7 +649,11 @@ int fastMPUInit(void) {
   /**************/
 
   /* set sample rate */
+<<<<<<< HEAD
   data[0] = COMPRESSED_DMP_RATE_DIV_CFG; 
+=======
+  data[0] = 1000 / LIGHT_INVENSENSE_DMP_SAMPLE_RATE - 1;
+>>>>>>> origin/jpg63-version
   I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_RATE_DIV, 1, data);
 
   /**************/
