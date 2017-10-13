@@ -3,7 +3,7 @@
 #include <ms5611.h>
 #include <vertaccel.h>
 #include <EEPROM.h>
-#include <inv_mpu.h>
+#include <LightInvensense.h>
 #include <avr/pgmspace.h>
 #include <accelcalibrator.h>
 

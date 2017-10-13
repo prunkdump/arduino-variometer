@@ -5,7 +5,7 @@
 #include <ms5611.h>
 #include <vertaccel.h>
 #include <EEPROM.h>
-#include <inv_mpu.h>
+#include <LightInvensense.h>
 #include <kalmanvert.h>
 #include <beeper.h>
 #include <toneAC.h>
@@ -17,8 +17,8 @@
 #include <SerialNmea.h>
 #include <NmeaParser.h>
 #include <LxnavSentence.h>
-#include <IGCSentence.h>
 #include <LK8Sentence.h>
+#include <IGCSentence.h>
 #include <FirmwareUpdater.h>
 
 
@@ -33,7 +33,7 @@
 /*******************/
 
 #define VERSION 63
-#define SUB_VERSION 4
+#define SUB_VERSION 5
 
 /*******************/
 /*    Historique   */
@@ -52,6 +52,9 @@
  *
  * v 63.4     Ajout mode 3 niveaux dans ToneAC
  *            Modification de la gestion SPI  
+ *
+ * v 63.5     Optimisation librairie accélerometre LightInvensense
+ *
  *******************/
  
 /*******************/
