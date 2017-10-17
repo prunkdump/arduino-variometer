@@ -33,8 +33,16 @@
 /* See inv_mpu_dmp_motion_driver.h */
 #ifdef LIGHT_INVENSENSE_BUILD
 #include <inv_mpu_dmp_motion_driver.h>
-#define LIGHT_INVENSENSE_DMP_FEATURES (DMP_FEATURE_6X_LP_QUAT|DMP_FEATURE_SEND_RAW_ACCEL|DMP_FEATURE_GYRO_CAL)
+#define LIGHT_INVENSENSE_DMP_FEATURES (DMP_FEATURE_6X_LP_QUAT|DMP_FEATURE_SEND_RAW_ACCEL|DMP_FEATURE_GYRO_CAL|DMP_FEATURE_TAP)
 #endif
+
+/* Tap settings if enabled */
+#define LIGHT_INVENSENSE_TAP_AXES TAP_XYZ
+#define LIGHT_INVENSENSE_TAP_THRESH 300
+#define LIGHT_INVENSENSE_TAP_COUNT 1
+#define LIGHT_INVENSENSE_TAP_TIME 100
+#define LIGHT_INVENSENSE_TAP_TIME_MULTI 500
+
 
 /*********************/
 /* BUILDING FIRMWARE */
@@ -53,6 +61,7 @@ int createCompressedFirmware(void);
 
 int fastMPUInit(void);
 int fastMPUReadFIFO(short *gyro, short *accel, long *quat);
+void fastMPUSetTapCallback(void (*callback)(unsigned char, unsigned char));
 
 
 /******************/

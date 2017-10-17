@@ -72,6 +72,13 @@ const uint8_t varioscreenGR[] PROGMEM = {
   0x00, 0xc0, 0xe0, 0x30, 0x90, 0x90, 0xb0, 0x00, 0x00, 0x00, 0x00, 0x00,
   0x00, 0x01, 0x03, 0x06, 0x04, 0x07, 0x07, 0x00, 0x78, 0x08, 0x08, 0x00 };
 
+#define VARIOSCREEN_MUTE_WIDTH 14 
+const uint8_t varioscreenMute[] PROGMEM = {
+  0x00, 0x0c, 0x18, 0xf0, 0x60, 0xe0, 0xb0, 0x18, 0x0c, 0xfe, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0x04, 0x07, 0x0d, 0x1b, 0x36, 0x7f,
+  0x18, 0x30, 0x60, 0x00 };
+
+
 /**********/
 /* screen */
 /**********/
@@ -551,6 +558,34 @@ void ScreenElapsedTime::setCurrentTime(int8_t* currentTime) {
   }
 }
 
+void ScreenMuteIndicator::setMuteState(bool newState) {
+
+  /* set new state and reset */
+  muted = newState;
+  reset();
+}
+
+void ScreenMuteIndicator::display(void) {
+
+  /* if muted display symbol */
+  if( muted ) {
+    displayElement(screen, varioscreenMute, posX, posY, VARIOSCREEN_MUTE_WIDTH, VARIOSCREEN_FONT_HEIGHT);
+  }
+
+  /* else erase the symbol */
+  else {
+    for(int line = 0; line < VARIOSCREEN_FONT_HEIGHT; line++) { 
+      screen.beginDisplay(posX, posY + line);
+      for(int i = 0; i<VARIOSCREEN_MUTE_WIDTH; i++) {
+	screen.display(0x00);
+      }
+      screen.endDisplay();
+    }
+  }
+
+  /* done */
+  screen.flush();
+}
 
 /************************/
 /* The screen scheduler */

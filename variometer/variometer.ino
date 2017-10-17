@@ -79,6 +79,8 @@ unsigned long lastLowFreqUpdate = 0;
 #define VARIOSCREEN_SAT_ANCHOR_X 68
 #define VARIOSCREEN_SAT_ANCHOR_Y 0
 
+#define VARIOSCREEN_MUTE_ANCHOR_X 2
+#define VARIOSCREEN_MUTE_ANCHOR_Y 0
 
 VarioScreen screen(VARIOSCREEN_DC_PIN,VARIOSCREEN_CS_PIN,VARIOSCREEN_RST_PIN);
 MSUnit msunit(screen, VARIOSCREEN_VARIO_ANCHOR_X, VARIOSCREEN_VARIO_ANCHOR_Y);
@@ -94,6 +96,9 @@ SATLevel satLevel(screen, VARIOSCREEN_SAT_ANCHOR_X, VARIOSCREEN_SAT_ANCHOR_Y);
 ScreenTime screenTime(screen, VARIOSCREEN_TIME_ANCHOR_X, VARIOSCREEN_TIME_ANCHOR_Y);
 ScreenElapsedTime screenElapsedTime(screen, VARIOSCREEN_ELAPSED_TIME_ANCHOR_X, VARIOSCREEN_ELAPSED_TIME_ANCHOR_Y);
 #endif //HAVE_GPS
+#ifdef HAVE_ACCELEROMETER
+ScreenMuteIndicator muteIndicator(screen, VARIOSCREEN_MUTE_ANCHOR_X, VARIOSCREEN_MUTE_ANCHOR_Y);
+#endif //HAVE_ACCELEROMETER
 #ifdef HAVE_VOLTAGE_DIVISOR
 BATLevel batLevel(screen, VARIOSCREEN_BAT_ANCHOR_X, VARIOSCREEN_BAT_ANCHOR_Y, VOLTAGE_DIVISOR_VALUE, VOLTAGE_DIVISOR_REF_VOLTAGE);
 #endif //HAVE_VOLTAGE_DIVISOR
@@ -103,6 +108,9 @@ ScreenSchedulerObject displayList[] = { {&msunit, 0}, {&munit, 0}, {&altiDigit, 
 #ifdef HAVE_GPS
                                        ,{&kmhunit, 0}, {&grunit, 0}, {&speedDigit, 0}, {&ratioDigit, 0}, {&satLevel, 0}, {&screenTime, 1}, {&screenElapsedTime, 1}
 #endif //HAVE_GPS
+#ifdef HAVE_ACCELEROMETER
+                                       ,{&muteIndicator, 0}
+#endif //HAVE_ACCELEROMETER
 #ifdef HAVE_VOLTAGE_DIVISOR
                                        , {&batLevel, 0}
 #endif //HAVE_VOLTAGE_DIVISOR
@@ -182,6 +190,19 @@ unsigned long lastVarioSentenceTimestamp = 0;
 #endif // !HAVE_GPS
 #endif //HAVE_BLUETOOTH
 
+#if defined(HAVE_ACCELEROMETER) && defined(HAVE_SPEAKER) 
+/* tap callback : mute/unmute beeper */
+void beeperTapCallback(unsigned char direction, unsigned char count) { 
+
+  static bool muted = false;
+  muted = !muted;
+  toneACMute(muted);
+#ifdef HAVE_SCREEN
+  muteIndicator.setMuteState(muted);
+#endif //HAVE_SCREEN
+}
+#endif //defined(HAVE_ACCELEROMETER) && defined(HAVE_SPEAKER) 
+
 
 /*-----------------*/
 /*      SETUP      */
@@ -202,6 +223,7 @@ void setup() {
   if( firmwareUpdateCond() ) {
    firmwareUpdate();
   }
+  fastMPUSetTapCallback(beeperTapCallback);
 #endif //HAVE_ACCELEROMETER
 
   /************/

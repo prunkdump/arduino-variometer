@@ -7,6 +7,8 @@
 
 #include "toneAC.h"
 
+static bool toneACMuted = false;
+
 #ifdef TONEAC_LENGTH
 unsigned long _tAC_time; // Used to track end note with timer when playing note in the background.
 #endif
@@ -26,7 +28,7 @@ void toneAC(unsigned long frequency
 	    ) {
 
   /* check if no tone */ 
-  if (frequency == 0
+  if (toneACMuted || frequency == 0
 #ifdef TONEAC_VOLUME     
       || volume == 0
 #endif
@@ -93,3 +95,16 @@ ISR(TIMER1_COMPA_vect) { // Timer interrupt vector.
   if (millis() >= _tAC_time) noToneAC(); // Check to see if it's time for the note to end.
 }
 #endif
+
+void toneACMute(bool newMuteState) {
+
+  /* stop tone if needed */
+  if( newMuteState ) {
+    noToneAC();
+  }
+
+  /* save */
+  toneACMuted = newMuteState;
+}
+
+
