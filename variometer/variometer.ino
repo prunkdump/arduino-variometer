@@ -53,13 +53,16 @@
  * v 63.4     Ajout mode 3 niveaux dans ToneAC
  *            Modification de la gestion SPI  
  *
- * v 63.5     Optimisation librairie accélerometre LightInvensense
+ * v 63.5     Optimisation librairie accélerometre - LightInvensense
+ *            Ajout Mute sound 
  *
  *******************/
  
 /*******************/
 /* General objects */
 /*******************/
+#define VARIOMETER_POWER_ON_DELAY 2000 
+
 #define VARIOMETER_STATE_INITIAL 0
 #define VARIOMETER_STATE_DATE_RECORDED 1
 #define VARIOMETER_STATE_CALIBRATED 2
@@ -127,7 +130,8 @@ unsigned long lastLowFreqUpdate = 0;
 #define VARIOSCREEN_RECORD_ANCHOR_X 2
 #define VARIOSCREEN_RECORD_ANCHOR_Y 0
 
-
+#define VARIOSCREEN_MUTE_ANCHOR_X 0
+#define VARIOSCREEN_MUTE_ANCHOR_Y 1
 
 VarioScreen screen(VARIOSCREEN_DC_PIN,VARIOSCREEN_CS_PIN,VARIOSCREEN_RST_PIN);
 MSUnit msunit(screen, VARIOSCREEN_VARIO_ANCHOR_X, VARIOSCREEN_VARIO_ANCHOR_Y);
@@ -152,6 +156,9 @@ TRENDLevel trendLevel(screen, VARIOSCREEN_TREND_ANCHOR_X, VARIOSCREEN_TREND_ANCH
 ScreenTime screenTime(screen, VARIOSCREEN_TIME_ANCHOR_X, VARIOSCREEN_TIME_ANCHOR_Y);
 ScreenElapsedTime screenElapsedTime(screen, VARIOSCREEN_ELAPSED_TIME_ANCHOR_X, VARIOSCREEN_ELAPSED_TIME_ANCHOR_Y);
 #endif //HAVE_GPS
+#ifdef HAVE_ACCELEROMETER
+ScreenMuteIndicator muteIndicator(screen, VARIOSCREEN_MUTE_ANCHOR_X, VARIOSCREEN_MUTE_ANCHOR_Y);
+#endif //HAVE_ACCELEROMETER
 #ifdef HAVE_VOLTAGE_DIVISOR
 BATLevel batLevel(screen, VARIOSCREEN_BAT_ANCHOR_X, VARIOSCREEN_BAT_ANCHOR_Y, VOLTAGE_DIVISOR_VALUE, VOLTAGE_DIVISOR_REF_VOLTAGE);
 int maxVoltage = 0;
@@ -166,6 +173,9 @@ ScreenSchedulerObject displayList[] = { {&msunit, 0}, {&munit, 0}, {&altiDigit, 
                                        ,{&kmhunit, 0}, {&grunit, 0}, {&speedDigit, 0}, {&ratioDigit, 0}, {&satLevel, 0}, {&screenTime, 1}, {&screenElapsedTime, 1}, {&recordIndicator, 0} , {&trendLevel, 0}
 #endif //HAVE_SCREEN_JPG63  
 #endif //HAVE_GPS
+#ifdef HAVE_ACCELEROMETER
+                                       ,{&muteIndicator, 0}
+#endif //HAVE_ACCELEROMETER
 #ifdef HAVE_VOLTAGE_DIVISOR
                                        , {&batLevel, 0}
 #endif //HAVE_VOLTAGE_DIVISOR
@@ -251,12 +261,45 @@ unsigned long lastVarioSentenceTimestamp = 0;
 #endif // !HAVE_GPS
 #endif //HAVE_BLUETOOTH
 
+#if defined(HAVE_ACCELEROMETER) && defined(HAVE_SPEAKER) 
+/* tap callback : mute/unmute beeper */
+void beeperTapCallback(unsigned char direction, unsigned char count) { 
+
+  static bool muted = false;
+  muted = !muted;
+  toneACMute(muted);
+#ifdef HAVE_SCREEN
+  muteIndicator.setMuteState(muted);
+#endif //HAVE_SCREEN
+}
+#endif //defined(HAVE_ACCELEROMETER) && defined(HAVE_SPEAKER) 
 
 /*-----------------*/
 /*      SETUP      */
 /*-----------------*/
 void setup() {
 
+  /*****************************/
+  /* wait for devices power on */
+  /*****************************/
+  delay(VARIOMETER_POWER_ON_DELAY);
+
+  /**********************/
+  /* init accelerometer */
+  /**********************/
+  Fastwire::setup(FASTWIRE_SPEED, 0);
+#ifdef HAVE_ACCELEROMETER
+  vertaccel_init();
+  if( firmwareUpdateCond() ) {
+   firmwareUpdate();
+  }
+  fastMPUSetTapCallback(beeperTapCallback);
+#endif //HAVE_ACCELEROMETER
+
+  /************/
+  /* init SPI */
+  /************/
+  
   /* set all SPI CS lines before talking to devices */
 #if defined(HAVE_SDCARD) && defined(HAVE_GPS)
   file.enableSPI();
@@ -300,17 +343,10 @@ void setup() {
  #endif HAVE_SCREEN_JPG63
  #endif //HAVE_SCREEN
   
-  /************************************/
-  /* init altimeter and accelerometer */
-  /************************************/
-  Fastwire::setup(FASTWIRE_SPEED, 0);
-  ms5611_init();
-#ifdef HAVE_ACCELEROMETER
-  vertaccel_init();
-  if( firmwareUpdateCond() ) {
-   firmwareUpdate();
-  }
-#endif //HAVE_ACCELEROMETER
+  /******************/
+  /* init barometer */
+  /******************/
+   ms5611_init();
   
   /**************************/
   /* init gps and bluetooth */
@@ -803,12 +839,15 @@ recordIndicator.setActifRECORD();
 #endif //defined(HAVE_SCREEN) && defined(HAVE_GPS)
 
   /* enable near climbing */
+#ifdef HAVE_SPEAKER
 #ifdef VARIOMETER_ENABLE_NEAR_CLIMBING_ALARM
   beeper.setGlidingAlarmState(true);
 #endif
 #ifdef VARIOMETER_ENABLE_NEAR_CLIMBING_BEEP
   beeper.setGlidingBeepState(true);
 #endif
+#endif //HAVE_SPEAKER
+
 #if defined(HAVE_SDCARD) && defined(HAVE_GPS) && defined(VARIOMETER_RECORD_WHEN_FLIGHT_START)
   createSDCardTrackFile();
 #endif // defined(HAVE_SDCARD) && defined(VARIOMETER_RECORD_WHEN_FLIGHT_START)
