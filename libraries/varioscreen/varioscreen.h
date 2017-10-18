@@ -264,7 +264,22 @@ class ScreenElapsedTime : public ScreenTime {
   int8_t baseTime[3];
   
 };
+ 
+class ScreenMuteIndicator : public VarioScreenObject {
+
+ public:
+ ScreenMuteIndicator(VarioScreen& screen, uint8_t posX, uint8_t posY)
+   : VarioScreenObject(screen, 0), posX(posX), posY(posY), muted(false) { }
+
+  void setMuteState(bool newState);
+  void display(void);
   
+ private:
+  const uint8_t posX;
+  const uint8_t posY;
+  bool muted;
+};
+ 
 /************************/
 /* The screen scheduler */
 /************************/

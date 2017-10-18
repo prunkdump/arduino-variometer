@@ -38,7 +38,7 @@ void signalBeep(double freq, unsigned long duration, int count = 1) {
 void setup() {
   
   /* init calibrator */
-  delay(5000);
+  delay(1000);
   Fastwire::setup(400,0);
   calibrator.init();
   
@@ -49,7 +49,10 @@ void setup() {
     
   /* start beep */
   signalBeep(HIGH_BEEP_FREQ, BASE_BEEP_DURATION, 3);
-  
+
+  /* wait for gyro calibration */
+  delay(10000);
+  signalBeep(HIGH_BEEP_FREQ, BASE_BEEP_DURATION, 2);
 
 }
 
