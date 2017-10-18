@@ -2,13 +2,11 @@
 
 #include <Arduino.h>
 
-#include <SparkFunMPU9250-DMP.h>
+#include <LightInvensense.h>
 
 #include <FlashAsEEPROM.h>
 
 #include <VarioSettings.h>
-
-MPU9250_DMP imu;
 
 /******************/
 /* data variables */
@@ -122,6 +120,7 @@ void vertaccel_saveCalibration(double* cal) {
   GnuSettings.writeFlashSDSettings();
 } 
 
+
 /* give calibration coefficients */
 double* vertaccel_getCalibration(void) {
 
@@ -129,95 +128,19 @@ double* vertaccel_getCalibration(void) {
 }  
  
 
+
 /********************/
 /* public functions */
 /********************/
 
 /* init vertaccel */
-void vertaccel_init(boolean giroCalibration) {
+void vertaccel_init(void) {
 
- #ifdef IMU_DEBUG
-   SerialPort.println("vertaccel begin");
- #endif //IMU_BEBUG 
+  /* init */
+  fastMPUInit();
 
-  // Call imu.begin() to verify communication and initialize
-  if (imu.begin() != INV_SUCCESS)
-  {
-    while (1)
-    {
-      SerialPort.println("Unable to communicate with MPU-9250");
-      SerialPort.println("Check connections, and try again.");
-      SerialPort.println();
-      delay(5000);
-    }
-  }
-  
- #ifdef IMU_DEBUG
-   SerialPort.println("imu Begin");
- #endif //IMU_BEBUG 
-    delay(8000);
- 
-  imu.dmpBegin(DMP_FEATURE_6X_LP_QUAT | // Enable 6-axis quat
-               DMP_FEATURE_GYRO_CAL, // Use gyro calibration
-              100); // Set DMP FIFO rate to 10 Hz
-  // DMP_FEATURE_LP_QUAT can also be used. It uses the 
-  // accelerometer in low-power mode to estimate quat's.
-  // DMP_FEATURE_LP_QUAT and 6X_LP_QUAT are mutually exclusive
   /* init calibration settings */
- 
- #ifdef IMU_DEBUG
-   SerialPort.println("dmp Begin");
- #endif //IMU_BEBUG 
- 
- vertaccel_readCalibration();
-  
-  /* init data variables */
-  newData = false;
-}
-
-void vertaccel_initimu(void) {
-
- #ifdef IMU_DEBUG
-   SerialPort.println("vertaccel begin imu");
- #endif //IMU_BEBUG 
-
-  // Call imu.begin() to verify communication and initialize
-  if (imu.begin() != INV_SUCCESS)
-  {
-    while (1)
-    {
-      SerialPort.println("Unable to communicate with MPU-9250");
-      SerialPort.println("Check connections, and try again.");
-      SerialPort.println();
-      delay(5000);
-    }
-  }
- 
-#ifdef IMU_DEBUG
-   SerialPort.println("dmp Begin");
-#endif //IMU_BEBUG 
-
-}
-
-void vertaccel_initdmp(boolean giroCalibration) {
-
- #ifdef IMU_DEBUG
-   SerialPort.println("vertaccel begin dmp");
- #endif //IMU_BEBUG 
-
-  imu.dmpBegin(DMP_FEATURE_6X_LP_QUAT | // Enable 6-axis quat
-               DMP_FEATURE_GYRO_CAL, // Use gyro calibration
-              100); // Set DMP FIFO rate to 10 Hz
-  // DMP_FEATURE_LP_QUAT can also be used. It uses the 
-  // accelerometer in low-power mode to estimate quat's.
-  // DMP_FEATURE_LP_QUAT and 6X_LP_QUAT are mutually exclusive
-  /* init calibration settings */
- 
- #ifdef IMU_DEBUG
-   SerialPort.println("dmp Begin");
- #endif //IMU_BEBUG 
- 
- vertaccel_readCalibration();
+  vertaccel_readCalibration();
   
   /* init data variables */
   newData = false;
@@ -231,43 +154,14 @@ boolean vertaccel_dataReady() {
   
   short iaccel[3];
   long iquat[4];
-/*  unsigned long timestamp;
-  short sensors;
-  unsigned char fifoCount;
-  
- //  Serial.println("dataready");
-
-  /* check if we have new data from imu *
-  while( dmp_read_fifo(NULL,iaccel,iquat,&timestamp,&sensors,&fifoCount) == 0 ) {
-    newData = true;
-  }*/
-  
-   // Then read while there is data in the FIFO
    
-  if ( imu.fifoAvailable() )
-    {
-    // Use dmpUpdateFifo to update the ax, gx, mx, etc. values
-      if ( imu.dmpUpdateFifo() == INV_SUCCESS)
-        {
-		  newData = true;
-        }
-    }
-
- /*  while ( imu.fifoAvailable() == 0)
-        {
-          // Call updateFifo to update ax, ay, az, gx, gy, and/or gz
-          if ( imu.dmpUpdateFifo() == INV_SUCCESS)
-            {
-			  newData = true;
-            }
-        }*/
-    
-
+  /* check if we have new data from imu */
+  while( fastMPUReadFIFO(NULL, iaccel, iquat) >= 0 ) {
+    newData = true;
+  }
 
   /* if new data compute vertical acceleration */
   if( newData ) {
-
- //  Serial.println("new data");
 
     /***************************/
     /* normalize and calibrate */
@@ -275,25 +169,16 @@ boolean vertaccel_dataReady() {
     double accel[3]; 
     double quat[4]; 
     
-/*    accel[0] = ((double)iaccel[0])/VERTACCEL_ACCEL_SCALE + accelCal[0];
-    accel[1] = ((double)iaccel[1])/VERTACCEL_ACCEL_SCALE + accelCal[1];
-    accel[2] = ((double)iaccel[2])/VERTACCEL_ACCEL_SCALE + accelCal[2];*/
+    accel[0] = ((double)iaccel[0])/LIGHT_INVENSENSE_ACCEL_SCALE + accelCal[0];
+    accel[1] = ((double)iaccel[1])/LIGHT_INVENSENSE_ACCEL_SCALE + accelCal[1];
+    accel[2] = ((double)iaccel[2])/LIGHT_INVENSENSE_ACCEL_SCALE + accelCal[2];
+        
+    quat[0] = ((double)iquat[0])/LIGHT_INVENSENSE_QUAT_SCALE;
+    quat[1] = ((double)iquat[1])/LIGHT_INVENSENSE_QUAT_SCALE;
+    quat[2] = ((double)iquat[2])/LIGHT_INVENSENSE_QUAT_SCALE;
+    quat[3] = ((double)iquat[3])/LIGHT_INVENSENSE_QUAT_SCALE;
+    
 
-    accel[0] = ((double)imu.ax)/VERTACCEL_ACCEL_SCALE + accelCal[0];
-    accel[1] = ((double)imu.ay)/VERTACCEL_ACCEL_SCALE + accelCal[1];
-    accel[2] = ((double)imu.az)/VERTACCEL_ACCEL_SCALE + accelCal[2];
-	
- /*   quat[0] = imu.calcQuat(imu.qw);     //((double)iquat[0])/VERTACCEL_QUAT_SCALE;
-    quat[1] = imu.calcQuat(imu.qx);     //((double)iquat[1])/VERTACCEL_QUAT_SCALE;
-    quat[2] = imu.calcQuat(imu.qy);     //((double)iquat[2])/VERTACCEL_QUAT_SCALE;
-    quat[3] = imu.calcQuat(imu.qz);     //((double)iquat[3])/VERTACCEL_QUAT_SCALE;*/
- 
-    quat[0] = ((double)imu.qw)/VERTACCEL_QUAT_SCALE;
-    quat[1] = ((double)imu.qx)/VERTACCEL_QUAT_SCALE;
-    quat[2] = ((double)imu.qy)/VERTACCEL_QUAT_SCALE;
-    quat[3] = ((double)imu.qz)/VERTACCEL_QUAT_SCALE;
-
- 
     /******************************/
     /* real and vert acceleration */
     /******************************/
@@ -324,55 +209,29 @@ boolean vertaccel_rawReady(double* accel, double* upVector, double* vertAccel) {
   
   short iaccel[3];
   long iquat[4];
-/*  unsigned long timestamp;
-  short sensors;
-  unsigned char fifoCount;
-  
-  /* check if we have new data from imu *
-  while( dmp_read_fifo(NULL,iaccel,iquat,&timestamp,&sensors,&fifoCount) == 0 ) {
+   
+  /* check if we have new data from imu */
+  while( fastMPUReadFIFO(NULL, iaccel, iquat) >= 0 ) {
     newData = true;
-  }*/
-  
-    if ( imu.fifoAvailable() >= 256)
-    {
-      // Then read while there is data in the FIFO
-      while ( imu.fifoAvailable() > 0)
-        {
-          // Call updateFifo to update ax, ay, az, gx, gy, and/or gz
-          if ( imu.dmpUpdateFifo() == INV_SUCCESS)
-            {
-			  newData = true;
-            }
-        }
-    }
-
-
+  }
 
   /* if new data compute vertical acceleration */
   if( newData ) {
-
+    
     /*************/
     /* normalize */
     /*************/ 
     double quat[4]; 
     
- /*   accel[0] = ((double)iaccel[0])/VERTACCEL_ACCEL_SCALE;
-    accel[1] = ((double)iaccel[1])/VERTACCEL_ACCEL_SCALE;
-    accel[2] = ((double)iaccel[2])/VERTACCEL_ACCEL_SCALE;
+    accel[0] = ((double)iaccel[0])/LIGHT_INVENSENSE_ACCEL_SCALE;
+    accel[1] = ((double)iaccel[1])/LIGHT_INVENSENSE_ACCEL_SCALE;
+    accel[2] = ((double)iaccel[2])/LIGHT_INVENSENSE_ACCEL_SCALE;
         
-    quat[0] = ((double)iquat[0])/VERTACCEL_QUAT_SCALE;
-    quat[1] = ((double)iquat[1])/VERTACCEL_QUAT_SCALE;
-    quat[2] = ((double)iquat[2])/VERTACCEL_QUAT_SCALE;
-    quat[3] = ((double)iquat[3])/VERTACCEL_QUAT_SCALE;*/
+    quat[0] = ((double)iquat[0])/LIGHT_INVENSENSE_QUAT_SCALE;
+    quat[1] = ((double)iquat[1])/LIGHT_INVENSENSE_QUAT_SCALE;
+    quat[2] = ((double)iquat[2])/LIGHT_INVENSENSE_QUAT_SCALE;
+    quat[3] = ((double)iquat[3])/LIGHT_INVENSENSE_QUAT_SCALE;
     
-    accel[0] = ((double)imu.ax)/VERTACCEL_ACCEL_SCALE;
-    accel[1] = ((double)imu.ay)/VERTACCEL_ACCEL_SCALE;
-    accel[2] = ((double)imu.az)/VERTACCEL_ACCEL_SCALE;
-	
-    quat[0] = ((double)imu.qw)/VERTACCEL_QUAT_SCALE;
-    quat[1] = ((double)imu.qx)/VERTACCEL_QUAT_SCALE;
-    quat[2] = ((double)imu.qy)/VERTACCEL_QUAT_SCALE;
-    quat[3] = ((double)imu.qz)/VERTACCEL_QUAT_SCALE;
 
     /******************************/
     /* real and vert acceleration */

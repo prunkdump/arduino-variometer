@@ -46,11 +46,6 @@
 #define ACCEL_CALIBRATOR_BASE_RADIUS_STEP 0.001
 #define ACCEL_CALIBRATOR_OPTIMIZATION_PRECISION 0.000001
 
-#define HIGH_BEEP_FREQ 1000.0
-#define LOW_BEEP_FREQ 100.0
-#define BASE_BEEP_DURATION 100.0
-
-#define MEASURE_DELAY 3000 
 
 class AccelCalibrator {
 
@@ -71,7 +66,7 @@ class AccelCalibrator {
     AccelCalibrator();
 
   void init(void);
-      
+    
   /* reset the calibration, you need to restart measures */
   void reset(void);
 

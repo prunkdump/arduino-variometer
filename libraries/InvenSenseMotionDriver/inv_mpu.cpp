@@ -53,9 +53,9 @@ static inline int reg_int_cb(struct int_param_s *int_param) {
 }
 #define log_i(...)     do {} while (0)
 #define log_e(...)     do {} while (0) 
-//static inline long labs(long x) {
-//  return abs(x);
-//}
+static inline long labs(long x) {
+  return abs(x);
+}
 //fabs already defined in Arduino
 //min already defined in Arduino
 /*------------------------------*/

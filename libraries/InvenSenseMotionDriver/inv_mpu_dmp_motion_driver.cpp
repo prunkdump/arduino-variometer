@@ -46,10 +46,10 @@ static inline int reg_int_cb(struct int_param_s *int_param) {
   return 0;
 }
 #define log_i(...)     do {} while (0)
-#define log_e(...)     do {} while (0)
-//static inline long labs(long x) {
-//  return abs(x);
-//}
+#define log_e(...)     do {} while (0) 
+static inline long labs(long x) {
+  return abs(x);
+}
 //fabs already defined in Arduino
 //min already defined in Arduino
 #define __no_operation() __asm__("nop\n\t")

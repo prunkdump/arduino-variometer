@@ -9,10 +9,10 @@
 // PWM   A3, A4 PWM
 //
 // A1,A2 Switch
-// D6    Detection ON/OFF
+// A5    Detection ON/OFF
 //
 // A6    Detection de connection USB
-// A5    Commande de l'alimentation des cartes
+// D6    Commande de l'alimentation des cartes
 // D0    Reset command
 // 
 // E-Ink
@@ -416,6 +416,7 @@ void powerDown() {
    statePower = LOW;
 
 //   nrgSave.begin(WAKE_EXT_INTERRUPT, VARIOPOWER_INT_PIN, POWERInterruptHandler);  //standby setup for external interrupts
+  
    nrgSave.standby();  //now mcu goes in standby mode
 
  // rtc.standbyMode();
@@ -516,14 +517,15 @@ Statistic GnuStatistic;
 /*-----------------*/
   
 void setup() {
+
+  char tmpbuffer[50];
   
 #ifdef IMU_DEBUG
   timebegin = millis();
 
-	Serial.begin(9600);
+  Serial.begin(9600);
   while (!Serial) { ;}
-  char tmpbuffer[50];
-	sprintf(tmpbuffer,"SAMD21 MPU9250 MS5611 VARIO compiled on %s at %s", __DATE__, __TIME__);
+  sprintf(tmpbuffer,"SAMD21 MPU9250 MS5611 VARIO compiled on %s at %s", __DATE__, __TIME__);
   Serial.println(tmpbuffer);
 #endif //IMU_DEBUG
 
@@ -569,6 +571,7 @@ void setup() {
   pinMode(VARIOBTN_RIGHT_PIN, INPUT_PULLDOWN);
   stateRightInterrup = LOW;
   attachInterrupt(digitalPinToInterrupt(VARIOBTN_RIGHT_PIN), RIGHTInterruptHandler, RISING);
+//   nrgSave.begin(WAKE_EXT_INTERRUPT, VARIOBTN_RIGHT_PIN, RIGHTInterruptHandler);  //standby setup for external interrupts
 
   /*********************/
   /* init Standby Mode */
@@ -689,8 +692,115 @@ beeper.init(GnuSettings.VARIOMETER_SINKING_THRESHOLD, GnuSettings.VARIOMETER_CLI
 //  screen.update();
   screen.updateWindow(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, false);
 
+#endif //HAVE_SCREEN
+
+/*----------------------------------------*/
+/*                                        */
+/*      DETECTION LIAISON SERIE           */
+/*         AVEC LOGICIEL PC               */
+/*----------------------------------------*/
+
+  if (digitalRead(VARIO_DETECT_USB) == HIGH) {
+
+    /* Usb connected */
+
+/*    boolean bUsbTransfert = false;
+    // short beeps for ~5 seconds
+    for (int inx = 0; inx < 10; inx++) {
+      delay(500); 
+#ifdef HAVE_SPEAKER
+      beeper.GenerateTone(GnuSettings.CALIB_TONE_FREQHZ,50); 
+#endif //HAVE_SPEAKER
+      if (stateLeftInterrup == HIGH) {
+      
+#ifdef IMU_DEBUG
+        Serial.println("Left Button detected");
+#endif //IMU_DEBUG
+
+        delay(100); // debounce the button
+        if (digitalRead (VARIOBTN_LEFT_PIN) == HIGH) {
+        
+#ifdef IMU_DEBUG
+          Serial.println("Second Left Button detected");
+#endif //IMU_DEBUG
+
+          bUsbTransfert = true;
+          stateLeftInterrup = LOW;
+          break;
+        }
+        stateLeftInterrup = LOW;    
+      }
+    }
+    
+    if (bUsbTransfert) {  
+//      usbConnectedMode();
+    }*/
+
+#ifdef HAVE_SCREEN
+  screen.fillScreen(GxEPD_WHITE);
+
+  screen.drawBitmap(90, 10, charging, 100, 100, GxEPD_WHITE); //94
+
+  screen.setFont(&FreeSansBold12pt7b);
+
+  screen.setCursor(100, 50);
+  screen.setTextSize(2);
+  screen.println("10%");
+  screen.setTextSize(1);
+  screen.setCursor(25, 140);
+  screen.println("Connection");
+  screen.setCursor(25, 160);
+  screen.println(" en cours ");
+
+//  screen.update();
+  screen.updateWindow(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, false);
 
 #endif //HAVE_SCREEN
+
+
+  while (true) {
+
+#ifdef IMU_DEBUG
+//       Serial.println("boucle ");
+#endif IMU_DEBUG
+
+    if (stateLeftInterrup == HIGH) {
+      delay(200);
+      stateLeftInterrup = LOW;
+      //Action - Left button press
+    }   
+    else if (stateRightInterrup == HIGH) {
+    //  usbConnectedMode();     
+    }   
+    else if (statePowerInt == HIGH) {
+      statePowerInt = LOW;
+      break;
+    }   
+  }   
+
+#ifdef HAVE_SCREEN
+  screen.fillScreen(GxEPD_WHITE);
+
+  screen.drawBitmap(100, 10, logo_gnuvario, 102, 74, GxEPD_WHITE); //94
+
+  screen.setFont(&FreeSansBold12pt7b);
+
+  screen.setCursor(100, 30);
+  screen.println("Version");
+  screen.setCursor(120, 50);
+  screen.println(" Beta");
+  sprintf(tmpbuffer,"%02d.%02d", VERSION, SUB_VERSION);
+  screen.setCursor(125, 70);
+  screen.println(tmpbuffer);
+  sprintf(tmpbuffer,"%s", __DATE__);
+  screen.setCursor(25, 110);
+  screen.println(tmpbuffer);
+
+//  screen.update();
+  screen.updateWindow(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, false);
+
+#endif //HAVE_SCREEN
+}
 
 
   /************************************/
@@ -939,19 +1049,6 @@ void loop(){
 #ifdef IMU_DEBUG
     Serial.println("Loop");
 #endif //IMU_DEBUG
-
-/*----------------------------------------*/
-/*                                        */
-/*      DETECTION LIAISON SERIE           */
-/*         AVEC LOGICIEL PC               */
-/*----------------------------------------*/
-  if (digitalRead(VARIO_DETECT_USB) == HIGH) {
-
-    /* Usb connected */
-
-    usbConnectedMode();
-  }
-
 
 /*************************/
 /*   Detect push button  */

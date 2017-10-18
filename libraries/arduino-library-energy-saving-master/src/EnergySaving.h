@@ -21,16 +21,15 @@ class EnergySaving {
 		void begin(unsigned int mode);
 		void begin(void);
 		void standby(void);
-
+		
 	#ifdef ARDUINO_SAMD_TIAN
 	void maxLowPowerMode(void);
 	void noLowPowerMode(void);
 	#endif
 
 	private:
-		void set_clk(void);
 		void enable_eic_wake(unsigned int inter_pin);
-
+		void set_clk(void);
 };
 
 #endif

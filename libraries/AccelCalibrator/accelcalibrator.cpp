@@ -13,8 +13,8 @@ AccelCalibrator::AccelCalibrator() {
 
 void AccelCalibrator::init(void) {
   
-  /* init the accelerometer without auto calibration */
-  vertaccel_init(false);
+  /* init the accelerometer */
+  vertaccel_init();
 
   /* get the values stored in EEPROM */
   double* cal = vertaccel_getCalibration();

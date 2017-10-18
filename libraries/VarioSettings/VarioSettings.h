@@ -273,6 +273,9 @@ EXTERNAL_INT_11: RX, SCK*/
 // verifying correct operation. Comment out to prevent
 // data being spewed out continuously.
 
+// Accelerometer type
+#define MPU9250
+
 //              DEBUGING MODE
 #define IMU_DEBUG			  //debug IMU
 #define PROG_DEBUG			  //debug principal program

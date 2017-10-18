@@ -19,7 +19,7 @@ void EnergySaving::begin(unsigned int mode, unsigned int inter_pin, voidFuncPtr 
 //		pinMode(inter_pin,INPUT_PULLUP);
 
 //		attachInterrupt(inter_pin,callback, CHANGE);
-		attachInterrupt(inter_pin,callback, RISING);
+		attachInterrupt(digitalPinToInterrupt(inter_pin),callback, RISING);
 		enable_eic_wake(inter_pin);
 		set_clk();
 
@@ -94,7 +94,7 @@ void EnergySaving::enable_eic_wake(unsigned int inter_pin)
 				EIC->WAKEUP.bit.WAKEUPEN15 = 1;
 				break;
 			case 6:
-				//EIC->WAKEUP.bit.WAKEUPEN20 = 1;  //non si può usare
+				EIC->WAKEUP.bit.WAKEUPEN4 = 1;  //non si può usare
 				break;
 			case 7:
 				//EIC->WAKEUP.bit.WAKEUPEN21 = 1;  //non si può usare
@@ -116,6 +116,18 @@ void EnergySaving::enable_eic_wake(unsigned int inter_pin)
 				break;
 			case 13:
 				//EIC->WAKEUP.bit.WAKEUPEN17 = 1;  //non c'è
+				break;
+			case A1:
+				EIC->WAKEUP.bit.WAKEUPEN2 = 1;  
+				Serial.println("WAKEUP A1");
+				break;
+			case A2:
+				EIC->WAKEUP.bit.WAKEUPEN3 = 1;  
+				Serial.println("WAKEUP A2");
+				break;
+			case A5:
+				EIC->WAKEUP.bit.WAKEUPEN6 = 1;  
+				Serial.println("WAKEUP A5");
 				break;
 			default:
 				break;
