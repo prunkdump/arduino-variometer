@@ -2,7 +2,7 @@
 #include <beeper.h>
 #include <toneACZero.h>
 
-void beeper::init(double sinkingThreshold, double climbingThreshold, double nearClimbingSensitivity, uint8_t baseVolume) {
+void Beeper::init(double sinkingThreshold, double climbingThreshold, double nearClimbingSensitivity, uint8_t baseVolume) {
 
   /* save volume */
   volume = baseVolume;
@@ -19,19 +19,19 @@ void beeper::init(double sinkingThreshold, double climbingThreshold, double near
   toneAC_init();
 }
 
-void beeper::setThresholds(double sinkingThreshold, double climbingThreshold, double nearClimbingSensitivity) {
+void Beeper::setThresholds(double sinkingThreshold, double climbingThreshold, double nearClimbingSensitivity) {
 
   beepSinkingThreshold = sinkingThreshold;
   beepGlidingThreshold = climbingThreshold - nearClimbingSensitivity;
   beepClimbingThreshold = climbingThreshold;
 }
 
-void beeper::setVolume(uint8_t newVolume) {
+void Beeper::setVolume(uint8_t newVolume) {
 
   volume = newVolume;
 }
 
-void beeper::setGlidingBeepState(boolean status) {
+void Beeper::setGlidingBeepState(boolean status) {
   if( status ) {
     bst_set(GLIDING_BEEP_ENABLED);
     if( beepType == BEEP_TYPE_GLIDING ) {
@@ -44,7 +44,7 @@ void beeper::setGlidingBeepState(boolean status) {
   }
 }
 	    
-void beeper::setGlidingAlarmState(boolean status) {
+void Beeper::setGlidingAlarmState(boolean status) {
   if( status ) {
     bst_set(GLIDING_ALARM_ENABLED);
   } else {
@@ -53,7 +53,7 @@ void beeper::setGlidingAlarmState(boolean status) {
 }
 
 
-void beeper::setBeepParameters(double velocity) {
+void Beeper::setBeepParameters(double velocity) {
 
   /* save velocity */
   beepVelocity = velocity;
@@ -80,7 +80,7 @@ void beeper::setBeepParameters(double velocity) {
 }
 
 
-void beeper::setVelocity(double velocity) {
+void Beeper::setVelocity(double velocity) {
   
   /* check if we need to change the beep type */
   boolean beepTypeChange = false;
@@ -167,7 +167,7 @@ void beeper::setVelocity(double velocity) {
   }
 }
 
-void beeper::setBeepPaternPosition(double velocity) {
+void Beeper::setBeepPaternPosition(double velocity) {
 
   /* check alarm */
   boolean haveAlarm = false;
@@ -252,7 +252,7 @@ void beeper::setBeepPaternPosition(double velocity) {
 }
 
 
-void beeper::setTone() {
+void Beeper::setTone() {
   
   /* alarme case */
   if(  bst_isset(CLIMBING_ALARM) || bst_isset(SINKING_ALARM) ) { 
@@ -363,13 +363,13 @@ void beeper::setTone() {
 }	
 
 
-void beeper::update() {
+void Beeper::update() {
   setBeepPaternPosition(beepVelocity);
   setTone();
   
 }
 
-void beeper::SetFrequency(int32_t fHz) {
+void Beeper::SetFrequency(int32_t fHz) {
 	if (fHz ) {
         toneAC(fHz, volume);
 	}
@@ -379,7 +379,7 @@ void beeper::SetFrequency(int32_t fHz) {
 }
 
 
-void beeper::GenerateTone(int32_t fHz, int ms) {
+void Beeper::GenerateTone(int32_t fHz, int ms) {
     SetFrequency(fHz);
     delay(ms);
     SetFrequency(0);

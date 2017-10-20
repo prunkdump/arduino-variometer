@@ -86,7 +86,7 @@
 /* the main class */
 /******************/
 
-class beeper {
+class Beeper {
 
  public:
   void init(double sinkingThreshold = BEEP_VELOCITY_DEFAULT_SINKING_THRESHOLD,
@@ -131,5 +131,6 @@ class beeper {
   uint8_t beepType;
 };
 
+extern Beeper beeper;
 
 #endif

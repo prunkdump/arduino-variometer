@@ -137,7 +137,12 @@ double* vertaccel_getCalibration(void) {
 void vertaccel_init(void) {
 
   /* init */
-  fastMPUInit();
+//  fastMPUInit();
+  if( fastMPUInit() < 0 ) {
+#ifdef IMU_DEBUG
+    Serial.println("Failed to init device !"); 
+#endif
+  }
 
   /* init calibration settings */
   vertaccel_readCalibration();

@@ -5,7 +5,6 @@
 #include <SPI.h>
 #include <SD.h>
 
-
 /*----------------------------*/
 /*          SOFTWARE          */
 /*      Vario parameters      */
@@ -40,7 +39,7 @@
 /* Comment or uncomment according to  */
 /* what you embed in the variometer   */ 
 #define HAVE_SPEAKER
-//#define HAVE_ACCELEROMETER
+#define HAVE_ACCELEROMETER
 #define HAVE_SCREEN
 #define HAVE_GPS
 #define HAVE_SDCARD

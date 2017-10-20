@@ -70,6 +70,8 @@
 //#include <RTCZero.h>
 #include <EnergySaving.h>
 
+#include <Utility.h>
+
 /********************/
 /* Sleeping Mode    */
 /********************/
@@ -142,6 +144,8 @@ VarioScreen screen(io);
 /*******************/
 /* General objects */
 /*******************/
+#define VARIOMETER_POWER_ON_DELAY 1000 
+
 #define VARIOMETER_STATE_INITIAL 0
 #define VARIOMETER_STATE_DATE_RECORDED 1
 #define VARIOMETER_STATE_CALIBRATED 2
@@ -247,6 +251,13 @@ MultiDisplay multiDisplay(displayList, sizeof(displayList)/sizeof(ScreenSchedule
 #define POSITION_MEASURE_STANDARD_DEVIATION 0.1
 #ifdef HAVE_ACCELEROMETER 
 #define ACCELERATION_MEASURE_STANDARD_DEVIATION 0.3
+
+#define HIGH_BEEP_FREQ 1000.0
+#define LOW_BEEP_FREQ 100.0
+#define BASE_BEEP_DURATION 100.0
+
+#define MEASURE_DELAY 3000 
+
 AccelCalibrator calibrator;
 #else
 #define ACCELERATION_MEASURE_STANDARD_DEVIATION 0.6
@@ -254,19 +265,7 @@ AccelCalibrator calibrator;
 
 kalmanvert kalmanvert;
 
-uint32_t timePreviousUs;
-uint32_t timeNowUs;
-float imuTimeDeltaSecs;
-
-void initTime() {
-	timeNowUs = timePreviousUs = micros();
-	}
-
-void updateTime(){
-	timeNowUs = micros();
-	imuTimeDeltaSecs = ((timeNowUs - timePreviousUs) / 1000000.0f);
-	timePreviousUs = timeNowUs;
-	}
+Compteur compteur;
 
 #ifdef HAVE_SDCARD
 File file;
@@ -316,141 +315,10 @@ void RIGHTInterruptHandler() {
 
 #ifdef HAVE_SPEAKER
 //beeper beeper(VARIOMETER_SINKING_THRESHOLD, VARIOMETER_CLIMBING_THRESHOLD, VARIOMETER_NEAR_CLIMBING_SENSITIVITY, VARIOMETER_BEEP_VOLUME);
-beeper beeper;
+Beeper beeper;
 #endif
 
-// if imu calibration data in flash is corrupted, the accel and gyro biases are 
-// set to 0, and this uncalibrated state is indicated with a sequence of alternating 
-// low and high beeps.
-void indicateUncalibratedAccelerometer() {
-  for (int cnt = 0; cnt < 5; cnt++) {
-#ifdef HAVE_SPEAKER
-    beeper.GenerateTone(200,100); 
-    beeper.GenerateTone(2000,100);
-#endif //HAVE_SPEAKER
-    }
-  }
-  
-// "no-activity" power down is indicated with a series of descending
-// tones. If you hear this, switch off the vario as there is still
-// residual current draw from the circuit components  
-void indicatePowerDown() {
-#ifdef HAVE_SPEAKER
-  beeper.GenerateTone(2000,1000); 
-  beeper.GenerateTone(1000,1000);
-  beeper.GenerateTone(500, 1000);
-  beeper.GenerateTone(250, 1000);
-#endif //HAVE_SPEAKER
-  }
-
-// problem with MS5611 calibration CRC, assume communication 
-// error or bad device. Indicate with series of 10 high pitched beeps.
-void indicateFaultMS5611() {
-#ifdef HAVE_SPEAKER
-  for (int cnt = 0; cnt < 10; cnt++) {
-    beeper.GenerateTone(GnuSettings.MS5611_ERROR_TONE_FREQHZ,1000); 
-    delay(100);
-    }
-#endif //HAVE_SPEAKER    
-  }
-
-// problem reading MPU9250 ID, assume communication 
-// error or bad device. Indicate with series of 10 low pitched beeps.
-void indicateFaultMPU9250() {
-#ifdef HAVE_SPEAKER
-  for (int cnt = 0; cnt < 10; cnt++) {
-    beeper.GenerateTone(GnuSettings.MPU9250_ERROR_TONE_FREQHZ,1000); 
-    delay(100);
-    }
-#endif //HAVE_SPEAKER    
-  }
-
-
-// problem SDCARD, assume communication 
-// error or bad device. Indicate with series of 10 low pitched beeps.
-void indicateFaultSDCARD() {
-#ifdef HAVE_SPEAKER
-  for (int cnt = 0; cnt < 10; cnt++) {
-    beeper.GenerateTone(GnuSettings.SDCARD_ERROR_TONE_FREQHZ,1000); 
-    delay(100);
-    }
-#endif //HAVE_SPEAKER
-  }
-
-/* make beeps */
-void signalBeep(double freq, unsigned long duration, int count = 1) {
-
-#ifdef HAVE_SPEAKER 
-  toneAC(freq);
-  delay(duration);
-  toneAC(0.0);
-  if( count > 1 ) {
-    while( count > 1 ) {
-      delay(duration);
-      toneAC(freq);
-      delay(duration);
-      toneAC(0.0);
-      count--;
-    }
-  }
-#endif //HAVE_SPEAKER  
-}
-
-//RTCZero rtc;
-
-void powerDown() {
-  // Mettre le SAMD21 en mode veille
-
-#ifdef PROG_DEBUG
-        Serial.print("Mise en veille");
-        Serial.flush();
-        delay(100);
-#endif //PRO_DEBBUG
-
-   digitalWrite(VARIO_PIN_ALIM, LOW);   // turn on power cards )
-
-//   detachInterrupt(digitalPinToInterrupt(VARIOPOWER_INT_PIN));
-   detachInterrupt(digitalPinToInterrupt(VARIOBTN_LEFT_PIN));
-   detachInterrupt(digitalPinToInterrupt(VARIOBTN_RIGHT_PIN));
-
-   statePower = LOW;
-
-//   nrgSave.begin(WAKE_EXT_INTERRUPT, VARIOPOWER_INT_PIN, POWERInterruptHandler);  //standby setup for external interrupts
-  
-   nrgSave.standby();  //now mcu goes in standby mode
-
- // rtc.standbyMode();
-
-   digitalWrite(VARIO_PIN_RST, LOW);   // Hard Reset M0 )
-   delay(500);
-
- //  NVIC_SystemReset();      // processor software reset 
-
-     
-#ifdef PROG_DEBUG
-    Serial.println("Sortie du mode veille");
-    Serial.flush();
-    delay(100);
-#endif //PRO_DEBBUG
-
- }
-
-/**********************/
-/* sensor objects */
-/**********************/
-
-/*Battery voltage * 10 */
-int batteryVoltage(void) {
-  int adcSample = 0;
-  for (int inx = 0; inx < 4; inx++) {
-    adcSample += analogRead(VOLTAGE_DIVISOR_PIN);
-    delay(1);
-    }
-  adcSample /= 4;
-    // Convert the analog reading (which goes from 0 - 1023) to a voltage (0 - 4.3V):
-  return (int) ((adcSample*4.3f*10.0f)/1023.0f + 0.5f); //  voltage x 10
-  }  
-
+ 
 /***************/
 /* gps objects */
 /***************/
@@ -509,6 +377,52 @@ unsigned long lastVarioSentenceTimestamp = 0;
 unsigned long TmplastFreqUpdate;
 
 Statistic GnuStatistic;
+
+void displayBoot(void) {
+  char tmpbuffer[50];
+
+  screen.fillScreen(GxEPD_WHITE);
+
+  screen.drawBitmap(logo_gnuvario, 0, 10, 102, 74, GxEPD_BLACK); //94
+
+  screen.setFont(&FreeSansBold12pt7b);
+
+  screen.setCursor(100, 30);
+  screen.println("Version");
+  screen.setCursor(120, 50);
+  screen.println(" Beta");
+  sprintf(tmpbuffer,"%02d.%02d", VERSION, SUB_VERSION);
+  screen.setCursor(125, 70);
+  screen.println(tmpbuffer);
+  sprintf(tmpbuffer,"%s", __DATE__);
+  screen.setCursor(25, 110);
+  screen.println(tmpbuffer);
+
+//  screen.update();
+  screen.updateWindow(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, false);
+
+}
+
+void displayPercentBat(void) {
+  char tmpbuffer[50];
+  screen.drawBitmap(charging, 4, 10, 100, 100, GxEPD_BLACK); //94
+
+  screen.setFont(&FreeSansBold12pt7b);
+
+  screen.setCursor(80, 50);
+  screen.setTextSize(2);
+  double voltagebat = batteryVoltage();
+#ifdef IMU_DEBUG
+       Serial.print("voltage : ");
+       Serial.println(voltagebat);
+#endif IMU_DEBUG
+
+  double calculvoltagepercent = voltagebat/10;
+  int pourcentBattery = percentBat(calculvoltagepercent);
+  sprintf(tmpbuffer,"%03d%%", pourcentBattery);
+  screen.println(tmpbuffer);
+
+}
 
 /*-----------------*/
 /*                 */
@@ -674,23 +588,7 @@ beeper.init(GnuSettings.VARIOMETER_SINKING_THRESHOLD, GnuSettings.VARIOMETER_CLI
 /*                                        */
 /*----------------------------------------*/
 
-  screen.drawBitmap(100, 10, logo_gnuvario, 102, 74, GxEPD_WHITE); //94
-
-  screen.setFont(&FreeSansBold12pt7b);
-
-  screen.setCursor(100, 30);
-  screen.println("Version");
-  screen.setCursor(120, 50);
-  screen.println(" Beta");
-  sprintf(tmpbuffer,"%02d.%02d", VERSION, SUB_VERSION);
-  screen.setCursor(125, 70);
-  screen.println(tmpbuffer);
-  sprintf(tmpbuffer,"%s", __DATE__);
-  screen.setCursor(25, 110);
-  screen.println(tmpbuffer);
-
-//  screen.update();
-  screen.updateWindow(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, false);
+   displayBoot();
 
 #endif //HAVE_SCREEN
 
@@ -739,24 +637,20 @@ beeper.init(GnuSettings.VARIOMETER_SINKING_THRESHOLD, GnuSettings.VARIOMETER_CLI
 #ifdef HAVE_SCREEN
   screen.fillScreen(GxEPD_WHITE);
 
-  screen.drawBitmap(90, 10, charging, 100, 100, GxEPD_WHITE); //94
+  displayPercentBat();
 
-  screen.setFont(&FreeSansBold12pt7b);
-
-  screen.setCursor(100, 50);
-  screen.setTextSize(2);
-  screen.println("10%");
   screen.setTextSize(1);
   screen.setCursor(25, 140);
   screen.println("Connection");
-  screen.setCursor(25, 160);
-  screen.println(" en cours ");
+  screen.setCursor(30, 160);
+  screen.println(" en attente ");
 
 //  screen.update();
   screen.updateWindow(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, false);
 
 #endif //HAVE_SCREEN
 
+  compteur.initTime();
 
   while (true) {
 
@@ -770,18 +664,26 @@ beeper.init(GnuSettings.VARIOMETER_SINKING_THRESHOLD, GnuSettings.VARIOMETER_CLI
       //Action - Left button press
     }   
     else if (stateRightInterrup == HIGH) {
-    //  usbConnectedMode();     
+//      usbConnectedMode();     
     }   
     else if (statePowerInt == HIGH) {
       statePowerInt = LOW;
       break;
-    }   
+    }  
+
+    if (compteur.IsDelay(10000)) {
+#ifdef HAVE_SCREEN
+      displayPercentBat();
+      screen.updateWindow(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, false);
+#endif //HAVE_SCREEN
+      compteur.updateTime();
+    }     
   }   
 
-#ifdef HAVE_SCREEN
+/*#ifdef HAVE_SCREEN
   screen.fillScreen(GxEPD_WHITE);
 
-  screen.drawBitmap(100, 10, logo_gnuvario, 102, 74, GxEPD_WHITE); //94
+  screen.drawBitmap(logo_gnuvario, 0, 10, 102, 74, GxEPD_BLACK); //94
 
   screen.setFont(&FreeSansBold12pt7b);
 
@@ -799,22 +701,22 @@ beeper.init(GnuSettings.VARIOMETER_SINKING_THRESHOLD, GnuSettings.VARIOMETER_CLI
 //  screen.update();
   screen.updateWindow(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, false);
 
-#endif //HAVE_SCREEN
+#endif //HAVE_SCREEN*/
+
+  displayBoot();
 }
 
+  /*****************************/
+  /* wait for devices power on */
+  /*****************************/
+  delay(VARIOMETER_POWER_ON_DELAY);
 
   /************************************/
   /* init altimeter and accelerometer */
   /************************************/
 
   Wire.begin();
-  Wire.setClock(400000); // set clock frequency AFTER Wire.begin()
-  ms5611_init();
-
-
-#ifdef IMU_DEBUG
-  Serial.println("Init MS5611");
-#endif //IMU_DEBUG
+//  Wire.setClock(400000); // set clock frequency AFTER Wire.begin()
   
 #ifdef HAVE_ACCELEROMETER
   vertaccel_init();
@@ -950,8 +852,22 @@ beeper.init(GnuSettings.VARIOMETER_SINKING_THRESHOLD, GnuSettings.VARIOMETER_CLI
 #ifdef HAVE_SPEAKER
     beeper.GenerateTone(GnuSettings.CALIB_TONE_FREQHZ, 1000);
 #endif //HAVE_SPEAKER
+
+    NVIC_SystemReset();      // processor software reset 
+
   }
 #endif //HAVE_ACCELEROMETER
+
+
+  /******************/
+  /* init barometer */
+  /******************/
+
+  ms5611_init();
+
+#ifdef IMU_DEBUG
+  Serial.println("Init MS5611");
+#endif //IMU_DEBUG
  
   /**************************/
   /* init gps and bluetooth */
@@ -1151,6 +1067,7 @@ void varioCode(void) {
     Serial.println("ACQUISITION");
 #endif //IMU_DEBUG
 
+delay(10);
   /*****************************/
   /* compute vertical velocity */
   /*****************************/
@@ -1666,7 +1583,7 @@ char tmpbuffer[50];
 #ifdef HAVE_SCREEN
 
   screen.fillRect(0, 0, GxEPD_WIDTH-1, GxEPD_HEIGHT-1, GxEPD_WHITE);
-  screen.drawBitmap(36, 50, power, 128, 128, GxEPD_WHITE); 
+  screen.drawBitmap(power, 36, 50, 128, 128, GxEPD_BLACK); 
   screen.updateWindow(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, false);
 
 #endif //HAVE_SCREEN
@@ -1695,7 +1612,7 @@ char tmpbuffer[50];
 #ifdef HAVE_SCREEN
 
       screen.fillRect(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, GxEPD_WHITE);
-      screen.drawBitmap(140, 10, logo_gnuvario50, 50, 36, GxEPD_WHITE); //94
+      screen.drawBitmap(logo_gnuvario50, 140, 10, 50, 36, GxEPD_BLACK); //94
       screen.setFont(&FreeSansBold12pt7b);
       screen.setTextSize(1);
 
@@ -1911,10 +1828,10 @@ File myFile2;
 
 void displaySound(int8_t volume) {
  #ifdef HAVE_SCREEN
-  if (volume == 0)   screen.drawBitmap(36, 0, sound_0, 128, 128, GxEPD_WHITE); 
-  else if (volume < 5) screen.drawBitmap(36, 0, sound_1, 128, 128, GxEPD_WHITE); 
-  else if (volume < 9) screen.drawBitmap(36, 0, sound_2, 128, 128, GxEPD_WHITE); 
-  else  screen.drawBitmap(36, 0, sound_3, 128, 128, GxEPD_WHITE); 
+  if (volume == 0)   screen.drawBitmap(sound_0, 36, 0, 128, 128, GxEPD_WHITE); 
+  else if (volume < 5) screen.drawBitmap(sound_1, 36, 0, 128, 128, GxEPD_WHITE); 
+  else if (volume < 9) screen.drawBitmap(sound_2, 36, 0, 128, 128, GxEPD_WHITE); 
+  else  screen.drawBitmap(sound_3, 36, 0, 128, 128, GxEPD_WHITE); 
   soundDigit.setValue(volume);
   soundDigit.display();
   if (state) {
