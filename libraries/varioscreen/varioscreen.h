@@ -252,7 +252,7 @@ class ScreenScheduler {
   void nextPage(void);
   
  private:
-  const VarioScreen& screen;
+  VarioScreen& screen;
   const ScreenSchedulerObject* displayList;
   const uint8_t objectCount;
   uint8_t pos;
