@@ -3,6 +3,7 @@
 #include <avr/pgmspace.h>
 #include <SPI.h>
 #include <digit.h>
+#include <VarioSettings.h>
 
 #define VARIOSCREEN_FONT_HEIGHT 2
 
@@ -111,12 +112,12 @@ void VarioScreen::enableSPI(void) {
   pinMode(_cs, OUTPUT);
 
   /* set SPI */ 
-  SPI.begin();
+  VARIOSCREEN_SPI_INTERFACE.begin();
 }
 
 void VarioScreen::startSPI(void) {
   if( ! spiStarted ) {
-    SPI.beginTransaction(VARIOSCREEN_SPI_SETTINGS);
+    VARIOSCREEN_SPI_INTERFACE.beginTransaction(VARIOSCREEN_SPI_SETTINGS);
     digitalWrite(_cs, LOW);
     spiStarted = true;
   }
@@ -125,7 +126,7 @@ void VarioScreen::startSPI(void) {
 void VarioScreen::stopSPI(void) {
   if( spiStarted ) {
     digitalWrite(_cs, HIGH);
-    SPI.endTransaction();
+    VARIOSCREEN_SPI_INTERFACE.endTransaction();
     spiStarted = false;
   }
 }
@@ -178,7 +179,7 @@ void VarioScreen::beginDisplay(uint8_t x, uint8_t y) {
 }
 
 void VarioScreen::display(uint8_t displayByte) {
-  SPI.transfer(displayByte);
+  VARIOSCREEN_SPI_INTERFACE.transfer(displayByte);
 }
 
 //do nothing with the new SPI library
@@ -230,7 +231,7 @@ bool VarioScreen::clearStep() {
 void VarioScreen::command(uint8_t c) {
   startSPI();
   digitalWrite(_dc, LOW);
-  SPI.transfer(c);
+  VARIOSCREEN_SPI_INTERFACE.transfer(c);
 }
 
 

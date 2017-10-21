@@ -22,7 +22,7 @@
 /*********/
 
 /* The volume of the beeps, max = 10 */
-#define VARIOMETER_BEEP_VOLUME 10
+#define VARIOMETER_BEEP_VOLUME 3
 
 /* The variometer react like this according to vertical speed in m/s :        */
 /* (near climbing beep is not enabled by default)                             */
@@ -121,11 +121,24 @@
 #define MPU9250
 
 /* Set the pins used for Screen and SD card modules */
-#define VARIOSCREEN_DC_PIN 4
-#define VARIOSCREEN_CS_PIN 3
-#define VARIOSCREEN_RST_PIN 2
+#define VARIOSCREEN_SPI_INTERFACE SPI
+#define VARIOSCREEN_DC_PIN 7
+#define VARIOSCREEN_CS_PIN 1
+#define VARIOSCREEN_RST_PIN 0
+
+#define SDCARD_SPI_INTERFACE SPI
 #define SDCARD_CS_PIN 14
+
 #define VOLTAGE_DIVISOR_PIN 16
+
+/* Set the Sercom and the pins used by GPS/Bluetooth */
+/* See p21 of the datasheet                          */
+#define VARIOMETER_SERIAL_SERCOM SERCOM2
+#define VARIOMETER_SERIAL_TX_PIN 2
+#define VARIOMETER_SERIAL_RX_PIN 3
+#define VARIOMETER_SERIAL_PIN_FUNCTION PIO_SERCOM_ALT
+#define VARIOMETER_SERIAL_TX_PAD UART_TX_PAD_2
+#define VARIOMETER_SERIAL_RX_PAD SERCOM_RX_PAD_3
 
 /* The screen contrast */
 #define VARIOSCREEN_CONTRAST 60

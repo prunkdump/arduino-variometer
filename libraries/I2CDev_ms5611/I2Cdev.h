@@ -49,8 +49,8 @@ THE SOFTWARE.
 // -----------------------------------------------------------------------------
 // I2C interface implementation setting
 // -----------------------------------------------------------------------------
-//#define I2CDEV_IMPLEMENTATION       I2CDEV_ARDUINO_WIRE
-#define I2CDEV_IMPLEMENTATION       I2CDEV_BUILTIN_FASTWIRE
+#define I2CDEV_IMPLEMENTATION       I2CDEV_ARDUINO_WIRE
+//#define I2CDEV_IMPLEMENTATION       I2CDEV_BUILTIN_FASTWIRE
 
 // comment this out if you are using a non-optimal IDE/implementation setting
 // but want the compiler to shut up about it
@@ -82,6 +82,11 @@ THE SOFTWARE.
     #if I2CDEV_IMPLEMENTATION == I2CDEV_I2CMASTER_LIBRARY
         #include <I2C.h>
     #endif
+#endif
+
+/* !!! must be corrected !!! */
+#ifndef BUFFER_LENGTH
+#define BUFFER_LENGTH 32
 #endif
 
 // 1000ms default read timeout (modify with "I2Cdev::readTimeout = [ms];")

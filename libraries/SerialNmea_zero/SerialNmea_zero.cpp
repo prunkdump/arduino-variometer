@@ -1,6 +1,9 @@
-#include <SerialNmea.h>
+#include <SerialNmea_zero.h>
 
 #include <Arduino.h>
+#include <SERCOM.h>
+#include <wiring_private.h>
+#include <VarioSettings.h>
 
 #define NMEA_TAG_SIZE 5
 const char rmcTag[] PROGMEM = {"GPRMC"};
@@ -23,14 +26,20 @@ const char ggaTag[] PROGMEM = {"GPGGA"};
 #define GGA_FOUND 7
 
 /* serial class declaration */
+SERCOM snsercom(VARIOMETER_SERIAL_SERCOM);
+
 SerialNmea serialNmea;
+#define HANDLER_SUFFIX _Handler
+#define SERIAL_NMEA_HANDLER VARIOMETER_SERIAL_SERCOM ## HANDLER_SUFFIX
+void SERIAL_NMEA_HANDLER() {
 
-ISR(USART_RX_vect) {
-  serialNmea.rxCompleteVect();
-}
+  if (snsercom.availableDataUART()) {
+    serialNmea.rxCompleteVect();
+  }
 
-ISR(USART_UDRE_vect) {
-  serialNmea.udrEmptyVect();
+  if (snsercom.isDataRegisterEmptyUART()) {
+    serialNmea.udrEmptyVect();
+  }
 }
 
 
@@ -39,33 +48,14 @@ void SerialNmea::begin(unsigned long baud, bool rxEnable) {
   /*******************/
   /* hardware config */
   /*******************/
+  pinPeripheral(VARIOMETER_SERIAL_TX_PIN, VARIOMETER_SERIAL_PIN_FUNCTION);
+  pinPeripheral(VARIOMETER_SERIAL_RX_PIN, VARIOMETER_SERIAL_PIN_FUNCTION);
 
-  /* baud setting. Try u2x first and fallback if needed */
-  uint16_t baud_setting = (F_CPU / 4 / baud - 1) / 2;
-  UCSRA = _BV(U2X);
-
-  if ( baud_setting > 4095 ) {
-    UCSRA = 0;
-    baud_setting = (F_CPU / 8 / baud - 1) / 2;
-  }
+  snsercom.initUART(UART_INT_CLOCK, SAMPLE_RATE_x16, baud);
+  snsercom.initFrame(UART_CHAR_SIZE_8_BITS, LSB_FIRST, SERCOM_NO_PARITY, SERCOM_STOP_BIT_1);
+  snsercom.initPads(VARIOMETER_SERIAL_TX_PAD, VARIOMETER_SERIAL_RX_PAD);
   
-  /* set baud setting */
-  UBRRH = baud_setting >> 8;
-  UBRRL = baud_setting;
-  
-  /* set mode */
-#if defined(__AVR_ATmega8__)
-  UCSRC = SERIAL_NMEA_MODE | 0x80; // select UCSRC register (shared with UBRRH)
-#else
-  UCSRC = SERIAL_NMEA_MODE;
-#endif
-
-  /* enable serial */
-  if( rxEnable ) {
-    UCSRB = SERIAL_NMEA_INT_MODE | _BV(RXEN) | _BV(RXCIE);
-  } else {
-    UCSRB = SERIAL_NMEA_INT_MODE;
-  }
+  snsercom.enableUART();
   
   /*********************/
   /* init rx/tx buffer */
@@ -83,7 +73,7 @@ void SerialNmea::begin(unsigned long baud, bool rxEnable) {
 void SerialNmea::rxCompleteVect(void) {
 
   /* read */
-  uint8_t c = UDR;
+  uint8_t c = snsercom.readDataUART();
 
   /* check '$' that reset write pos */
   if( c == '$' ) {
@@ -206,7 +196,7 @@ void SerialNmea::rxCompleteVect(void) {
 
       /* send with serial */
       txHead = nextPos;
-      sbi(UCSRB, UDRIE);
+      snsercom.enableDataRegisterEmptyInterruptUART();
     }
   }
 }
@@ -218,11 +208,11 @@ void SerialNmea::udrEmptyVect(void) {
   uint8_t c = buffer[txTail];
   txTail = (txTail + 1) % SERIAL_NMEA_BUFFER_SIZE;
 
-  UDR = c;
+  snsercom.writeDataUART(c);
 
   /* if no remaining bytes, stop interrupt */
   if (txHead == txTail) {
-    cbi(UCSRB, UDRIE);
+    snsercom.disableDataRegisterEmptyInterruptUART();
   }
   
 }
@@ -305,7 +295,7 @@ void SerialNmea::write(uint8_t c) {
   buffer[writePos] = c;
   writePos = nextPos;
   txHead = nextPos;
-  sbi(UCSRB, UDRIE);
+  snsercom.enableDataRegisterEmptyInterruptUART();
 }
 
 

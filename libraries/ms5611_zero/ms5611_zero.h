@@ -47,13 +47,7 @@
 /* but a greater value give less code interrupts */
 /* the final period is 1024/F_CPU * INTERRUPT_COMPARE */
 /* in seconds */
-#if F_CPU >= 16000000L
-//#define MS5611_INTERRUPT_COMPARE 130
-#define MS5611_INTERRUPT_COMPARE 154
-#else
-//#define MS5611_INTERRUPT_COMPARE 66
-#define MS5611_INTERRUPT_COMPARE 78
-#endif
+#define MS5611_INTERRUPT_COMPARE 468
 #define MS5611_INTERRUPT_START_DELAY 3
 
 /* ################################ */

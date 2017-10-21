@@ -1,20 +1,20 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <VarioSettings.h>
-#include <I2Cdev.h>
-#include <ms5611.h>
+#include <GenClock_zero.h>
+#include <Wire.h>
+#include <ms5611_zero.h>
 #include <vertaccel.h>
-#include <EEPROM.h>
 #include <LightInvensense.h>
 #include <kalmanvert.h>
 #include <beeper.h>
-#include <toneAC.h>
+#include <toneAC_zero.h>
 #include <avr/pgmspace.h>
 #include <varioscreen.h>
 #include <digit.h>
 #include <SdCard.h>
 #include <LightFat16.h>
-#include <SerialNmea.h>
+#include <SerialNmea_zero.h>
 #include <NmeaParser.h>
 #include <LxnavSentence.h>
 #include <LK8Sentence.h>
@@ -214,10 +214,17 @@ void setup() {
   /*****************************/
   delay(VARIOMETER_POWER_ON_DELAY);
 
+  /****************/
+  /* init speaker */
+  /****************/
+#ifdef HAVE_SPEAKER
+  toneAC_init();
+#endif
+
   /**********************/
   /* init accelerometer */
   /**********************/
-  Fastwire::setup(FASTWIRE_SPEED, 0);
+  Wire.begin();
 #ifdef HAVE_ACCELEROMETER
   vertaccel_init();
   if( firmwareUpdateCond() ) {

@@ -3,7 +3,6 @@
 #include <Arduino.h>
 
 #include <LightInvensense.h>
-#include <EEPROM.h>
 
 /******************/
 /* data variables */
@@ -26,37 +25,47 @@ static double va;
 void vertaccel_readCalibration(void) {
 
   /* check tag */
+  /*
   uint16_t eepromTag;
   eepromTag = EEPROM.read(VERTACCEL_EPROM_ADDR);
   eepromTag <<= 8;
   eepromTag += EEPROM.read(VERTACCEL_EPROM_ADDR + 0x01);
   
   if( eepromTag != VERTACCEL_EPROM_TAG ) {
+  */
     accelCal[0] = 0.0;
     accelCal[1] = 0.0;
     accelCal[2] = 0.0;
+  /*
   } else {
+  */
     /* read calibration settings */
+  /*
     uint8_t* datap = (uint8_t*)accelCal;
     for( unsigned i = 0; i<sizeof(accelCal); i++ ) {
       datap[i] =  EEPROM.read(VERTACCEL_EPROM_ADDR + 0x02 + i);
     }
   }
+  */
 }
 
 /* save calibration to EEPROM */
 void vertaccel_saveCalibration(double* cal) {
 
   /* write tag */
+  /*
   uint16_t eepromTag = VERTACCEL_EPROM_TAG;
   EEPROM.write(VERTACCEL_EPROM_ADDR, (eepromTag>>8) & 0xff);
   EEPROM.write(VERTACCEL_EPROM_ADDR + 0x01, eepromTag & 0xff);
+  */
 
   /* save calibration settings */
+  /*
   uint8_t* datap = (uint8_t*)cal;
   for( unsigned i = 0; i<3*sizeof(double); i++ ) {
     EEPROM.write(VERTACCEL_EPROM_ADDR + 0x02 + i, datap[i]);
   }
+  */
 
   /* save in global var */
   accelCal[0] = cal[0];

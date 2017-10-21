@@ -1,7 +1,7 @@
 #include <FirmwareUpdater.h>
 
 #include <Arduino.h>
-#include <toneAC.h>
+#include <toneAC_zero.h>
 
 #include <LightInvensense.h>
 
@@ -45,10 +45,7 @@ void firmwareUpdate(void) {
   }
 
   /* jump to bootloader */
-  cli();
-  SP = RAMEND;
-  void* bootloader = (void*)FIRMWARE_UPDATER_BOOTLOADER_ADDRESS;
-  goto *bootloader;
+  //TO DO !!!
 
 }
   

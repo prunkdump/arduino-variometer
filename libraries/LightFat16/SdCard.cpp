@@ -20,6 +20,7 @@
 #include <Fat16Config.h>
 #include <SdCard.h>
 #include <SPI.h>
+#include <VarioSettings.h>
 
 //------------------------------------------------------------------------------
 #if 0//////////////////////////////////////////////////////////////////////////////////////////////////
@@ -43,7 +44,7 @@ uint8_t const DATA_RES_WRITE_ERROR = 0X0D;
 // return false if timeout
 STATIC_NOINLINE bool waitForToken(uint8_t token, uint16_t timeoutMillis) {
   uint16_t t0 = millis();
-  while (SPI.transfer(0xff) != token) {
+  while (SDCARD_SPI_INTERFACE.transfer(0xff) != token) {
     if (((uint16_t)millis() - t0) > timeoutMillis) return false;
   }
   return true;
@@ -59,25 +60,25 @@ uint8_t SdCard::cardCommand(uint8_t cmd, uint32_t arg) {
   waitForToken(0xff, SD_WRITE_TIMEOUT);
 
   // send command
-  SPI.transfer(cmd | 0x40);
+  SDCARD_SPI_INTERFACE.transfer(cmd | 0x40);
 
   // send argument
   uint8_t *pa = reinterpret_cast<uint8_t *>(&arg);
   for (int8_t i = 3; i >= 0; i--) {
-    SPI.transfer(pa[i]);
+    SDCARD_SPI_INTERFACE.transfer(pa[i]);
   }
   
   // send CRC - correct for CMD0 with arg zero or CMD8 with arg 0X1AA
-  SPI.transfer(cmd == CMD0 ? 0X95 : 0X87);
+  SDCARD_SPI_INTERFACE.transfer(cmd == CMD0 ? 0X95 : 0X87);
 
   // skip stuff byte for stop read
   if (cmd == CMD12) {
-    SPI.transfer(0xff);
+    SDCARD_SPI_INTERFACE.transfer(0xff);
   }
 
   // wait for response
   uint8_t status;
-  for (uint8_t i = 0; ((status = SPI.transfer(0xff)) & 0X80) && i != 0XFF; i++) {
+  for (uint8_t i = 0; ((status = SDCARD_SPI_INTERFACE.transfer(0xff)) & 0X80) && i != 0XFF; i++) {
   }
   return status;
 }
@@ -109,12 +110,12 @@ void SdCard::enableSPI(void) {
   pinMode(chipSelectPin, OUTPUT);
   
   /* set SPI */ 
-  SPI.begin();
+  SDCARD_SPI_INTERFACE.begin();
 }
 
 void SdCard::startSPI(void) {
   if( ! spiStarted ) {
-    SPI.beginTransaction(SD_SPI_SETTINGS);
+    SDCARD_SPI_INTERFACE.beginTransaction(SD_SPI_SETTINGS);
     digitalWrite(chipSelectPin, LOW);
     spiStarted = true;
   }
@@ -123,8 +124,8 @@ void SdCard::startSPI(void) {
 void SdCard::stopSPI(void) {
   if( spiStarted ) {
     digitalWrite(chipSelectPin, HIGH);
-    SPI.transfer(0xff);
-    SPI.endTransaction();
+    SDCARD_SPI_INTERFACE.transfer(0xff);
+    SDCARD_SPI_INTERFACE.endTransaction();
     spiStarted = false;
   }
 }
@@ -142,12 +143,12 @@ bool SdCard::begin(void) {
   enableSPI();
 
   // set SCK rate for initialization commands.
-  SPI.beginTransaction(SD_SPI_INIT_SETTINGS);
+  SDCARD_SPI_INTERFACE.beginTransaction(SD_SPI_INIT_SETTINGS);
   digitalWrite(chipSelectPin, LOW);
   
   // must supply min of 74 clock cycles with CS high.
   for (uint8_t i = 0; i < 10; i++) {
-    SPI.transfer(0xff);
+    SDCARD_SPI_INTERFACE.transfer(0xff);
   }
   // command to go idle in SPI mode
   while (cardCommand(CMD0, 0) != R1_IDLE_STATE) {
@@ -163,7 +164,7 @@ bool SdCard::begin(void) {
       break;
     }
     for (uint8_t i = 0; i < 4; i++) {
-      status = SPI.transfer(0xff);
+      status = SDCARD_SPI_INTERFACE.transfer(0xff);
     }
     if (status == 0XAA) {
       cardType = CARD_TYPE_SDV2;
@@ -190,12 +191,12 @@ bool SdCard::begin(void) {
     if (cardCommand(CMD58, 0)) {
       goto fail;
     }
-    if ((SPI.transfer(0xff) & 0XC0) == 0XC0) {
+    if ((SDCARD_SPI_INTERFACE.transfer(0xff) & 0XC0) == 0XC0) {
       cardType = CARD_TYPE_SDHC;
     }
     // Discard rest of ocr - contains allowed voltage range.
     for (uint8_t i = 0; i < 3; i++) {
-      SPI.transfer(0xff);
+      SDCARD_SPI_INTERFACE.transfer(0xff);
     }
   }
 
@@ -235,7 +236,7 @@ bool SdCard::readBlock(uint32_t blockNumber, uint8_t* dst) {
   /********/
   // wait for start block token
   t0 = millis();
-  while ((status = SPI.transfer(0xff)) == 0XFF) {
+  while ((status = SDCARD_SPI_INTERFACE.transfer(0xff)) == 0XFF) {
     if (((unsigned)millis() - t0) > SD_READ_TIMEOUT) {
       goto fail;
     }
@@ -245,12 +246,12 @@ bool SdCard::readBlock(uint32_t blockNumber, uint8_t* dst) {
   }
   // transfer data
   for (size_t i = 0; i < 512; i++) {
-    dst[i] = SPI.transfer(0XFF);
+    dst[i] = SDCARD_SPI_INTERFACE.transfer(0XFF);
   }
   
   // discard crc
-  SPI.transfer(0XFF);
-  SPI.transfer(0XFF);
+  SDCARD_SPI_INTERFACE.transfer(0XFF);
+  SDCARD_SPI_INTERFACE.transfer(0XFF);
 
   // ok
   stopSPI();
@@ -283,17 +284,17 @@ bool SdCard::writeBlock(uint32_t blockNumber, const uint8_t* src) {
   /*********/
   /* write */
   /*********/
-  SPI.transfer(0xff);
-  SPI.transfer(0xff);
+  SDCARD_SPI_INTERFACE.transfer(0xff);
+  SDCARD_SPI_INTERFACE.transfer(0xff);
   
-  SPI.transfer(DATA_START_BLOCK);
+  SDCARD_SPI_INTERFACE.transfer(DATA_START_BLOCK);
   for (size_t i = 0; i < 512; i++) {
-    SPI.transfer(src[i]);
+    SDCARD_SPI_INTERFACE.transfer(src[i]);
   }
-  SPI.transfer(0xff);
-  SPI.transfer(0xff);
+  SDCARD_SPI_INTERFACE.transfer(0xff);
+  SDCARD_SPI_INTERFACE.transfer(0xff);
   
-  status = SPI.transfer(0xff);
+  status = SDCARD_SPI_INTERFACE.transfer(0xff);
   if ((status & DATA_RES_MASK) != DATA_RES_ACCEPTED) {
     goto fail;
   }
