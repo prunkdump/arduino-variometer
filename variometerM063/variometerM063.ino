@@ -157,8 +157,6 @@ uint8_t variometerState = VARIOMETER_STATE_INITIAL;
 uint8_t variometerState = VARIOMETER_STATE_CALIBRATED;
 #endif //HAVE_GPS
 
-VarioComm variocomm;
-
 /*****************/
 /* screen objets */
 /*****************/
@@ -378,6 +376,12 @@ unsigned long TmplastFreqUpdate;
 
 Statistic GnuStatistic;
 
+/*-----------------*/
+/*                 */
+/*  displayboot    */
+/*                 */
+/*-----------------*/
+
 void displayBoot(void) {
   char tmpbuffer[50];
 
@@ -386,6 +390,7 @@ void displayBoot(void) {
   screen.drawBitmap(logo_gnuvario, 0, 10, 102, 74, GxEPD_BLACK); //94
 
   screen.setFont(&FreeSansBold12pt7b);
+  screen.setTextSize(1);
 
   screen.setCursor(100, 30);
   screen.println("Version");
@@ -402,6 +407,12 @@ void displayBoot(void) {
   screen.updateWindow(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, false);
 
 }
+
+/*-----------------------*/
+/*                       */
+/* DisplayPercentBat     */
+/*                       */
+/*-----------------------*/
 
 void displayPercentBat(void) {
   char tmpbuffer[50];
@@ -423,6 +434,9 @@ void displayPercentBat(void) {
   screen.println(tmpbuffer);
 
 }
+
+// Attach a new CmdMessenger object to the default Serial port
+CmdMessenger cmdMessenger = CmdMessenger(Serial);
 
 /*-----------------*/
 /*                 */
@@ -664,7 +678,10 @@ beeper.init(GnuSettings.VARIOMETER_SINKING_THRESHOLD, GnuSettings.VARIOMETER_CLI
       //Action - Left button press
     }   
     else if (stateRightInterrup == HIGH) {
-//      usbConnectedMode();     
+     stateRightInterrup = LOW;
+     usbConnectedMode();   
+      //NVIC_SystemReset();      // processor software reset 
+      break;
     }   
     else if (statePowerInt == HIGH) {
       statePowerInt = LOW;
@@ -1529,36 +1546,6 @@ if (GnuSettings.VARIOMETER_RECORD_WHEN_FLIGHT_START) {
   createSDCardTrackFile();
 }
 #endif // defined(HAVE_SDCARD) 
-}
-
-
-/*--------------------------------------*/
-/*                                      */
-/*            UsbConnectedMode          */
-/*                                      */
-/*--------------------------------------*/
-
-void usbConnectedMode(void) {
-  
-  while (1) {
-    
-      /* detection passage en mode transfers PC <-> M0 */
-/*    variocomm.setup();
-    
-   if (stateLeftInterrup == HIGH) {
-    stateLeftInterrup = LOW;
-    //Action - Left button press
-  } 
-
-  // check if the pushbutton is pressed.
-  if (stateRightInterrup == HIGH) {
-    stateRightInterrup = LOW;
-    //Action - Right button press
-  }   
-      
-*/
-    break;  
-  }   
 }
 
 
