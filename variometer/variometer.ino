@@ -769,6 +769,9 @@ void createSDCardTrackFile(void) {
   /* start the sdcard record */
   if( sdcardState == SDCARD_STATE_INITIALIZED ) {
 
+    /* some cards doesn't like delays between init and write, so reinit */
+    file.init();
+  
     /* build date : convert from DDMMYY to YYMMDD */
     uint8_t dateChar[8]; //two bytes are used for incrementing number on filename
     uint8_t* dateCharP = dateChar;
