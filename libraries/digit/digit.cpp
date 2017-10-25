@@ -4,6 +4,7 @@
 #define PLUS_DISPLAY 0
 #define DISPLAY_PLUS 1
 #define DISPLAY_MINUS 2
+#define DISPLAYED 3
 
 #define digitState_set(bit) state |= (1 << bit)
 #define digitState_unset(bit) state &= ~(1 << bit)
@@ -161,6 +162,7 @@ bool FPSDigit::begin(double value) {
   
   /* save displayed value */
   lastDisplayValue = value;
+  digitState_set(DISPLAYED);
   
   /* build */
   buildForPrecision(value, precision);
@@ -177,8 +179,10 @@ bool FPSDigit::begin(double value) {
 }
 
 void FPSDigit::rebuild(void) {
-  applyPrecision(0.0, precision); //just to compute precision exponent
-  buildForPrecision(lastDisplayValue, precision);
+  if( digitState_isset(DISPLAYED) ) {
+    applyPrecision(0.0, precision); //just to compute precision exponent
+    buildForPrecision(lastDisplayValue, precision);
+  }
 }
   
   
