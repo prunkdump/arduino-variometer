@@ -1,6 +1,8 @@
 #ifndef BEEPER_H
 #define BEEPER_H
 
+#include <Arduino.h>
+
 /***************************/
 /* beep general parameters */
 /***************************/
@@ -89,6 +91,7 @@
 class Beeper {
 
  public:
+  Beeper(uint8_t baseVolume= BEEP_DEFAULT_VOLUME);
   void init(double sinkingThreshold = BEEP_VELOCITY_DEFAULT_SINKING_THRESHOLD,
 	 double climbingThreshold = BEEP_VELOCITY_DEFAULT_CLIMBING_THRESHOLD,
 	 double nearClimbingSensitivity = BEEP_VELOCITY_DEFAULT_NEAR_CLIMBING_SENSITIVITY,

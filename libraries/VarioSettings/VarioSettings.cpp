@@ -109,6 +109,7 @@ boolean VarioSettings::readSDSettings(){
      VARIOMETER_GLIDER_NAME = settingValue;
    }
    else if(settingName == "VARIOMETER_BASE_PAGE_DURATION") {
+//   if(settingName == "VARIOMETER_BASE_PAGE_DURATION") {
   /* the duration of the two screen pages in milliseconds */
      VARIOMETER_BASE_PAGE_DURATION = settingValue.toInt();
    }

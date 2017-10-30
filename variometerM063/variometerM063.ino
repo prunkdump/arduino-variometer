@@ -1,21 +1,23 @@
 // CJMCU-117 MPU9250+MS5611 circuit interface
 //
-// VCC  VCC
+// VCC  VCC - BAT
 // GND  GND
 // SCL  D12 - SCL
 // SDA  D11 - SDA
 //
-// LM9110
+// LM9110 
+// VCC   VCC - BAT
 // PWM   A3, A4 PWM
 //
-// A1,A2 Switch
-// A5    Detection ON/OFF
+// A1,A2 Switch 
+// A5    Detection ON/OFF  
 //
 // A6    Detection de connection USB
 // D6    Commande de l'alimentation des cartes
 // D0    Reset command
 // 
 // E-Ink
+// VCC   3.3V M0
 // CS    D1
 // BUSY  D3
 // RST   D2
@@ -23,13 +25,15 @@
 // DIN   MOSI/D8
 // CLK   SCK/D9
 //
-// GPS
-// TX    D5 serialNmea  Pin 5
-// RX    TX Serial1     Pin 14
+// GPS 
+// VCC   VCC - BAT
+// TX    D5 serialNmea  Pin 5     Sercom4
+// RX    TX Serial1     Pin 14    Sercom5
 //
-// Bluetooth
-// TX    RX Serial1      Pin 13
-// RX    D4 serialNmea   Pin 4
+// Bluetooth 
+// VCC   VCC - BAT
+// TX    RX Serial1      Pin 13   Sercom5
+// RX    D4 serialNmea   Pin 4    Sercom4
 
 //SERCOM 0 WIRE / I2C - SDA/SCL     - MPU
 //SERCOM 1 SPI  - MISO-MOSI-SCK     - SCREEN
@@ -38,44 +42,50 @@
 //SERCOM 4 UART                     - GPS / BT
 //SERCOM 5 UART   - SERIAL1         - GPS / BT
 
-#include <SDU.h> 
+#include <SDU.h>    //FIRMWARE Update
 
 #include <Arduino.h>
-#include <Wire.h>
-#include <math.h>
-#include <reset.h>
-#include <SD.h>
-
-#include <FlashStorage.h>
+#include <SPI.h>
 #include <VarioSettings.h>
-
-#include <SerialNmea_zero.h>   
-
-#include <I2Cdev.h>
+#include <GenClock_zero.h>
+#include <Wire.h>
 #include <ms5611_zero.h>
 #include <vertaccel.h>
+#include <LightInvensense.h>
 #include <kalmanvert.h>
-
-#include <toneACZero.h>
 #include <beeper.h>
-
+#include <toneAC_zero.h>
+#include <avr/pgmspace.h>
+#include <digit.h>
+#include <SD.h>
+#include <SerialNmea_zero.h>
 #include <NmeaParser.h>
 #include <LxnavSentence.h>
-#include <IGCSentence.h>
 #include <LK8Sentence.h>
-#include <VarioComm.h>
-
-#include <accelcalibrator.h>
-
-//#include <RTCZero.h>
-#include <EnergySaving.h>
+#include <IGCSentence.h>
 
 #include <Utility.h>
 
-/********************/
-/* Sleeping Mode    */
-/********************/
-EnergySaving nrgSave;
+/*******************/
+/* Version         */
+/*******************/
+
+#define VERSION 63
+#define SUB_VERSION 0
+
+/*******************/
+/*     VERSION     */
+/*    M0/SAMD21    */
+/*                 */
+/*    Historique   */
+/*******************/
+/* v 63.0     beta 1 version
+ * 
+ * v 63.0     beta 2 version
+ *            version basée sur le code et les librairies M0 de PRUNKDUMP
+ *            -Paramettres dans fichier TXT
+ *            Ecran I-Ink
+ *******************/
 
 /*****************/
 /* screen        */
@@ -86,7 +96,7 @@ EnergySaving nrgSave;
 #include <GxEPD.h>
 
 // select the display class to use, only one
-#include <GxGDEP015OC1/GxGDEP015OC1.cpp>
+#include <GxGDEP015OC1/GxGDEP015OC1NL.cpp>
 //#include <GxGDE0213B1/GxGDE0213B1.cpp>
 //#include <GxGDEH029A1/GxGDEH029A1.cpp>
 //#include <GxGDEW042T2/GxGDEW042T2.cpp>
@@ -120,31 +130,18 @@ VarioScreen screen(io);
 
 #endif //HAVESCREEN
 
-/*******************/
-/* Version         */
-/*******************/
 
-#define VERSION 63
-#define SUB_VERSION 0
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*!!            !!! WARNING  !!!              !!*/
+/*!! Before building check :                  !!*/
+/*!! libraries/VarioSettings/VarioSettings.h  !!*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
-/*******************/
-/*     VERSION     */
-/*    M0/SAMD21    */
-/*                 */
-/*    Historique   */
-/*******************/
-/* v 63.0     beta version
- * 
- *******************/
-
- #ifdef IMU_DEBUG
- double timebegin;
- #endif
 
 /*******************/
 /* General objects */
 /*******************/
-#define VARIOMETER_POWER_ON_DELAY 1000 
+#define VARIOMETER_POWER_ON_DELAY 2000 
 
 #define VARIOMETER_STATE_INITIAL 0
 #define VARIOMETER_STATE_DATE_RECORDED 1
@@ -161,7 +158,7 @@ uint8_t variometerState = VARIOMETER_STATE_CALIBRATED;
 /* screen objets */
 /*****************/
 #ifdef HAVE_SCREEN
-  
+
 unsigned long lastLowFreqUpdate = 0;
 
 #define RATIO_MAX_VALUE 30.0
@@ -240,7 +237,7 @@ int8_t objectList[] = {8,9};
 MultiDisplayObject multiDisplayList[] = {{objectList,sizeof(objectList)/sizeof(int8_t),0,0,2,2}};
 MultiDisplay multiDisplay(displayList, sizeof(displayList)/sizeof(ScreenSchedulerObject), multiDisplayList, sizeof(multiDisplayList)/sizeof(MultiDisplayObject));
 
-  
+
 #endif //HAVE_SCREEN
 
 /**********************/
@@ -249,74 +246,23 @@ MultiDisplay multiDisplay(displayList, sizeof(displayList)/sizeof(ScreenSchedule
 #define POSITION_MEASURE_STANDARD_DEVIATION 0.1
 #ifdef HAVE_ACCELEROMETER 
 #define ACCELERATION_MEASURE_STANDARD_DEVIATION 0.3
-
-#define HIGH_BEEP_FREQ 1000.0
-#define LOW_BEEP_FREQ 100.0
-#define BASE_BEEP_DURATION 100.0
-
-#define MEASURE_DELAY 3000 
-
-AccelCalibrator calibrator;
 #else
 #define ACCELERATION_MEASURE_STANDARD_DEVIATION 0.6
 #endif //HAVE_ACCELEROMETER 
 
 kalmanvert kalmanvert;
 
-Compteur compteur;
-
-#ifdef HAVE_SDCARD
-File file;
-#endif //HAVE_SDCARD
-
-/*-----------------------------------*/
-/* Initialisation Button             */
-/*-----------------------------------*/
-
-byte statePowerInt = LOW;
-byte statePower;
-
-uint32_t timeNowPower;
-
-void POWERInterruptHandler() {
-    statePowerInt = HIGH;
-
-/*  if (statePowerInt == LOW) {
-    if (statePower == HIGH) {   
-      statePowerInt = HIGH;
-      timeNowPower = millis(); 
-    }
-    else {   
-      pinMode(LED_BUILTIN, OUTPUT);
- 
-      digitalWrite (LED_BUILTIN, HIGH);
-
-         
-//      initiateReset(1);
-//      tickReset();
-    }
-  } */
-} 
-
-byte stateLeftInterrup = LOW;
-void LEFTInterruptHandler() {
-  stateLeftInterrup = HIGH;
-}
-
-byte stateRightInterrup = LOW;
-void RIGHTInterruptHandler() {
-  stateRightInterrup = HIGH;
-}
-/**********************/
-/* sound objects */
-/**********************/
-
 #ifdef HAVE_SPEAKER
 //beeper beeper(VARIOMETER_SINKING_THRESHOLD, VARIOMETER_CLIMBING_THRESHOLD, VARIOMETER_NEAR_CLIMBING_SENSITIVITY, VARIOMETER_BEEP_VOLUME);
-Beeper beeper;
+Beeper beeper(10);
+
+/*  uint8_t VARIOMETER_BEEP_VOLUME = 10;
+  float VARIOMETER_SINKING_THRESHOLD =-2.0;
+  float VARIOMETER_CLIMBING_THRESHOLD=0.2;
+  float VARIOMETER_NEAR_CLIMBING_SENSITIVITY=0.5; */
+
 #endif
 
- 
 /***************/
 /* gps objects */
 /***************/
@@ -335,16 +281,16 @@ double speedFilterSpeedValues[VARIOMETER_SPEED_FILTER_SIZE];
 double speedFilterAltiValues[VARIOMETER_SPEED_FILTER_SIZE];
 int8_t speedFilterPos = 0;
 
-#ifdef HAVE_SDCARD
-
-IGCHeader header;
-IGCSentence igc;
-
-#endif //HAVE_SDCARD
-
 #endif //HAVE_GPS
 
 #ifdef HAVE_SDCARD
+File file;
+
+#ifdef HAVE_GPS
+IGCHeader header;
+IGCSentence igc;
+#endif //HAVE_GPS
+
 VarioSettings GnuSettings;
 
 #define SDCARD_STATE_INITIAL 0
@@ -355,6 +301,7 @@ int8_t sdcardState = SDCARD_STATE_INITIAL;
 
 #endif //HAVE_SDCARD
 
+
 /*********************/
 /* bluetooth objects */
 /*********************/
@@ -364,17 +311,13 @@ LxnavSentence bluetoothNMEA;
 #elif defined(VARIOMETER_SENT_LK8000_SENTENCE)
 LK8Sentence bluetoothNMEA;
 #else
-//#error No bluetooth sentence type specified !
+#error No bluetooth sentence type specified !
 #endif
-#endif //HAVE_BLUETOOTH
 
 #ifndef HAVE_GPS
 unsigned long lastVarioSentenceTimestamp = 0;
 #endif // !HAVE_GPS
-
-unsigned long TmplastFreqUpdate;
-
-Statistic GnuStatistic;
+#endif //HAVE_BLUETOOTH
 
 /*-----------------*/
 /*                 */
@@ -385,6 +328,12 @@ Statistic GnuStatistic;
 void displayBoot(void) {
   char tmpbuffer[50];
 
+#ifdef HAVE_SCREEN
+
+#ifdef PROG_DEBUG
+  Serial.print("Display boot");
+#endif //PRO_DEBBUG
+
   screen.fillScreen(GxEPD_WHITE);
 
   screen.drawBitmap(logo_gnuvario, 0, 10, 102, 74, GxEPD_BLACK); //94
@@ -394,8 +343,8 @@ void displayBoot(void) {
 
   screen.setCursor(100, 30);
   screen.println("Version");
-  screen.setCursor(120, 50);
-  screen.println(" Beta");
+  screen.setCursor(105, 50);
+  screen.println(" Beta 2");
   sprintf(tmpbuffer,"%02d.%02d", VERSION, SUB_VERSION);
   screen.setCursor(125, 70);
   screen.println(tmpbuffer);
@@ -405,139 +354,67 @@ void displayBoot(void) {
 
 //  screen.update();
   screen.updateWindow(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, false);
+  while (screen.GetState() != STATE_OK) {
+    screen.updateWindow(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, false);
+#ifdef PROG_DEBUG
+    Serial.print("update screen");
+#endif //PRO_DEBBUG
+  }
+
+#endif //HAVE_SCREEN
 
 }
-
-/*-----------------------*/
-/*                       */
-/* DisplayPercentBat     */
-/*                       */
-/*-----------------------*/
-
-void displayPercentBat(void) {
-  char tmpbuffer[50];
-  screen.drawBitmap(charging, 4, 10, 100, 100, GxEPD_BLACK); //94
-
-  screen.setFont(&FreeSansBold12pt7b);
-
-  screen.setCursor(80, 50);
-  screen.setTextSize(2);
-  double voltagebat = batteryVoltage();
-#ifdef IMU_DEBUG
-       Serial.print("voltage : ");
-       Serial.println(voltagebat);
-#endif IMU_DEBUG
-
-  double calculvoltagepercent = voltagebat/10;
-  int pourcentBattery = percentBat(calculvoltagepercent);
-  sprintf(tmpbuffer,"%03d%%", pourcentBattery);
-  screen.println(tmpbuffer);
-
-}
-
-// Attach a new CmdMessenger object to the default Serial port
-CmdMessenger cmdMessenger = CmdMessenger(Serial);
 
 /*-----------------*/
-/*                 */
 /*      SETUP      */
-/*                 */
 /*-----------------*/
-  
 void setup() {
 
+  /*****************************/
+  /* wait for devices power on */
+  /*****************************/
+  delay(VARIOMETER_POWER_ON_DELAY);
+
+ #ifdef PROG_DEBUG
   char tmpbuffer[50];
-  
-#ifdef IMU_DEBUG
-  timebegin = millis();
 
   Serial.begin(9600);
   while (!Serial) { ;}
   sprintf(tmpbuffer,"SAMD21 MPU9250 MS5611 VARIO compiled on %s at %s", __DATE__, __TIME__);
   Serial.println(tmpbuffer);
-#endif //IMU_DEBUG
+  Serial.flush();
+#endif //PRO_DEBBUG
 
-/************************/
-/*        Init Power    */
-/************************/
-
-  statePower = HIGH;
-  pinMode(VARIO_DETECT_USB, INPUT_PULLDOWN);
-
-  pinMode(VARIO_PIN_ALIM, OUTPUT);
-  digitalWrite(VARIO_PIN_ALIM, HIGH);   // turn on power cards )
-
-  digitalWrite(VARIO_PIN_RST, HIGH);   // Hard Reset M0 )
-  pinMode(VARIO_PIN_RST, OUTPUT);
-
-
-/*************************/
-/*  Init interruption    */
-/*     CENTER BT         */
-/*************************/
-
-//  pinMode(VARIOPOWER_INT_PIN, INPUT_PULLDOWN);
-  statePowerInt = LOW;
-//  attachInterrupt(digitalPinToInterrupt(VARIOPOWER_INT_PIN), POWERInterruptHandler, RISING);
- //  nrgSave.begin(WAKE_EXT_INTERRUPT, VARIOPOWER_INT_PIN, dummy);  //standby setup for external interrupts
-   nrgSave.begin(WAKE_EXT_INTERRUPT, VARIOPOWER_INT_PIN, POWERInterruptHandler);  //standby setup for external interrupts
-
-/*************************/
-/*  Init interruption    */
-/*     BUTTON LEFT       */
-/*************************/
-
-  pinMode(VARIOBTN_LEFT_PIN, INPUT_PULLDOWN);
-  stateLeftInterrup = LOW;
-  attachInterrupt(digitalPinToInterrupt(VARIOBTN_LEFT_PIN), LEFTInterruptHandler, RISING);
-
-/*************************/
-/*  Init interruption    */
-/*     BUTTON LEFT       */
-/*************************/
-
-  pinMode(VARIOBTN_RIGHT_PIN, INPUT_PULLDOWN);
-  stateRightInterrup = LOW;
-  attachInterrupt(digitalPinToInterrupt(VARIOBTN_RIGHT_PIN), RIGHTInterruptHandler, RISING);
-//   nrgSave.begin(WAKE_EXT_INTERRUPT, VARIOBTN_RIGHT_PIN, RIGHTInterruptHandler);  //standby setup for external interrupts
-
-  /*********************/
-  /* init Standby Mode */
-  /*********************/
- /* 
-   // Configure the regulator to run in normal mode when in standby mode
-  // Otherwise it defaults to low power mode and can only supply 50 uA
-  SYSCTRL->VREG.bit.RUNSTDBY = 1;
-
-  // Enable the DFLL48M clock in standby mode
-  SYSCTRL->DFLLCTRL.bit.RUNSTDBY = 1;
-
-  // Disable the USB device, this avoids USB interrupts
-  // mainly the SOF every 1ms.
-  // Note: you'll have to double tap the reset button to load new sketches
-//  USBDevice.detach();
-
-  rtc.begin();*/
- 
-
- /******************/
-/*    init Audio  */
-/******************/
-#ifdef HAVE_SPEAKER
-beeper.init(GnuSettings.VARIOMETER_SINKING_THRESHOLD, GnuSettings.VARIOMETER_CLIMBING_THRESHOLD, GnuSettings.VARIOMETER_NEAR_CLIMBING_SENSITIVITY, GnuSettings.VARIOMETER_BEEP_VOLUME);
-/*  toneAC_initClock();
-  toneAC_init();*/
-#else
-  toneAC_initClock();
-#endif
+  /****************/
+  /* init speaker */
+  /****************/
+#ifdef PROG_DEBUG
+  Serial.println("Initializing ToneAC");
+#endif //PRO_DEBBUG
   
+#ifdef HAVE_SPEAKER
+  toneAC_init();
+#endif
+
+  /**********************/
+  /* init accelerometer */
+  /**********************/
+#ifdef PROG_DEBUG
+  Serial.println("Initializing vertaccel");
+#endif //PRO_DEBBUG
+  
+  Wire.begin();
+#ifdef HAVE_ACCELEROMETER
+  vertaccel_init();
+#endif //HAVE_ACCELEROMETER
+
   /****************/
   /* init SD Card */
   /****************/
   
 #ifdef HAVE_SDCARD
 #ifdef PROG_DEBUG
-  Serial.print("Initializing SD card...");
+  Serial.println("Initializing SD card...");
 #endif //PRO_DEBBUG
 
   if (GnuSettings.initSettings()) {
@@ -545,7 +422,7 @@ beeper.init(GnuSettings.VARIOMETER_SINKING_THRESHOLD, GnuSettings.VARIOMETER_CLI
    Serial.println("initialization done.");
 #endif //PROG_DEBUG
 
-    GnuSettings.readSDSettings();
+   GnuSettings.readSDSettings();
  
 #ifdef PROG_DEBUG
    //Debuuging Printing
@@ -570,14 +447,23 @@ beeper.init(GnuSettings.VARIOMETER_SINKING_THRESHOLD, GnuSettings.VARIOMETER_CLI
 #endif //HAVE_SDCARD
 
 
+/******************/
+/*    init Audio  */
+/******************/
+#ifdef HAVE_SPEAKER
+beeper.init(GnuSettings.VARIOMETER_SINKING_THRESHOLD, GnuSettings.VARIOMETER_CLIMBING_THRESHOLD, GnuSettings.VARIOMETER_NEAR_CLIMBING_SENSITIVITY, GnuSettings.VARIOMETER_BEEP_VOLUME);
+#endif
+
+ 
   /***************/
   /* init screen */
   /***************/
+#ifdef PROG_DEBUG
+      Serial.println("initialization screen");
+#endif //IMU_DEBUG
+
 #ifdef HAVE_SCREEN
   screen.begin();
-
-  int8_t tmptime[] = {0,SUB_VERSION,VERSION};
-  screenTime.setTime(tmptime);
 
   varioScreen.setPage(0);
 
@@ -589,309 +475,31 @@ beeper.init(GnuSettings.VARIOMETER_SINKING_THRESHOLD, GnuSettings.VARIOMETER_CLI
      btinfo.setBT();
 #endif //HAVE_BLUETOOTH
 
-#ifdef HAVE_SPEAKER
-  beeper.setVolume(8);
-#else
-  volLevel.setVolume(0);
-#endif //HAVE_SPEAKER
-
-
 /*----------------------------------------*/
 /*                                        */
 /*             DISPLAY BOOT               */
 /*                                        */
 /*----------------------------------------*/
 
-   displayBoot();
-
+   displayBoot();  
 #endif //HAVE_SCREEN
 
-/*----------------------------------------*/
-/*                                        */
-/*      DETECTION LIAISON SERIE           */
-/*         AVEC LOGICIEL PC               */
-/*----------------------------------------*/
-
-  if (digitalRead(VARIO_DETECT_USB) == HIGH) {
-
-    /* Usb connected */
-
-/*    boolean bUsbTransfert = false;
-    // short beeps for ~5 seconds
-    for (int inx = 0; inx < 10; inx++) {
-      delay(500); 
-#ifdef HAVE_SPEAKER
-      beeper.GenerateTone(GnuSettings.CALIB_TONE_FREQHZ,50); 
-#endif //HAVE_SPEAKER
-      if (stateLeftInterrup == HIGH) {
-      
-#ifdef IMU_DEBUG
-        Serial.println("Left Button detected");
-#endif //IMU_DEBUG
-
-        delay(100); // debounce the button
-        if (digitalRead (VARIOBTN_LEFT_PIN) == HIGH) {
-        
-#ifdef IMU_DEBUG
-          Serial.println("Second Left Button detected");
-#endif //IMU_DEBUG
-
-          bUsbTransfert = true;
-          stateLeftInterrup = LOW;
-          break;
-        }
-        stateLeftInterrup = LOW;    
-      }
-    }
-    
-    if (bUsbTransfert) {  
-//      usbConnectedMode();
-    }*/
-
-#ifdef HAVE_SCREEN
-  screen.fillScreen(GxEPD_WHITE);
-
-  displayPercentBat();
-
-  screen.setTextSize(1);
-  screen.setCursor(25, 140);
-  screen.println("Connection");
-  screen.setCursor(30, 160);
-  screen.println(" en attente ");
-
-//  screen.update();
-  screen.updateWindow(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, false);
-
-#endif //HAVE_SCREEN
-
-  compteur.initTime();
-
-  while (true) {
-
-#ifdef IMU_DEBUG
-//       Serial.println("boucle ");
-#endif IMU_DEBUG
-
-    if (stateLeftInterrup == HIGH) {
-      delay(200);
-      stateLeftInterrup = LOW;
-      //Action - Left button press
-    }   
-    else if (stateRightInterrup == HIGH) {
-     stateRightInterrup = LOW;
-     usbConnectedMode();   
-      //NVIC_SystemReset();      // processor software reset 
-      break;
-    }   
-    else if (statePowerInt == HIGH) {
-      statePowerInt = LOW;
-      break;
-    }  
-
-    if (compteur.IsDelay(10000)) {
-#ifdef HAVE_SCREEN
-      displayPercentBat();
-      screen.updateWindow(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, false);
-#endif //HAVE_SCREEN
-      compteur.updateTime();
-    }     
-  }   
-
-/*#ifdef HAVE_SCREEN
-  screen.fillScreen(GxEPD_WHITE);
-
-  screen.drawBitmap(logo_gnuvario, 0, 10, 102, 74, GxEPD_BLACK); //94
-
-  screen.setFont(&FreeSansBold12pt7b);
-
-  screen.setCursor(100, 30);
-  screen.println("Version");
-  screen.setCursor(120, 50);
-  screen.println(" Beta");
-  sprintf(tmpbuffer,"%02d.%02d", VERSION, SUB_VERSION);
-  screen.setCursor(125, 70);
-  screen.println(tmpbuffer);
-  sprintf(tmpbuffer,"%s", __DATE__);
-  screen.setCursor(25, 110);
-  screen.println(tmpbuffer);
-
-//  screen.update();
-  screen.updateWindow(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, false);
-
-#endif //HAVE_SCREEN*/
-
-  displayBoot();
-}
-
-  /*****************************/
-  /* wait for devices power on */
-  /*****************************/
-  delay(VARIOMETER_POWER_ON_DELAY);
-
-  /************************************/
-  /* init altimeter and accelerometer */
-  /************************************/
-
-  Wire.begin();
-//  Wire.setClock(400000); // set clock frequency AFTER Wire.begin()
   
-#ifdef HAVE_ACCELEROMETER
-  vertaccel_init();
-
-#ifdef IMU_DEBUG
-  Serial.println("Init MPU9250");
-#endif //IMU_DEBUG
-
-   // if we got this far, MPU9250 and MS5611 look OK
-  // Read calibrated accelerometer and gyro bias values saved in M0 flash
-
-   if (vertaccel_readAvailableCalibration() == false) {
-    
-#ifdef IMU_DEBUG
-  Serial.println("Uncalibrated Accelerometre");
-#endif //IMU_DEBUG
-
-    indicateUncalibratedAccelerometer(); // series of alternating low/high tones
-  }
-
-  
-  /*---------------------------------------------------------------------------------------------------*/
-  /*                                                                                                   */
-  /*                             TEST CALIBRATION                                                      */
-  /*                                                                                                   */
-  /*---------------------------------------------------------------------------------------------------*/
-
-  
-  int bCalibrateAccelerometer = 0;
-  // short beeps for ~5 seconds
-  for (int inx = 0; inx < 10; inx++) {
-    delay(500); 
-#ifdef HAVE_SPEAKER
-    beeper.GenerateTone(GnuSettings.CALIB_TONE_FREQHZ,50); 
-#endif //HAVE_SPEAKER
-    if (stateRightInterrup == HIGH) {
-      
-#ifdef IMU_DEBUG
-      Serial.println("Right Button detected");
-#endif //IMU_DEBUG
-
-      delay(100); // debounce the button
-      if (digitalRead (VARIOBTN_RIGHT_PIN) == HIGH) {
-        
-#ifdef IMU_DEBUG
-        Serial.println("Second Right Button detected");
-#endif //IMU_DEBUG
-
-        bCalibrateAccelerometer = 1;
-        stateRightInterrup = LOW;
-        break;
-      }
-      stateRightInterrup = LOW;    
-    }
-  }
-    
-  if (bCalibrateAccelerometer) {  
-    // acknowledge calibration button press with long tone
-#ifdef HAVE_SPEAKER
-#ifdef IMU_DEBUG
-      Serial.println("Calibration");
-#endif //IMU_DEBUG
-
-    beeper.GenerateTone(GnuSettings.CALIB_TONE_FREQHZ, 3000);
-    // allow 10 seconds for the unit to be placed in calibration position with the 
-    // accelerometer +z pointing downwards. Indicate this delay with a series of short beeps
-    for (int inx = 0; inx < 50; inx++) {
-      delay(200); 
-      beeper.GenerateTone(GnuSettings.CALIB_TONE_FREQHZ,50);
-      }
-#endif //HAVE_SPEAKER
-#ifdef IMU_DEBUG
-    Serial.println("Calibrating accel & gyro");
-#endif IMU_DEBUG
-
-  // Calibration des accÃ©lerometres
-
-    calibrator.init();
-
-  /* start beep */
-    signalBeep(HIGH_BEEP_FREQ, BASE_BEEP_DURATION, 3);
-
-  /***************************/
-  /* make measure repeatedly */
-  /***************************/
-  
-  /* wait for positionning accelerometer */
-    delay(MEASURE_DELAY);
-  
-  /* make measure */
-    calibrator.measure();
-    
-  /********************************************/
-  /* the reversed position launch calibration */
-  /********************************************/
-  
-  /* get orientation */
-    int orient = calibrator.getMeasureOrientation();
-    if( orient == ACCEL_CALIBRATOR_ORIENTATION_EXCEPTION ) {
-    
-    /**********************/
-    /* launch calibration */
-    /**********************/
-      if( !calibrator.canCalibrate() ) {
-      signalBeep(LOW_BEEP_FREQ, BASE_BEEP_DURATION, 3);
-      } else {
-        calibrator.calibrate();
-        signalBeep(HIGH_BEEP_FREQ, BASE_BEEP_DURATION, 3);
-      }
-    
-    } else {
-    
-    /****************/
-    /* push measure */
-    /****************/
-    
-      boolean measureValid = calibrator.pushMeasure();
-          
-      /* make corresponding beep */
-      if( measureValid ) {
-        signalBeep(HIGH_BEEP_FREQ, BASE_BEEP_DURATION*3, 1);
-      } else {
-        signalBeep(LOW_BEEP_FREQ, BASE_BEEP_DURATION*3, 1);
-      }
-    }
-     
-    /* start beep */
-    signalBeep(HIGH_BEEP_FREQ, BASE_BEEP_DURATION, 3);
-
-    GnuSettings.writeFlashSDSettings();
-
-    // indicate calibration complete
-#ifdef HAVE_SPEAKER
-    beeper.GenerateTone(GnuSettings.CALIB_TONE_FREQHZ, 1000);
-#endif //HAVE_SPEAKER
-
-    NVIC_SystemReset();      // processor software reset 
-
-  }
-#endif //HAVE_ACCELEROMETER
-
-
   /******************/
   /* init barometer */
   /******************/
-
-  ms5611_init();
-
-#ifdef IMU_DEBUG
-  Serial.println("Init MS5611");
+ #ifdef PROG_DEBUG
+      Serial.println("initialization ms5611");
 #endif //IMU_DEBUG
- 
+ ms5611_init();
+  
   /**************************/
   /* init gps and bluetooth */
   /**************************/
 #if defined(HAVE_BLUETOOTH) || defined(HAVE_GPS)
-
-  Serial1.begin(GPS_BLUETOOTH_BAUDS);
+#ifdef PROG_DEBUG
+      Serial.println("initialization gps");
+#endif //IMU_DEBUG
 
 #ifdef HAVE_GPS
   serialNmea.begin(GPS_BLUETOOTH_BAUDS, true);
@@ -904,11 +512,13 @@ beeper.init(GnuSettings.VARIOMETER_SINKING_THRESHOLD, GnuSettings.VARIOMETER_CLI
   /* get first data */
   /******************/
 
-#ifdef IMU_DEBUG
-    Serial.println("Ms5611 First data");
-#endif IMU_DEBUG
+delay(1000);
 
   /* wait for first alti and acceleration */
+#ifdef PROG_DEBUG
+      Serial.println("first alti");
+#endif //IMU_DEBUG
+  
   while( ! (ms5611_dataReady()
 #ifdef HAVE_ACCELEROMETER
             && vertaccel_dataReady()
@@ -923,6 +533,10 @@ beeper.init(GnuSettings.VARIOMETER_SINKING_THRESHOLD, GnuSettings.VARIOMETER_CLI
 #endif //HAVE_ACCELEROMETER
 
   /* init kalman filter */
+#ifdef PROG_DEBUG
+      Serial.println("initialization kalman");
+#endif //IMU_DEBUG
+
   kalmanvert.init(ms5611_getAltitude(),
 #ifdef HAVE_ACCELEROMETER
                   vertaccel_getValue(),
@@ -933,7 +547,6 @@ beeper.init(GnuSettings.VARIOMETER_SINKING_THRESHOLD, GnuSettings.VARIOMETER_CLI
                   ACCELERATION_MEASURE_STANDARD_DEVIATION,
                   millis());
 
-
 #ifdef HAVE_SPEAKER
   beeper.setVolume(GnuSettings.VARIOMETER_BEEP_VOLUME);
 #ifdef HAVE_SCREEN
@@ -943,6 +556,9 @@ beeper.init(GnuSettings.VARIOMETER_SINKING_THRESHOLD, GnuSettings.VARIOMETER_CLI
   volLevel.setVolume(0);
 #endif //HAVE_SPEAKER
 
+toneAC(2000);
+delay(1000);
+noToneAC();  
 
 /*----------------------------------------*/
 /*                                        */
@@ -963,128 +579,12 @@ beeper.init(GnuSettings.VARIOMETER_SINKING_THRESHOLD, GnuSettings.VARIOMETER_CLI
 void createSDCardTrackFile(void);
 #endif //defined(HAVE_SDCARD) && defined(HAVE_GPS)
 void enableflightStartComponents(void);
-void usbConnectedMode(void);
-boolean statistiquePage(void);
-void soundPage(void);
-void varioCode(void);
-void displaySound(int8_t volume);
 
-
-/*-----------------*/
-/*                 */
-/*      LOOP       */
-/*                 */
-/*-----------------*/
-
-
-void loop(){
-
-#ifdef IMU_DEBUG
-    Serial.println("Loop");
-#endif //IMU_DEBUG
-
-/*************************/
-/*   Detect push button  */
-/*                       */
-/*************************/
-
-  // check if the pushbutton is pressed.
-  if (stateLeftInterrup == HIGH) {
-     stateLeftInterrup = LOW;
-    //Action - Left button press
-
-#ifdef HAVE_SCREEN
-    if (varioScreen.getPage() == 0) {
-
-      if (statistiquePage()) {
-        if (variometerState == VARIOMETER_STATE_FLIGHT_STARTED) {
-
-#ifdef HAVE_SDCARD
-          //Enregistrement CRC IGC
-#endif //HAVE_SDCARD
-        }
-
-#ifdef HAVE_SDCARD
-          //Fermeture fichier
-          file.close();
-#endif //HAVE_SDCARD
-        
-	      //Sleeping M0
-        //Power OFF
-        statePowerInt = LOW;
-    
-        //Mise en veille
-        indicatePowerDown();
-        powerDown();
-	    }
-    }
-    else
-    {
-      varioScreen.previousPage();
-    }
- #endif //HAVE_SCREEN   
-  }
-  else if (stateRightInterrup == HIGH) {
-  // check if the pushbutton is pressed.
-    stateRightInterrup = LOW;
-    //Action - Right button press
-
-#ifdef HAVE_SCREEN
-    if (varioScreen.getPage() == varioScreen.getMaxPage()) {
-      soundPage();
-    }
-    else
-    {
-      varioScreen.nextPage();
-    }
-#endif //HAVE_SCRREN    
-  } 
-  else if (statePowerInt == HIGH) {
-   
-  }
-
-  varioCode();
+/*----------------*/
+/*      LOOP      */
+/*----------------*/
+void loop() {
  
-#ifdef HAVE_SCREEN
-
-  /* screen update */
-     multiDisplay.displayStep();
-     varioScreen.displayStep();
-     screen.updateScreen();
-
- /* if (TmplastFreqUpdate == 0) TmplastFreqUpdate = millis();
-  unsigned long TmpFreqDuration = millis() - TmplastFreqUpdate;
-  if( TmpFreqDuration > 50 ) {
-    TmplastFreqUpdate = millis();
-
-    drdyFlag = 1; // indicate new MPU9250 data is available
-    drdyCounter++;
-  }*/
-
-#endif //HAVE_SCREEN 
-}
-
-
-/*----------------------*/
-/*                      */
-/*      VARIOCODE       */
-/*                      */
-/*----------------------*/
-
-
-void varioCode(void) {
-    /*****************************/
-  /* compute vertical velocity */
-  /*****************************/
-
-    /*******************/
-    /*Acquisition Data */
-    /*******************/
-#ifdef IMU_DEBUG
-    Serial.println("ACQUISITION");
-#endif //IMU_DEBUG
-
-delay(10);
   /*****************************/
   /* compute vertical velocity */
   /*****************************/
@@ -1110,20 +610,15 @@ delay(10);
     beeper.setVelocity( kalmanvert.getVelocity() );
 #endif //HAVE_SPEAKER
 
-  GnuStatistic.setAlti(kalmanvert.getCalibratedPosition());
-  GnuStatistic.setVario(kalmanvert.getVelocity());
     /* set screen */
 #ifdef HAVE_SCREEN
-      altiDigit.setValue(kalmanvert.getCalibratedPosition());
-      varioDigit.setValue(kalmanvert.getVelocity());  //kfClimbrateCps/10);
-#ifdef IMU_DEBUG
-      Serial.print("altitude : ");
-      Serial.print(kalmanvert.getCalibratedPosition());
-      Serial.print("    -   Vario : ");
-      Serial.println(kalmanvert.getVelocity());
-#endif
+    altiDigit.setValue(kalmanvert.getCalibratedPosition());
+    varioDigit.setValue(kalmanvert.getVelocity() );
+
 #endif //HAVE_SCREEN
-    
+   
+    Serial.println(kalmanvert.getCalibratedPosition());
+    Serial.println(kalmanvert.getVelocity() );
     
   }
 
@@ -1133,7 +628,7 @@ delay(10);
 #ifdef HAVE_SPEAKER
   beeper.update();
 #endif //HAVE_SPEAKER
-    
+
 
   /********************/
   /* update bluetooth */
@@ -1229,8 +724,8 @@ delay(10);
       }
 #endif //HAVE_BLUETOOTH
     }
-
-
+  
+  
     /***************************/
     /* update variometer state */
     /*    (after parsing)      */
@@ -1251,31 +746,33 @@ delay(10);
         if( nmeaParser.haveNewAltiValue() && nmeaParser.precision < VARIOMETER_GPS_ALTI_CALIBRATION_PRECISION_THRESHOLD ) {
           
           /* calibrate */
- #ifdef HAVE_SPEAKER 
-   if (GnuSettings.ALARM_GPSFIX) {
- //         toneAC(BEEP_FREQ);
-          beeper.GenerateTone(GnuSettings.BEEP_FREQ, 200);
-//          delay(200);
-//          toneAC(0);
-   }
- #endif //defined(HAVE_SPEAKER) 
- 
-#ifdef HAVE_SCREEN
-          recordIndicator.setActifGPSFIX();
-          fixgpsinfo.setFixGps();
-#endif //HAVE_SCREEN                    
           double gpsAlti = nmeaParser.getAlti();
           kalmanvert.calibratePosition(gpsAlti);
           variometerState = VARIOMETER_STATE_CALIBRATED;
-#ifdef HAVE_SDCARD 
-  if (!GnuSettings.VARIOMETER_RECORD_WHEN_FLIGHT_START) {
+/*#if defined(HAVE_SDCARD) && ! defined(VARIOMETER_RECORD_WHEN_FLIGHT_START)
           createSDCardTrackFile();
-  }
+#endif //defined(HAVE_SDCARD) && ! defined(VARIOMETER_RECORD_WHEN_FLIGHT_START)*/
+#ifdef HAVE_SDCARD 
+          if (!GnuSettings.VARIOMETER_RECORD_WHEN_FLIGHT_START) {
+             createSDCardTrackFile();
+          }
 #endif //HAVE_SDCARD
         }
       }
       
       /* else check if the flight have started */
+/*      else {  //variometerState == VARIOMETER_STATE_CALIBRATED
+        
+        /* check flight start condition *
+        if( (millis() > GnuSettings.FLIGHT_START_MIN_TIMESTAMP) &&
+            (kalmanvert.getVelocity() < GnuSettings.FLIGHT_START_VARIO_LOW_THRESHOLD || kalmanvert.getVelocity() > GnuSettings.FLIGHT_START_VARIO_HIGH_THRESHOLD) &&
+            (nmeaParser.getSpeed() > GnuSettings.FLIGHT_START_MIN_SPEED) ) {
+          variometerState = VARIOMETER_STATE_FLIGHT_STARTED;
+          enableflightStartComponents();
+        }
+      }
+    }
+#ifdef HAVE_BLUETOOTH*/
       else {  //variometerState == VARIOMETER_STATE_CALIBRATED
         
         /* check flight start condition */
@@ -1299,20 +796,19 @@ delay(10);
 #endif //HAVE_BLUETOOTH
 #endif //HAVE_GPS
 
-
   /* if no GPS, we can't calibrate, and we have juste to check flight start */
 #ifndef HAVE_GPS
   if( variometerState == VARIOMETER_STATE_CALIBRATED ) { //already calibrated at start 
- /*   if( (millis() > FLIGHT_START_MIN_TIMESTAMP) 
-#if defined ( VARIOMETER_RECORD_WHEN_FLIGHT_START )      
-      && (kalmanvert.getVelocity() < FLIGHT_START_VARIO_LOW_THRESHOLD || kalmanvert.getVelocity() > FLIGHT_START_VARIO_HIGH_THRESHOLD) 
-#endif   //defined(VARIOMETER_RECORD_WHEN_FLIGHT_START)           */
+/*    if( (millis() > GnuSettings.FLIGHT_START_MIN_TIMESTAMP) &&
+        (kalmanvert.getVelocity() < GnuSettings.FLIGHT_START_VARIO_LOW_THRESHOLD || kalmanvert.getVelocity() > GnuSettings.FLIGHT_START_VARIO_HIGH_THRESHOLD) ) {
+      variometerState = VARIOMETER_STATE_FLIGHT_STARTED;
+      enableflightStartComponents();*/
       if( (millis() > GnuSettings.FLIGHT_START_MIN_TIMESTAMP) &&
           (((GnuSettings.VARIOMETER_RECORD_WHEN_FLIGHT_START) &&   
            (kalmanvert.getVelocity() < GnuSettings.FLIGHT_START_VARIO_LOW_THRESHOLD || kalmanvert.getVelocity() > GnuSettings.FLIGHT_START_VARIO_HIGH_THRESHOLD)) || 
            (!GnuSettings.VARIOMETER_RECORD_WHEN_FLIGHT_START))) {
       variometerState = VARIOMETER_STATE_FLIGHT_STARTED;
-      enableflightStartComponents();
+      enableflightStartComponents();      
     }
   }
 #endif // !HAVE_GPS
@@ -1321,7 +817,6 @@ delay(10);
 int tmpVoltage = analogRead(VOLTAGE_DIVISOR_PIN);
 if (maxVoltage < tmpVoltage) {maxVoltage = tmpVoltage;}
 #endif //HAVE_VOLTAGE_DIVISOR
-
 
   /**********************************/
   /* update low freq screen objects */
@@ -1349,12 +844,10 @@ if (maxVoltage < tmpVoltage) {maxVoltage = tmpVoltage;}
       batLevel.setVoltage( maxVoltage );
       maxVoltage = 0;
 #endif //HAVE_VOLTAGE_DIVISOR
-
-
+   
   /*****************/
   /* update screen */
   /*****************/
-  
 #ifdef HAVE_GPS
   /* when getting speed from gps, display speed and ratio */
   if ( nmeaParser.haveNewSpeedValue() ) {
@@ -1369,26 +862,6 @@ if (maxVoltage < tmpVoltage) {maxVoltage = tmpVoltage;}
 
     double currentSpeed = nmeaParser.getSpeed();
     speedFilterSpeedValues[speedFilterPos] = currentSpeed;
-    GnuStatistic.setSpeed(currentSpeed);
-
-    double meanAltitude = 0;
-    double currentAlti  = RMCSentenceCurrentAlti;
-
-    /*compute trend */
-    
-    int8_t previousAltiPos = ((int8_t)speedFilterPos) - 3;
-    if( previousAltiPos < 0 ) {
-      previousAltiPos += VARIOMETER_SPEED_FILTER_SIZE;
-    }
-    double previousAlti = speedFilterAltiValues[previousAltiPos];   
-    int8_t trend;
-
-    if ( ( (currentAlti - previousAlti) >= -1) && ( (currentAlti - previousAlti) <= 3)) {trend = 0;}
-    else if ((currentAlti - previousAlti) < -1) { trend = -1;}
-    else { trend = 1;}
-    
-    /* display trend */
-    trendLevel.stateTREND( trend );
 
     speedFilterPos++;
     if( speedFilterPos >= VARIOMETER_SPEED_FILTER_SIZE )
@@ -1426,21 +899,16 @@ if (maxVoltage < tmpVoltage) {maxVoltage = tmpVoltage;}
       ratioDigit.setValue(0.0);
     }
   }
-
-
 #endif //HAVE_GPS
 
- recordIndicator.stateRECORD();
+  /* screen update */
+     multiDisplay.displayStep();
+     varioScreen.displayStep();
+     screen.updateScreen();
 
 #endif //HAVE_SCREEN 
-
 }
 
-/*--------------------------------------*/
-/*                                      */
-/*      createSDCardTrackFile           */
-/*                                      */
-/*--------------------------------------*/
 
 
 #if defined(HAVE_SDCARD) && defined(HAVE_GPS)
@@ -1461,9 +929,9 @@ void createSDCardTrackFile(void) {
     }
 
     /* create file */    
-     file = SD.open((char*)dateChar, FILE_WRITE);
-     if (file) {
-        sdcardState = SDCARD_STATE_READY;
+    file = SD.open((char*)dateChar, FILE_WRITE);
+    if (file) {
+      sdcardState = SDCARD_STATE_READY;
             
       /* write the header */
       int16_t datePos = header.begin();
@@ -1495,340 +963,33 @@ void createSDCardTrackFile(void) {
 #endif //defined(HAVE_SDCARD) && defined(HAVE_GPS)
 
 
-/*--------------------------------------*/
-/*                                      */
-/*      enableflightStartComponents     */
-/*                                      */
-/*--------------------------------------*/
-
 
 void enableflightStartComponents(void) {
-
-#ifdef HAVE_SPEAKER
-if (GnuSettings.ALARM_FLYBEGIN) {
-  for( int i = 0; i<2; i++) {
-  //   toneAC(BEEP_FREQ);
- //    delay(200);
-  //   toneAC(0);
-     beeper.GenerateTone(GnuSettings.BEEP_FREQ, 200);
-     delay(200);
-  }
-}
-#endif //HAVE_SPEAKER 
-  
-//display record
-#ifdef HAVE_SCREEN
-recordIndicator.setActifRECORD();
-fixgpsinfo.setFixGps();
-#endif //HAVE_SCREEN
-
   /* set base time */
 #if defined(HAVE_SCREEN) && defined(HAVE_GPS)
   screenElapsedTime.setBaseTime( screenTime.getTime() );
-  GnuStatistic.setTime(screenTime.getTime());
 #endif //defined(HAVE_SCREEN) && defined(HAVE_GPS)
 
   /* enable near climbing */
+#ifdef HAVE_SPEAKER
+//#ifdef VARIOMETER_ENABLE_NEAR_CLIMBING_ALARM
 if (GnuSettings.VARIOMETER_ENABLE_NEAR_CLIMBING_ALARM) {
-#ifdef HAVE_SPEAKER
   beeper.setGlidingAlarmState(true);
-#endif //HAVE_SPEAKER
 }
+//#endif
 
+//#ifdef VARIOMETER_ENABLE_NEAR_CLIMBING_BEEP
 if (GnuSettings.VARIOMETER_ENABLE_NEAR_CLIMBING_BEEP) {
-#ifdef HAVE_SPEAKER
   beeper.setGlidingBeepState(true);
-#endif //HAVE_SPEAKER
 }
+//#endif
+#endif //HAVE_SPEAKER
 
 #if defined(HAVE_SDCARD) && defined(HAVE_GPS) 
+//&& defined(VARIOMETER_RECORD_WHEN_FLIGHT_START)
 if (GnuSettings.VARIOMETER_RECORD_WHEN_FLIGHT_START) {
   createSDCardTrackFile();
 }
-#endif // defined(HAVE_SDCARD) 
+#endif // defined(HAVE_SDCARD) && defined(VARIOMETER_RECORD_WHEN_FLIGHT_START)
 }
 
-
-/*--------------------------------------*/
-/*                                      */
-/*            statistiquePage           */
-/*                                      */
-/*--------------------------------------*/
-
-boolean statistiquePage(void) {
-
-char tmpbuffer[50];
-
-#ifdef SPEAKER
-  toneAC_notone();
-#endif //SPEAKER
-
-#ifdef IMU_DEBUG
-    Serial.println("Statistique");
-#endif IMU_DEBUG
-   
-#ifdef HAVE_SCREEN
-
-  screen.fillRect(0, 0, GxEPD_WIDTH-1, GxEPD_HEIGHT-1, GxEPD_WHITE);
-  screen.drawBitmap(power, 36, 50, 128, 128, GxEPD_BLACK); 
-  screen.updateWindow(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, false);
-
-#endif //HAVE_SCREEN
-
-  while (true) {
-
-#ifdef IMU_DEBUG
-       Serial.println("boucle ");
-#endif IMU_DEBUG
-
-    // check if the pushbutton is pressed.
-    if (stateRightInterrup == HIGH) {
-      delay(200);
-      stateRightInterrup = LOW;
-      //Action - Right button press
-#ifdef HAVE_SCREEN      
-      screen.fillScreen(GxEPD_WHITE); 
-	    varioScreen.setPage(0,true);
-#endif //HAVE_SCREEN
-	    break;     
-    } 
-    else if (statePowerInt == HIGH) {
-      delay(200);
-      statePowerInt == LOW;
-
-#ifdef HAVE_SCREEN
-
-      screen.fillRect(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, GxEPD_WHITE);
-      screen.drawBitmap(logo_gnuvario50, 140, 10, 50, 36, GxEPD_BLACK); //94
-      screen.setFont(&FreeSansBold12pt7b);
-      screen.setTextSize(1);
-
-      screen.setCursor(70, 30);
-      int8_t timeValue[3];
-      GnuStatistic.getTime(timeValue);
-      sprintf(tmpbuffer,"H: %02d : %02d", timeValue[0], timeValue[1]);
-      screen.println(tmpbuffer);
-      screen.setCursor(70, 50);
-      GnuStatistic.getDuration(timeValue);
-      sprintf(tmpbuffer,"D: %02d : %02d", timeValue[0], timeValue[1]);
-      screen.println(tmpbuffer);    
-      double TmpValue    = GnuStatistic.getAltiDeco();
-      double TmpValueMax = GnuStatistic.getMaxAlti();
-      double TmpValueMin = GnuStatistic.getMinAlti();  
-      sprintf(tmpbuffer,"Deco : %4.0f m", TmpValue );
-      screen.setCursor(5, 75);
-      screen.println(tmpbuffer);
-      sprintf(tmpbuffer,"Alti m: %4.0f / %4.0f", TmpValueMin, TmpValueMax );
-      screen.setCursor(5, 95);
-      screen.println(tmpbuffer);
-      TmpValue    = GnuStatistic.getGain();
-      sprintf(tmpbuffer,"Gain : %4.0f m", TmpValue);
-      screen.setCursor(5, 120);
-      screen.println(tmpbuffer);
-     
-      TmpValueMax = GnuStatistic.getMaxSpeed();
-      TmpValueMin = GnuStatistic.getMinSpeed();  
-      sprintf(tmpbuffer,"V km/h : %3.0f / %3.0f", TmpValueMin, TmpValueMax );
-      screen.setCursor(5, 145);
-      screen.println(tmpbuffer);
-
-      TmpValueMax = GnuStatistic.getMaxVario();
-      TmpValueMin = GnuStatistic.getMinVario();  
-      sprintf(tmpbuffer,"Vario : %2.1f / %2.1f", TmpValueMin, TmpValueMax );
-      screen.setCursor(5, 175);
-      screen.println(tmpbuffer);
-
-      screen.updateWindow(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, false);
-#endif //HAVE_SCREEN
-      return true;
-    }   
-  }  
-#ifdef HAVE_SCREEN  
-  screen.fillScreen(GxEPD_WHITE); 
-//  screen.updateWindow(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, true);
-  varioScreen.setPage(0,true);  //force update  
-#endif //HAVE_SCREEN
-  return false;  
-}
-
-/*--------------------------------------*/
-/*                                      */
-/*            soundPage                 */
-/*                                      */
-/*--------------------------------------*/
-
-#ifdef HAVE_SCREEN
-ScreenDigit soundDigit(screen, 100, 150, 2, 0, false, ALIGNNONE);
-#endif //HAVE_SCREEN
-boolean state = false;
-
-void soundPage(void) {
-
-uint8_t volumeSound = GnuSettings.VARIOMETER_BEEP_VOLUME;
-
-
-#ifdef SPEAKER
-  toneAC_notone();
-#endif //SPEAKER
-
-#ifdef IMU_DEBUG
-    Serial.println("Sound configuration");
-#endif IMU_DEBUG
-   
-#ifdef HAVE_SCREEN
-
-  screen.fillRect(0, 0, GxEPD_WIDTH-1, GxEPD_HEIGHT-1, GxEPD_WHITE);
-  displaySound(volumeSound);
-
-#ifdef IMU_DEBUG
-       Serial.println("before boucle ");
-#endif IMU_DEBUG
-
-#endif //HAVE_SCREEN
-
-  while (true) {
-
-#ifdef IMU_DEBUG
-//       Serial.println("boucle ");
-#endif IMU_DEBUG
-
-    if (stateLeftInterrup == HIGH) {
-      delay(200);
-      stateLeftInterrup = LOW;
-      //Action - Left button press
-      if (state == false) {
-        
-#ifdef IMU_DEBUG
-       Serial.println("sortie boucle ");
-#endif IMU_DEBUG
-
-        break;     
-      }
-      else {
-        if (volumeSound > 0) {
-          volumeSound--;
-          displaySound(volumeSound);
-#ifdef HAVE_SPEAKER          
-          toneAC(800,volumeSound);
-          delay(1000);
-          toneAC_notone();
-#endif HAVE_SPEAKER
-       }
-      }
-    }   
-    else if (stateRightInterrup == HIGH) {
-        // check if the pushbutton is pressed.
-       delay(200);
-       stateRightInterrup = LOW;
-      //Action - Right button press
-      if (state == true) {
-        // Sound +1
-        if (volumeSound < 10) {
-          volumeSound++;
-          displaySound(volumeSound);
-#ifdef HAVE_SPEAKER
-          toneAC(800,volumeSound);
-          delay(1000);
-          toneAC_notone();
-#endif HAVE_SPEAKER
-        }
-      }      
-    }   
-    else if (statePowerInt == HIGH) {
-      delay(200);
-      
-      if (state) {
-        
-#ifdef IMU_DEBUG
-         Serial.print("volumeSound = ");
-         Serial.println(volumeSound);
-#endif //IMU_DEBUG
-
-          GnuSettings.soundSettingWrite(volumeSound);  
-          GnuSettings.writeFlashSDSettings();
-#ifdef HAVE_SCREEN
-          volLevel.setVolume(GnuSettings.VARIOMETER_BEEP_VOLUME);
-#endif //HAVE_SCREEN          
-#ifdef HAVE_SPEAKER
-          beeper.setVolume(GnuSettings.VARIOMETER_BEEP_VOLUME);
-#endif HAVE_SPEAKER
-
-/*
-File myFile2;
-
-  SD.remove("FLASH.TXT");
-   myFile2 = SD.open("FLASH.TXT", FILE_WRITE);
-
-  // if the file opened okay, write to it:
-  if (myFile2) {
-    Serial.print("Writing to FLASH.TXT...");
-    myFile2.println("testing 1, 2, 3.");
-    // close the file:
-    myFile2.close();
-    Serial.println("done.");
-  } else {
-    // if the file didn't open, print an error:
-    Serial.println("error opening test.txt");
-  }
-
-  // re-open the file for reading:
-  myFile2 = SD.open("FLASH.TXT");
-  if (myFile2) {
-    Serial.println("FLASH.TXT:");
-
-    // read from the file until there's nothing else in it:
-    while (myFile2.available()) {
-      Serial.write(myFile2.read());
-    }
-    // close the file:
-    myFile2.close();
-  } else {
-    // if the file didn't open, print an error:
-    Serial.println("error opening FLASH.TXT");
-  }  
-*/
-
-
-
-          
-      }
-      else {
-#ifdef HAVE_SPEAKER
-        toneAC(800,volumeSound);
-        delay(1000);
-        toneAC_notone();
-#endif //HAVE_SPEAKER      
-      }
-      
-      state = !state;   
-      displaySound(volumeSound);    
-      statePowerInt = LOW;
-    }   
-  }   
-
-#ifdef HAVE_SCREEN  
-  screen.fillScreen(GxEPD_WHITE); 
-//  screen.updateWindow(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, true);
-  varioScreen.setPage(0,true);  //force update
-#endif //HAVE_SCREEN
-}
-
-void displaySound(int8_t volume) {
- #ifdef HAVE_SCREEN
-  if (volume == 0)   screen.drawBitmap(sound_0, 36, 0, 128, 128, GxEPD_WHITE); 
-  else if (volume < 5) screen.drawBitmap(sound_1, 36, 0, 128, 128, GxEPD_WHITE); 
-  else if (volume < 9) screen.drawBitmap(sound_2, 36, 0, 128, 128, GxEPD_WHITE); 
-  else  screen.drawBitmap(sound_3, 36, 0, 128, 128, GxEPD_WHITE); 
-  soundDigit.setValue(volume);
-  soundDigit.display();
-  if (state) {
-    screen.fillRoundRect(50, 180, 100, 10, 0, GxEPD_BLACK);
-  }
-  else
-  {
-    screen.fillRoundRect(50, 180, 100, 10, 0, GxEPD_WHITE);    
-  }
- // screen.update(); 
-  screen.updateWindow(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, false);
-#endif //HAVE_SCREEN
-}

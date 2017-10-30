@@ -3,7 +3,7 @@
 #include <VarioSettings.h>
 #include <Arduino.h>
 #include <beeper.h>
-#include <toneACZero.h>
+#include <toneAC_Zero.h>
 
 /**********************/
 /* sensor objects */
@@ -106,7 +106,7 @@ void powerDown() {
         Serial.flush();
         delay(100);
 #endif //PRO_DEBBUG
-
+/*
    digitalWrite(VARIO_PIN_ALIM, LOW);   // turn on power cards )
 
 //   detachInterrupt(digitalPinToInterrupt(VARIOPOWER_INT_PIN));
@@ -117,7 +117,7 @@ void powerDown() {
 
 //   nrgSave.begin(WAKE_EXT_INTERRUPT, VARIOPOWER_INT_PIN, POWERInterruptHandler);  //standby setup for external interrupts
   
-   nrgSave.standby();  //now mcu goes in standby mode
+  nrgSave.standby();  //now mcu goes in standby mode
 
  // rtc.standbyMode();
 
@@ -126,7 +126,7 @@ void powerDown() {
 
  //  NVIC_SystemReset();      // processor software reset 
 
-     
+*/     
 #ifdef PROG_DEBUG
     Serial.println("Sortie du mode veille");
     Serial.flush();

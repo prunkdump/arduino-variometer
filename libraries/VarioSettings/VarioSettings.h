@@ -13,23 +13,6 @@
 
 #define VARIOMETER_MODEL "GNUVario"
 
-
-/*****************************/
-/* SDCard/Bluetooth behavior */
-/*****************************/
-
-/* What type of barometric altitude is sent :           */
-/* -> Based on international standard atmosphere        */
-/* -> Calibrated with GPS altitude                      */
-//#define VARIOMETER_SDCARD_SEND_CALIBRATED_ALTITUDE
-//#define VARIOMETER_BLUETOOTH_SEND_CALIBRATED_ALTITUDE
-
-
-/* When there is no GPS to sync variometer bluetooth sentences */
-/* set the delay between sendings in milliseconds.             */ 
-#define VARIOMETER_SENTENCE_DELAY 2000
-
-
 /*----------------------------*/
 /*          HARDWARE          */
 /*      Vario parameters      */
@@ -232,6 +215,16 @@ EXTERNAL_INT_11: RX, SCK*/
 #define VOLTAGE_DIVISOR_VALUE 1.27
 #define VOLTAGE_DIVISOR_REF_VOLTAGE 3.3
 
+/*****************************/
+/* SDCard/Bluetooth behavior */
+/*****************************/
+
+/* What type of barometric altitude is sent :           */
+/* -> Based on international standard atmosphere        */
+/* -> Calibrated with GPS altitude                      */
+//#define VARIOMETER_SDCARD_SEND_CALIBRATED_ALTITUDE
+//#define VARIOMETER_BLUETOOTH_SEND_CALIBRATED_ALTITUDE
+
 /* The bauds rate used by the GPS and Bluetooth modules. */
 /* GPS and bluetooth need to have the same bauds rate.   */
 #define GPS_BLUETOOTH_BAUDS 9600
@@ -242,10 +235,18 @@ EXTERNAL_INT_11: RX, SCK*/
 /*  - VARIOMETER_SENT_LK8000_SENTENCE                     */
 #define VARIOMETER_SENT_LK8000_SENTENCE
 
+
+/* When there is no GPS to sync variometer bluetooth sentences */
+/* set the delay between sendings in milliseconds.             */ 
+#define VARIOMETER_SENTENCE_DELAY 2000
+
+// Accelerometer type
+#define MPU9250
+
+
 /********************/
 /* Measure behavior */
 /********************/
-
 
 /* Speed filtering :                                               */
 /* Greater values give smoother speed. The base unit is 2 seconds  */
@@ -272,21 +273,32 @@ EXTERNAL_INT_11: RX, SCK*/
 // verifying correct operation. Comment out to prevent
 // data being spewed out continuously.
 
-// Accelerometer type
-#define MPU9250
-
-//              DEBUGING MODE
-#define IMU_DEBUG			  //debug IMU
-#define PROG_DEBUG			  //debug principal program
-#define I2CDEV_SERIAL_DEBUG   //debug I2Cdev
 
 //Monitor Port 
 #define SerialPort SerialUSB
 
+/* Set the Sercom and the pins used by GPS/Bluetooth */
+/* See p21 of the datasheet                          */
+#define VARIOMETER_SERIAL_SERCOM SERCOM4
+#define VARIOMETER_SERIAL_TX_PIN 4
+#define VARIOMETER_SERIAL_RX_PIN 5
+#define VARIOMETER_SERIAL_PIN_FUNCTION PIO_SERCOM_ALT
+#define VARIOMETER_SERIAL_TX_PAD UART_TX_PAD_2
+#define VARIOMETER_SERIAL_RX_PAD SERCOM_RX_PAD_3
+
+/* I2C speed                                   */
+/* You can try 800 on <8mhz microcontrollers   */ 
+/* (Not always work)                           */
+#define FASTWIRE_SPEED 400
 
 /* eeprom sound setting adresses */
 #define SOUND_EPROM_TAG 9806
 #define SOUND_EPROM_ADDR 0x10
+
+//              DEBUGING MODE
+//#define IMU_DEBUG			  //debug IMU
+//#define PROG_DEBUG			  //debug principal program
+//#define I2CDEV_SERIAL_DEBUG   //debug I2Cdev
 
 /******************************************************/
 /******************************************************/

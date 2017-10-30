@@ -1,9 +1,21 @@
 #include <Arduino.h>
 #include <beeper.h>
-#include <toneACZero.h>
+#include <toneAC_Zero.h>
+
+Beeper::Beeper(uint8_t baseVolume) {
+  /* save volume */
+  volume = baseVolume;
+  
+  /* set threshold */
+  setThresholds(BEEP_VELOCITY_DEFAULT_SINKING_THRESHOLD, BEEP_VELOCITY_DEFAULT_CLIMBING_THRESHOLD, BEEP_VELOCITY_DEFAULT_NEAR_CLIMBING_SENSITIVITY);
+  
+  /* init private vars */
+  beepStartTime = 0;
+  beepState = 0;
+  beepType = BEEP_TYPE_SILENT;	
+}
 
 void Beeper::init(double sinkingThreshold, double climbingThreshold, double nearClimbingSensitivity, uint8_t baseVolume) {
-
   /* save volume */
   volume = baseVolume;
   
@@ -14,10 +26,8 @@ void Beeper::init(double sinkingThreshold, double climbingThreshold, double near
   beepStartTime = 0;
   beepState = 0;
   beepType = BEEP_TYPE_SILENT;
-  
-  toneAC_initClock();
-  toneAC_init();
 }
+
 
 void Beeper::setThresholds(double sinkingThreshold, double climbingThreshold, double nearClimbingSensitivity) {
 
@@ -278,7 +288,7 @@ void Beeper::setTone() {
 	}
       } else {
 //	toneAC(0.0);
-    toneAC_notone();
+    noToneAC();
 	bst_unset(BEEP_HIGH);
       }
     }
@@ -309,7 +319,7 @@ void Beeper::setTone() {
     /**********/
     else if( beepType == BEEP_TYPE_SILENT ) {
 //      toneAC(0.0);
-      toneAC_notone();
+      noToneAC();
       bst_unset(BEEP_HIGH);
     }
 
@@ -327,12 +337,12 @@ void Beeper::setTone() {
 	  }
 	} else {
 //	  toneAC(0.0);
-	  toneAC_notone();
+	  noToneAC();
 	  bst_unset(BEEP_HIGH);
 	}
       } else {
 //	toneAC(0.0);
-	toneAC_notone();
+	noToneAC();
 	bst_unset(BEEP_HIGH);
       }
     }
@@ -350,7 +360,7 @@ void Beeper::setTone() {
 	}
       } else {
 //	toneAC(0.0);
-	toneAC_notone();
+	noToneAC();
 	bst_unset(BEEP_HIGH);
       }
     }
@@ -374,7 +384,7 @@ void Beeper::SetFrequency(int32_t fHz) {
         toneAC(fHz, volume);
 	}
 	else {
-		toneAC_notone();
+		noToneAC();
 	}
 }
 

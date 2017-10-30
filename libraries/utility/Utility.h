@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 #include <beeper.h>
-#include <EnergySaving.h>
+//#include <EnergySaving.h>
 
 
 /******************************************************/
@@ -49,7 +49,7 @@
 	double gain;
 };*/
 
-extern EnergySaving nrgSave;
+//extern EnergySaving nrgSave;
 extern byte statePowerInt;
 extern byte statePower;
 

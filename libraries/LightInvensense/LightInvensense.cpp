@@ -10,8 +10,6 @@
 #include <InvenSense_defines.h>
 #include <I2Cdev.h>
 
-#include <varioSettings.h>
-
 #define MAX_INIT_RESET_RETRY 20
 
 /* original firmware parameters */
@@ -707,25 +705,11 @@ int fastMPUReadFIFO(short *gyro, short *accel, long *quat) {
   if( fifoCount < COMPRESSED_DMP_PAQUET_LENGTH )
     return -1;
 
-#ifdef IMU_DEBUG
-      Serial.println("fifo least");
-#endif
-
   /* if fifo is at least 50%, check overflow */
   if( fifoCount > (INV_HW_MAX_FIFO >> 1) ) {
     I2Cdev::readBytes(INV_HW_ADDR, INV_REG_INT_STATUS, 1, data);
-
-	#ifdef IMU_DEBUG
-      Serial.println("i2c read");
-#endif
-	
     if( data[0] & BIT_FIFO_OVERFLOW ) {
       fastFIFOReset();
-	  
-#ifdef IMU_DEBUG
-      Serial.println("fifo reset");
-#endif
-	  
       return -1;
     }
   }

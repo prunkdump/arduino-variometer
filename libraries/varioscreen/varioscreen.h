@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <digit.h>
 // select the display class to use, only one
-#include <GxGDEP015OC1/GxGDEP015OC1.h>
+#include <GxGDEP015OC1/GxGDEP015OC1NL.h>
 //#include <GxGDE0213B1/GxGDE0213B1.h>
 //#include <GxGDEH029A1/GxGDEH029A1.h>
 //#include <GxGDEW042T2/GxGDEW042T2.h>

@@ -27,6 +27,7 @@
 /* the pressure normalized sea level pressure */  
 #define MS5611_BASE_SEA_PRESSURE 1013.25
 
+
 #define MS5611_ADDRESS (0x77)
 #define MS5611_CMD_RESET (0x1E)
 #define MS5611_CMD_READ_PROM (0xA2)
@@ -47,7 +48,7 @@
 /* the final period is 1024/F_CPU * INTERRUPT_COMPARE */
 /* in seconds */
 #define MS5611_INTERRUPT_COMPARE 468
-#define MS5611_INTERRUPT_START_DELAY 1000
+#define MS5611_INTERRUPT_START_DELAY 3
 
 /* ################################ */
 

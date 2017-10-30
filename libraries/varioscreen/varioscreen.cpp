@@ -161,7 +161,7 @@ void VarioScreen::getTextBounds(char *str, int16_t x, int16_t y,
 
 void VarioScreen::updateScreen (void)
 {
-	updateWindow(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, false);
+	updateWindowNL(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, false);
 }
 
 

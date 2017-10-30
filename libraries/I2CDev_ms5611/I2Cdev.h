@@ -84,11 +84,13 @@ THE SOFTWARE.
     #endif
 #endif
 
+/* !!! must be corrected !!! */
+#ifndef BUFFER_LENGTH
+#define BUFFER_LENGTH 32
+#endif
+
 // 1000ms default read timeout (modify with "I2Cdev::readTimeout = [ms];")
 #define I2CDEV_DEFAULT_READ_TIMEOUT     1000
-
-#define BUFFER_LENGTH 32
-
 
 class I2Cdev {
     public:
