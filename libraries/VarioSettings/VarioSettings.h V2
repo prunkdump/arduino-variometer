@@ -153,4 +153,7 @@
 /* Alarm Fly begin */
 #define ALARM_FLYBEGIN
 
+/* Mute */
+//#define HAVE_MUTE
+
 #endif

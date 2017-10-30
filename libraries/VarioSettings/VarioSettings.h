@@ -15,7 +15,7 @@
 #define VARIOMETER_GLIDER_NAME "MAC-PARA Muse 3"
 
 /* time zone relative to UTC */
-#define VARIOMETER_TIME_ZONE (+2) 
+#define VARIOMETER_TIME_ZONE (+1) 
 
 /*********/
 /* Beeps */
@@ -152,5 +152,8 @@
 #define ALARM_GPSFIX
 /* Alarm Fly begin */
 #define ALARM_FLYBEGIN
+
+/* Mute */
+//#define HAVE_MUTE
 
 #endif

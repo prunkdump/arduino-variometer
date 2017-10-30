@@ -55,6 +55,7 @@
  *
  * v 63.5     Optimisation librairie accélerometre - LightInvensense
  *            Ajout Mute sound 
+ *            Correction problème de carte SD
  *
  *******************/
  
@@ -293,7 +294,9 @@ void setup() {
   if( firmwareUpdateCond() ) {
    firmwareUpdate();
   }
+#ifdef HAVE_MUTE  
   fastMPUSetTapCallback(beeperTapCallback);
+#endif //HAVE_MUTE
 #endif //HAVE_ACCELEROMETER
 
   /************/
