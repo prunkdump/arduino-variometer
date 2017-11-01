@@ -488,7 +488,7 @@ beeper.init(GnuSettings.VARIOMETER_SINKING_THRESHOLD, GnuSettings.VARIOMETER_CLI
   /******************/
   /* init barometer */
   /******************/
- #ifdef PROG_DEBUG
+#ifdef PROG_DEBUG
       Serial.println("initialization ms5611");
 #endif //IMU_DEBUG
  ms5611_init();
@@ -697,17 +697,25 @@ void loop() {
         
         /* parse sentence */        
         nmeaParser.feed( c );
+#ifdef PROG_DEBUG
+      Serial.print(c);
+#endif //IMU_DEBUG
+
 
 #ifdef HAVE_SDCARD          
         /* if GGA, convert to IGC and write to sdcard */
         if( sdcardState == SDCARD_STATE_READY && nmeaParser.isParsingGGA() ) {
           igc.feed(c);
-          while( igc.available() ) {
+          while( igc.available() ) {           
             file.write( igc.get() );
           }
         }
 #endif //HAVE_SDCARD
       }
+#ifdef PROG_DEBUG
+      Serial.println("");
+#endif //IMU_DEBUG
+      
       serialNmea.release();
     
 #ifdef HAVE_BLUETOOTH   

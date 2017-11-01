@@ -108,15 +108,15 @@ void VarioScreen::begin(void)
 
 
 // Pass string and a cursor position, returns UL corner and W,H.
-void VarioScreen::getTextBounds(char *str, int16_t x, int16_t y,
+/*void VarioScreen::getTextBounds(char *str, int16_t x, int16_t y,
         int16_t *x1, int16_t *y1, uint16_t *w, uint16_t *h) {
     uint8_t c; // Current character
 
 	int16_t tmpx, tmpy;
 	tmpx = x;
 	tmpy = y;
-  /*  *x1 = x;
-    *y1 = y;*/
+//    *x1 = x;
+//    *y1 = y;
     *x1 = tmpx;
     *y1 = tmpy;	
     *w  = *h = 0;
@@ -153,11 +153,11 @@ void VarioScreen::getTextBounds(char *str, int16_t x, int16_t y,
         *h  = maxy - miny + 1;
     }
 
-/*	*x1 = minx;
-	*w  = maxx-minx;
-	*y1 = miny;
-	*h  = maxy-miny;*/
-}
+//	*x1 = minx;
+//	*w  = maxx-minx;
+//	*y1 = miny;
+//	*h  = maxy-miny;
+}*/
 
 void VarioScreen::updateScreen (void)
 {
@@ -397,11 +397,11 @@ void ScreenDigit::display() {
   Serial.println(precision);
 #endif //IMU_DEBUG
   
-  screen.getTextBounds(digitCharacters, 0, box_y, &box_w, &box_h, &w, &h);
-  screen.getTextBounds(tmpdigitCharacters, 0, box_y, &box_w1, &box_h1, &w1, &h1);
+  screen.getTextBounds(digitCharacters, box_x, box_y, &box_w, &box_h, &w, &h);
+  screen.getTextBounds(tmpdigitCharacters, box_x, box_y, &box_w1, &box_h1, &w1, &h1);
   
-  if (h1 > h) {h = h1;}
-  if (w1 > w) {w = w1;}
+//  if (h1 > h) {h = h1;}
+//  if (w1 > w) {w = w1;}
   
 #ifdef IMU_DEBUG
   Serial.print("box_x / box_y  : ");
@@ -419,12 +419,12 @@ void ScreenDigit::display() {
 #endif //IMU_DEBUG
   
   if (leftAlign) {
-    screen.fillRect(box_x, box_h+1, w+5, h, GxEPD_WHITE);
+    screen.fillRect(box_x, box_h, w1+5, h1, GxEPD_WHITE);
     screen.setCursor(box_x, box_y);
     screen.print(digitCharacters);
   }
   else {
-    screen.fillRect(box_x-w, box_h+1, w+5, h, GxEPD_WHITE);
+    screen.fillRect(box_x-w1, box_h, w1+5, h1, GxEPD_WHITE);
 //  screen.drawRect(box_x-w, box_h+1, w+1, h, GxEPD_BLACK);
     screen.setCursor(box_x-w, box_y);
     screen.print(digitCharacters);
@@ -468,7 +468,7 @@ B000000000000000000000000}*/
 
   // 24 x 24 
 const unsigned char msicons[] = { 
-    0x03, 0xC3, 0xC0, 
+ /*   0x03, 0xC3, 0xC0, 
 	0x07, 0xE7, 0xE0, 
 	0x0E, 0x1C,	0x30, 	
 	0x0C, 0x18, 0x30, 	
@@ -491,8 +491,57 @@ const unsigned char msicons[] = {
 	0x00, 0x01, 0x80, 
 	0x00, 0xFF, 0x80, 
 	0x00, 0xFF, 0x80, 
+	0x00, 0x00, 0x00*/
+	0x00, 0x00, 0x00,
+	0x07, 0xFF, 0xE0,
+	0x0F, 0xFF, 0xF0,
+	0x0C, 0x18, 0x30,
+	0x0C, 0x18, 0x30,
+	0x0C, 0x18, 0x30,
+	0x0C, 0x18, 0x30,
+	0x0C, 0x18, 0x30,
+	0x0C, 0x18, 0x30,
+	0x00, 0x00, 0x00,
+	0x3F, 0xFF,	0xFC, 
+	0x3F, 0xFF, 0xFC, 
+	0x00, 0x00, 0x00, 
+	0x00, 0x7F, 0x80, 	
+	0x00, 0xFF, 0x80,	
+	0x00, 0xC0, 0x00,
+	0x00, 0xC0, 0x00,
+	0x00, 0xFF, 0x00, 	
+	0x00, 0x7F,	0x80,
+	0x00, 0x01, 0x80, 
+	0x00, 0x01, 0x80, 
+	0x00, 0xFF, 0x80, 
+	0x00, 0xFF, 0x80, 
 	0x00, 0x00, 0x00
 };
+
+/*{B000000000000000000000000,
+B000001111111111111100000,
+B000011111111111111110000,
+B000110000001100000011000,
+B000110000001100000011000,
+B000110000001100000011000,
+B000110000001100000011000,
+B000110000001100000011000,
+B000110000001100000011000,
+B000110000001100000011000,
+B000000000000000000000000,
+B000000000000000000000000,
+B111111111111111111111111,
+B111111111111111111111111,
+B000000000000000000000000,
+B000000000111111000000000,
+B000000001100000000000000,
+B000000001000000000000000,
+B000000001100000000000000,
+B000000000111110000000000,
+B000000000000011000000000,
+B000000000000001000000000,
+B000000000000011000000000,
+B000000001111110000000000}*/
 
 void MSUnit::display() {
 // screen.drawBitmap(msicons, posX, posY, 48, 48, GxEPD_WHITE,false);   //GxEPD_BLACK);

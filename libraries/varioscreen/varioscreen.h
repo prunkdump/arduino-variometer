@@ -35,7 +35,7 @@ class VarioScreen : public GxEPD_Class {
     : GxEPD_Class(io, rst, busy) {}
   
   void begin();
-  void  getTextBounds(char *string, int16_t x, int16_t y, int16_t *x1, int16_t *y1, uint16_t *w, uint16_t *h);
+//  void  getTextBounds(char *string, int16_t x, int16_t y, int16_t *x1, int16_t *y1, uint16_t *w, uint16_t *h);
   void updateScreen (void);
 //  void clearScreen(void); 
 
