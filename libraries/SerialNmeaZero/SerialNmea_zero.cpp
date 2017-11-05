@@ -3,13 +3,24 @@
 #include <Arduino.h>
 #include <SERCOM.h>
 #include <wiring_private.h>
+#include <VarioSettings.h>
 
-#define DEGUB_SERIAL_NMEA_1
+//#define DEGUB_SERIAL_NMEA_1
 
 
 #define NMEA_TAG_SIZE 5
+
+#if defined(VARIOMETER_GPS_NEO6) 
 const char rmcTag[] PROGMEM = {"GPRMC"};
 const char ggaTag[] PROGMEM = {"GPGGA"};
+#elif defined(VARIOMETER_GPS_NEO8)
+const char rmcTag[] PROGMEM = {"GNRMC"};
+const char ggaTag[] PROGMEM = {"GNGGA"};
+#else
+const char rmcTag[] PROGMEM = {"GPRMC"};
+const char ggaTag[] PROGMEM = {"GPGGA"};
+#endif
+
 
 #define serialState_set(bit) state |= (1 << bit)
 #define serialState_unset(bit) state &= ~(1 << bit)
@@ -87,7 +98,7 @@ void SerialNmea::rxCompleteVect(void) {
   /* read */
   uint8_t c = snsercom.readDataUART();
 #ifdef DEGUB_SERIAL_NMEA_1
-//  Serial.write((char)c);
+  Serial.write((char)c);
   stateInterrupt = HIGH;
 #endif
 

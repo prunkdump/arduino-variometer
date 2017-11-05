@@ -1,6 +1,7 @@
 #include <varioscreen.h>
 #include <Arduino.h>
-#include<avr\dtostrf.h>
+#include <avr\dtostrf.h>
+#include <varioSettings.h>
 
 /* http://javl.github.io/image2cpp/ */
 
@@ -385,13 +386,22 @@ void ScreenDigit::display() {
   Serial.print(" tmpdigit : ");
   Serial.println(tmpdigitCharacters);*/
 
-#ifdef IMU_DEBUG
+#ifdef PROG_DEBUG
+  Serial.print("digit value : ");
+  Serial.print(value);
+
+  Serial.print(" - digit oldvalue : ");
+  Serial.print(oldvalue);
+  
+  if (leftAlign) Serial.println(" - leftAlign");
+  else 			 Serial.println(" - rightAlign");
+	  
   Serial.print(digitCharacters);
   Serial.print(" - box_x / box_y  : ");
   Serial.print(box_x);
   Serial.print("  -  ");
-  Serial.print(box_y);
-  Serial.print(" // width / precision : ");
+  Serial.println(box_y);
+  Serial.print("width / precision : ");
   Serial.print(width);
   Serial.print("  -  ");
   Serial.println(precision);
@@ -419,14 +429,21 @@ void ScreenDigit::display() {
 #endif //IMU_DEBUG
   
   if (leftAlign) {
-    screen.fillRect(box_x, box_h, w1+5, h1, GxEPD_WHITE);
+	if ((box_x+w1+6) > 200)  
+      screen.fillRect(box_x, box_h-3, 200-box_x, h1+3, GxEPD_WHITE);
+    else
+      screen.fillRect(box_x, box_h-3, w1+6, h1+3, GxEPD_WHITE);
     screen.setCursor(box_x, box_y);
     screen.print(digitCharacters);
   }
   else {
-    screen.fillRect(box_x-w1, box_h, w1+5, h1, GxEPD_WHITE);
+	if ((box_x+w1+6) > 200)  
+      screen.fillRect(box_x-w1, box_h-3, 200-box_x, h1+3, GxEPD_WHITE);
+    else
+      screen.fillRect(box_x-w1, box_h-3, w1+6, h1+3, GxEPD_WHITE);
+
 //  screen.drawRect(box_x-w, box_h+1, w+1, h, GxEPD_BLACK);
-    screen.setCursor(box_x-w, box_y);
+    screen.setCursor(box_x-w-1, box_y);
     screen.print(digitCharacters);
 //  screen.updateWindow(box_w, box_h, w+box_w, h, true);	  
   }
@@ -1096,10 +1113,17 @@ int8_t* ScreenTime::getTime(void) {
 /* !!! never reset, only on page change !!! */
 void ScreenTime::display(void) {
 
+  screen.fillRect(posX-63, posY-32, 65, 34, GxEPD_WHITE);
+
+
+  if (dot_or_h == false)
+    screen.drawBitmap(hicons, posX-65, posY-24, 16, 24, GxEPD_BLACK,false);   //GxEPD_BLACK);
+  else	  
+    screen.drawBitmap(doticons, posX-65, posY-24, 16, 24, GxEPD_BLACK,false);   //GxEPD_BLACK);
+
   hour.setValue(time[2]);
   hour.display();
  //  display h ou dot
-  screen.drawBitmap(doticons, posX-63, posY-24, 16, 24, GxEPD_BLACK,false);   //GxEPD_BLACK);
 
   minute.setValue(time[1]);
   minute.display();

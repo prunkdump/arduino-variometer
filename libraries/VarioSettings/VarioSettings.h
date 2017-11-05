@@ -286,6 +286,10 @@ EXTERNAL_INT_11: RX, SCK*/
 #define VARIOMETER_SERIAL_TX_PAD UART_TX_PAD_2
 #define VARIOMETER_SERIAL_RX_PAD SERCOM_RX_PAD_3
 
+/* Model GPS */
+//#define VARIOMETER_GPS_NEO6
+#define VARIOMETER_GPS_NEO8
+
 /* I2C speed                                   */
 /* You can try 800 on <8mhz microcontrollers   */ 
 /* (Not always work)                           */
@@ -296,9 +300,10 @@ EXTERNAL_INT_11: RX, SCK*/
 #define SOUND_EPROM_ADDR 0x10
 
 //              DEBUGING MODE
-//#define IMU_DEBUG			  //debug IMU
-//#define PROG_DEBUG			  //debug principal program
-//#define I2CDEV_SERIAL_DEBUG   //debug I2Cdev
+#define IMU_DEBUG			  //debug IMU
+#define PROG_DEBUG			  //debug principal program
+#define I2CDEV_SERIAL_DEBUG   //debug I2Cdev
+#define DEGUB_SERIAL_NMEA_1
 
 /******************************************************/
 /******************************************************/

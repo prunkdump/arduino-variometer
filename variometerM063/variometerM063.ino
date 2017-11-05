@@ -84,7 +84,11 @@
  * v 63.0     beta 2 version
  *            version basée sur le code et les librairies M0 de PRUNKDUMP
  *            -Paramettres dans fichier TXT
- *            Ecran I-Ink
+ *            - Ecran I-Ink
+ * v 63.0     beta 2.1 version           
+ *            - add GPS Neo 8 
+ *            - fix display bugs
+ *            - add record Indicator, gps indicator
  *******************/
 
 /*****************/
@@ -137,6 +141,8 @@ VarioScreen screen(io);
 /*!! libraries/VarioSettings/VarioSettings.h  !!*/
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
+/*uint8_t tmpValue=0;
+unsigned long TmplastFreqUpdate;*/
 
 /*******************/
 /* General objects */
@@ -175,7 +181,7 @@ unsigned long lastLowFreqUpdate = 0;
 #define VARIOSCREEN_SPEED_ANCHOR_Y 190
 #define VARIOSCREEN_SPEED_UNIT_ANCHOR_X 55
 #define VARIOSCREEN_SPEED_UNIT_ANCHOR_Y 165
-#define VARIOSCREEN_GR_ANCHOR_X 195
+#define VARIOSCREEN_GR_ANCHOR_X 144
 #define VARIOSCREEN_GR_ANCHOR_Y 135
 #define VARIOSCREEN_INFO_ANCHOR_X 4
 #define VARIOSCREEN_INFO_ANCHOR_Y 0
@@ -189,7 +195,7 @@ unsigned long lastLowFreqUpdate = 0;
 #define VARIOSCREEN_SAT_ANCHOR_Y 0
 #define VARIOSCREEN_SAT_FIX_ANCHOR_X 176
 #define VARIOSCREEN_SAT_FIX_ANCHOR_Y 40
-#define VARIOSCREEN_TIME_ANCHOR_X 197
+#define VARIOSCREEN_TIME_ANCHOR_X 195
 #define VARIOSCREEN_TIME_ANCHOR_Y 190
 #define VARIOSCREEN_ELAPSED_TIME_ANCHOR_X 197
 #define VARIOSCREEN_ELAPSED_TIME_ANCHOR_Y 190
@@ -204,7 +210,7 @@ ScreenDigit varioDigit(screen, VARIOSCREEN_VARIO_ANCHOR_X, VARIOSCREEN_VARIO_ANC
 MSUnit msunit(screen, VARIOSCREEN_VARIO_UNIT_ANCHOR_X, VARIOSCREEN_VARIO_UNIT_ANCHOR_Y);
 KMHUnit kmhunit(screen, VARIOSCREEN_SPEED_UNIT_ANCHOR_X, VARIOSCREEN_SPEED_UNIT_ANCHOR_Y);
 ScreenDigit speedDigit(screen, VARIOSCREEN_SPEED_ANCHOR_X, VARIOSCREEN_SPEED_ANCHOR_Y, 2, 0, false, ALIGNNONE);
-ScreenDigit ratioDigit(screen, VARIOSCREEN_GR_ANCHOR_X, VARIOSCREEN_GR_ANCHOR_Y, 2, 0, false, ALIGNNONE);
+ScreenDigit ratioDigit(screen, VARIOSCREEN_GR_ANCHOR_X, VARIOSCREEN_GR_ANCHOR_Y, 2, 0, false, ALIGNZERO,true);
 
 INFOLevel infoLevel(screen, VARIOSCREEN_INFO_ANCHOR_X, VARIOSCREEN_INFO_ANCHOR_Y);
 VOLLevel  volLevel(screen, VARIOSCREEN_VOL_ANCHOR_X, VARIOSCREEN_VOL_ANCHOR_Y);
@@ -216,7 +222,7 @@ int maxVoltage = 0;
 SATLevel satLevel(screen, VARIOSCREEN_SAT_ANCHOR_X, VARIOSCREEN_SAT_ANCHOR_Y);
 
 ScreenDigit timeMDigit(screen, VARIOSCREEN_TIME_ANCHOR_X, VARIOSCREEN_TIME_ANCHOR_Y, 2, 0, false, ALIGNZERO);
-ScreenDigit timeHDigit(screen, VARIOSCREEN_TIME_ANCHOR_X-64, VARIOSCREEN_TIME_ANCHOR_Y, 2, 0, false, ALIGNZERO);
+ScreenDigit timeHDigit(screen, VARIOSCREEN_TIME_ANCHOR_X-68, VARIOSCREEN_TIME_ANCHOR_Y, 2, 0, false, ALIGNZERO);
 
 ScreenTime screenTime(screen, VARIOSCREEN_TIME_ANCHOR_X, VARIOSCREEN_TIME_ANCHOR_Y, timeHDigit, timeMDigit);
 ScreenElapsedTime screenElapsedTime(screen, VARIOSCREEN_ELAPSED_TIME_ANCHOR_X, VARIOSCREEN_ELAPSED_TIME_ANCHOR_Y, timeHDigit, timeMDigit);
@@ -369,6 +375,19 @@ void displayBoot(void) {
 /*      SETUP      */
 /*-----------------*/
 void setup() {
+
+/************************/
+/*        Init Power    */
+/************************/
+
+//  statePower = HIGH;
+  pinMode(VARIO_DETECT_USB, INPUT_PULLDOWN);
+
+  pinMode(VARIO_PIN_ALIM, OUTPUT);
+  digitalWrite(VARIO_PIN_ALIM, HIGH);   // turn on power cards )
+
+  digitalWrite(VARIO_PIN_RST, HIGH);   // Hard Reset M0 )
+  pinMode(VARIO_PIN_RST, OUTPUT);
 
   /*****************************/
   /* wait for devices power on */
@@ -754,6 +773,20 @@ void loop() {
         if( nmeaParser.haveNewAltiValue() && nmeaParser.precision < VARIOMETER_GPS_ALTI_CALIBRATION_PRECISION_THRESHOLD ) {
           
           /* calibrate */
+ #ifdef HAVE_SPEAKER 
+   if (GnuSettings.ALARM_GPSFIX) {
+ //         toneAC(BEEP_FREQ);
+          beeper.GenerateTone(GnuSettings.BEEP_FREQ, 200);
+//          delay(200);
+//          toneAC(0);
+   }
+ #endif //defined(HAVE_SPEAKER) 
+ 
+#ifdef HAVE_SCREEN
+          recordIndicator.setActifGPSFIX();
+          fixgpsinfo.setFixGps();
+#endif //HAVE_SCREEN                    
+       
           double gpsAlti = nmeaParser.getAlti();
           kalmanvert.calibratePosition(gpsAlti);
           variometerState = VARIOMETER_STATE_CALIBRATED;
@@ -838,12 +871,22 @@ if (maxVoltage < tmpVoltage) {maxVoltage = tmpVoltage;}
 
 #ifdef HAVE_GPS
       /* set time */
+#ifdef PROG_DEBUG
+      Serial.print("Time : ");
+      Serial.println(nmeaParser.time);
+#endif //IMU_DEBUG
+
       screenTime.setTime( nmeaParser.time );
       screenTime.correctTimeZone( GnuSettings.VARIOMETER_TIME_ZONE );
       screenElapsedTime.setCurrentTime( screenTime.getTime() );
 
       /* update satelite count */
       satLevel.setSatelliteCount( nmeaParser.satelliteCount );
+#ifdef PROG_DEBUG
+      Serial.print("Sat : ");
+      Serial.println(nmeaParser.satelliteCount);
+#endif //IMU_DEBUG
+      
 #endif //HAVE_GPS  
 
 #ifdef HAVE_VOLTAGE_DIVISOR
@@ -900,6 +943,10 @@ if (maxVoltage < tmpVoltage) {maxVoltage = tmpVoltage;}
     double ratio = (meanDistance/3600.0)/deltaAlti;
 
     /* display speed and ratio */    
+#ifdef PROG_DEBUG
+      Serial.print("Speed : ");
+      Serial.println(currentSpeed);
+#endif //IMU_DEBUG
     speedDigit.setValue( currentSpeed );
     if( currentSpeed >= RATIO_MIN_SPEED && ratio >= 0.0 && ratio < RATIO_MAX_VALUE ) {
       ratioDigit.setValue(ratio);
@@ -908,6 +955,25 @@ if (maxVoltage < tmpVoltage) {maxVoltage = tmpVoltage;}
     }
   }
 #endif //HAVE_GPS
+
+    recordIndicator.stateRECORD();
+
+
+/*  if (TmplastFreqUpdate == 0) TmplastFreqUpdate = millis();
+  unsigned long TmpFreqDuration = millis() - TmplastFreqUpdate;
+  if( TmpFreqDuration > 100 ) {
+    TmplastFreqUpdate = millis();
+
+      tmpValue++;
+      if (tmpValue > 99) tmpValue = 0;
+      ratioDigit.setValue(tmpValue);
+#ifdef PROG_DEBUG
+      Serial.print("tmpValue : ");
+      Serial.println(tmpValue);
+#endif //IMU_DEBUG
+  }*/
+
+
 
   /* screen update */
      multiDisplay.displayStep();
@@ -973,6 +1039,25 @@ void createSDCardTrackFile(void) {
 
 
 void enableflightStartComponents(void) {
+  
+#ifdef HAVE_SPEAKER
+if (GnuSettings.ALARM_FLYBEGIN) {
+  for( int i = 0; i<2; i++) {
+  //   toneAC(BEEP_FREQ);
+ //    delay(200);
+  //   toneAC(0);
+     beeper.GenerateTone(GnuSettings.BEEP_FREQ, 200);
+     delay(200);
+  }
+}
+#endif //HAVE_SPEAKER 
+  
+//display record
+#ifdef HAVE_SCREEN
+recordIndicator.setActifRECORD();
+fixgpsinfo.setFixGps();
+#endif //HAVE_SCREEN
+
   /* set base time */
 #if defined(HAVE_SCREEN) && defined(HAVE_GPS)
   screenElapsedTime.setBaseTime( screenTime.getTime() );
