@@ -528,8 +528,7 @@ int fastMpuWriteMem(unsigned short memAddr, unsigned char *data) {
   return 0;
 }
 
-
-int fastFIFOReset(void) {
+void disableDMP(void) {
   
   unsigned char data;
 
@@ -543,15 +542,30 @@ int fastFIFOReset(void) {
   data = BIT_FIFO_RST | BIT_DMP_RST;
   I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_USER_CTRL, 1, &data);
   delay(50);
+}
+
+void enableDMP(void) {
+
+  unsigned char data;
 
   /* enable DMP FIFO */
-  data = BIT_DMP_EN | BIT_FIFO_EN;
+  data = BIT_DMP_EN |
+#ifdef AK89xx_SECONDARY
+    BIT_AUX_IF_EN |
+#endif
+    BIT_FIFO_EN;
   I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_USER_CTRL, 1, &data);
   
   /* reset STD FIFO */
   data = 0;
   I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_INT_ENABLE, 1, &data);
   I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_FIFO_EN, 1, &data);
+}
+
+int fastFIFOReset(void) {
+
+  disableDMP();
+  enableDMP();
 
   return 0;
 }
@@ -657,6 +671,56 @@ int fastMPUInit(void) {
   data[1] = INV_DMP_START_ADDRESS & 0xFF;
   I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_PRGM_START_H, 2, data);
 
+#ifdef AK89xx_SECONDARY
+  /*****************/
+  /* setup compass */
+  /*****************/
+
+  /* slave 0 : read mag value */
+  data[0] = BIT_I2C_READ | LIGHT_INVENSENSE_COMPASS_ADDR;
+  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_S0_ADDR, 1, data);
+  data[0] = AKM_REG_ST1;
+  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_S0_REG, 1, data);
+  data[0] = BIT_SLAVE_EN | 8;
+  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_S0_CTRL, 1, data);
+  
+
+  /* slave 1 : launch single measurement */
+  /*
+  data[0] = LIGHT_INVENSENSE_COMPASS_ADDR;
+  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_S1_ADDR, 1, data);
+  data[0] = AKM_REG_CNTL;
+  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_S1_REG, 1, data);
+  data[0] = BIT_SLAVE_EN | 1;
+  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_S1_CTRL, 1, data);
+  data[0] = AKM_SINGLE_MEASUREMENT;
+  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_S1_DO, 1, data);
+  */
+
+  /* slave 4 :  launch single measurement */
+  data[0] = LIGHT_INVENSENSE_COMPASS_ADDR;
+  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_S4_ADDR, 1, data);
+  data[0] = AKM_REG_CNTL;
+  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_S4_REG, 1, data);
+  //TODO check rate 
+  data[0] = BIT_SLAVE_EN | ((1000/(1+COMPRESSED_DMP_RATE_DIV_CFG)) / LIGHT_INVENSENSE_COMPASS_SAMPLE_RATE - 1);
+  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_S4_CTRL, 1, data);
+  data[0] = AKM_SINGLE_MEASUREMENT;
+  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_S4_DO, 1, data);
+
+  /* active slaves and set sample rate */
+  //data[0] = 0x03;
+  data[0] = 0x11;
+  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_I2C_DELAY_CTRL, 1, data);
+#ifdef MPU9150
+  data[0] = BIT_I2C_MST_VDDIO;
+  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_YG_OFFS_TC, 1, data);
+#endif //MPU9150
+  /*
+  data[0] = (1000/(1+COMPRESSED_DMP_RATE_DIV_CFG)) / LIGHT_INVENSENSE_COMPASS_SAMPLE_RATE - 1;
+  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_S4_CTRL, 1, data);
+  */
+#endif  
   
   /**************/
   /* enable dmp */
@@ -670,7 +734,6 @@ int fastMPUInit(void) {
   /* reset fifo */
   /**************/
   fastFIFOReset();
- 
   
   return 0;
 }
@@ -781,6 +844,73 @@ int fastMPUReadFIFO(short *gyro, short *accel, long *quat) {
   return 0;
 }
 
+#ifdef AK89xx_SECONDARY
+bool fastMPUMagReady(void) {
+
+  unsigned char data;
+  I2Cdev::readBytes(INV_HW_ADDR, INV_REG_I2C_MST_STATUS, 1, &data);
+  return (data & 0x40); //I2C_SLV4_DONE
+}
+
+int fastMPUReadMag(short* mag) {
+
+  /* read raw data */
+  unsigned char tmp[9];
+  I2Cdev::readBytes(INV_HW_ADDR, INV_REG_RAW_COMPASS, 8, tmp);
+
+  /* check for errors */
+#if defined AK8975_SECONDARY
+  /* AK8975 doesn't have the overrun error bit. */
+  if (!(tmp[0] & AKM_DATA_READY))
+    return -2;
+  if ((tmp[7] & AKM_OVERFLOW) || (tmp[7] & AKM_DATA_ERROR))
+    return -3;
+#elif defined AK8963_SECONDARY
+  /* AK8963 doesn't have the data read error bit. */
+  if (!(tmp[0] & AKM_DATA_READY) || (tmp[0] & AKM_DATA_OVERRUN))
+    return -2;
+  if (tmp[7] & AKM_OVERFLOW)
+    return -3;
+#endif
+
+  /* return */
+  mag[0] = (tmp[2] << 8) | tmp[1];
+  mag[1] = (tmp[4] << 8) | tmp[3];
+  mag[2] = (tmp[6] << 8) | tmp[5];
+
+  return 0;
+}
+
+int fastMPUReadMagSensAdj(short* magAdj) {
+
+  /* get access */
+  disableDMP();
+
+  /************/
+  /* read adj */
+  /************/
+  unsigned char tmp[3];
+
+  /* get fuse access */
+  tmp[0] = AKM_POWER_DOWN;
+  I2Cdev::writeBytes(LIGHT_INVENSENSE_COMPASS_ADDR, AKM_REG_CNTL, 1, tmp);
+  delay(1);
+
+  tmp[0] = AKM_FUSE_ROM_ACCESS;
+  I2Cdev::writeBytes(LIGHT_INVENSENSE_COMPASS_ADDR, AKM_REG_CNTL, 1, tmp);
+  delay(1);
+
+  /* read values */
+  I2Cdev::readBytes(LIGHT_INVENSENSE_COMPASS_ADDR, AKM_REG_ASAX, 3, tmp);
+  for(int i = 0; i<3; i++) {
+    magAdj[i] = tmp[i];
+  }
+
+  /* enable DMP */
+  enableDMP();
+  return 0;
+}
+#endif
 
   
   

@@ -3,6 +3,8 @@
 
 #include <InvenSense_defines.h>
 
+#define LIGHT_INVENSENSE_COMPASS_ADDR (0x0C)
+
 /*****************************************************************/
 /*                   !!!  WARNING !!!                            */
 /* This Invensense library optimize space by saving config       */
@@ -63,6 +65,11 @@ int fastMPUInit(void);
 int fastMPUReadFIFO(short *gyro, short *accel, long *quat);
 void fastMPUSetTapCallback(void (*callback)(unsigned char, unsigned char));
 
+#ifdef AK89xx_SECONDARY
+bool fastMPUMagReady(void);
+int fastMPUReadMag(short* mag);
+int fastMPUReadMagSensAdj(short* magAdj);
+#endif
 
 /******************/
 /* CUSTOM DEFINES */
