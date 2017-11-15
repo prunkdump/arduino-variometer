@@ -50,30 +50,31 @@ Waveshare e-paper 1.54 inch board :
 SCLK -> Arduino D9 / SCK
 DIN/MOSI -> Arduino D8 / MOSI
 DC -> any Arduino pin (default D7)
-CS -> any Arduino pin (default D4)
-RST -> any Arduino pin (default D6)
-BUSY -> any Arduino pin (default D5)
-VCC -> regulated 3.3V !
+CS -> any Arduino pin (default D1)
+RST -> any Arduino pin (default D2)
+BUSY -> any Arduino pin (default D3)
+VCC -> Arduino VCC - 3.3V
 GND -> GND
 
 GPS board :
-GPS TX pin -> Arduino RX pin
-GPS RX pin -> any Arduino pin (only used for GPS configuration)
+GPS TX pin -> D5 serialNmea  Pin 5 
+GPS RX pin -> TX Serial1     Pin 14 (only used for GPS configuration)
 GPS VCC -> Battery RAW +
 GPS GND -> GND
 
 Bluetooth module :
-Bluetooth RX pin -> Arduino TX pin
-Bluetooth TX pin -> arduino pin with interrupt capatibility (default D8, used only for Bluetooth configuration)
+Bluetooth RX pin -> D4 serialNmea   Pin 4 
+Bluetooth TX pin -> RX Serial1      Pin 13  
 Bluetooth VCC -> Battery RAW +
 Bluetooth GND -> GND
 
 Push Button Left A1
 Push Button Right A2 
-Push Button Center D1  --- ON/OFF
+Push Button Center A5  --- ON/OFF
 
 Detection USB   A6
-Alim Manager    A5    
+Alim Manager    D6
+Reset command   D0 
 
 
 Code configuration :

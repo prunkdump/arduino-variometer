@@ -1,13 +1,25 @@
+
+Arduino MKRZERO
 https://store.arduino.cc/arduino-mkrzero
 
+MPU9250 / MS5611 9 Axis + Altitude sensor
 http://www.ebay.fr/itm/SPI-IIC-MPU-9250-MS5611-High-Precision-9-Axis-10DOF-Altitude-sensor-Module/182637701620?ssPageName=STRK%3AMEBIDX%3AIT&_trksid=p2057872.m2749.l2649
 
+Regulator DC-DC 4.2V
 http://www.ebay.fr/itm/Mini-DC-DC-Buck-Step-down-Converter-Power-Supply-Module-1-5v-1-8v-3-3v-4-2v-2A/262539353307?ssPageName=STRK%3AMEBIDX%3AIT&var=561392047553&_trksid=p2057872.m2749.l2649
 
+DIP SWITCH
 http://www.ebay.fr/itm/Lot-Bouton-poussoir-6-x-6-x-4-3-mm-Switch-DIP-P4-DIY-Arduino-Raspberry-Pi/221443894476?_trkparms=aid%3D222007%26algo%3DSIM.MBE%26ao%3D2%26asc%3D46118%26meid%3D7483c6ce5f104fb48cc3ce2cf6df577d%26pid%3D100005%26rk%3D2%26rkt%3D4%26sd%3D162620212549&_trksid=p2047675.c100005.m1851
 
+L9110 amplificator
 http://www.ebay.fr/itm/L9110H-INTEGRATED-CIRCUIT-DIP-8-/201598737782?hash=item2ef0389d76:g:9qoAAOSw5HJXLH1h
 
+GPS
+NEO 6
 http://www.ebay.fr/itm/GPS-NEO-6M-Module-Aircraft-Vol-Avion-Controleur-Antenne-Pr-Arduino-APM2-5-TE624-/262792736225?hash=item3d2faaede1:g:vtcAAOSwYlRZIt-b
 
+NEO 8M
+http://www.ebay.fr/itm/APM2-5-Ublox-GYGPSV1-NEO-M8N-GPS-Module-MWC-remplacer-NEO-6M-GY-NEO8MV2-LED-FR/332356647117?ssPageName=STRK%3AMEBIDX%3AIT&_trksid=p2057872.m2749.l2649
+
+E-INK Screen
 https://www.amazon.com/Waveshare-Resolution-Electronic-Interface-Raspberry/dp/B0728BJTZC/ref=sr_1_sc_2?ie=UTF8&qid=1506806818&sr=8-2-spell&keywords=wareshare
