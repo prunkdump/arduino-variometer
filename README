@@ -5,13 +5,13 @@
 Features :
 ---------
 - High precision altitude with improved ms5611 code
-- High precision vertical velocity with InvenSense accelerometer (optionnal)
-- Screen display with waveshare e-paper 1,54 inch : altitude, vertical speed, ground speed, glide ratio and more (optionnal)
-- Ground speed and glide ratio with GPS device (optionnal)
-- Flight tracking with SD card reader and GPS (optionnal)
+- High precision vertical velocity with InvenSense accelerometer 
+- Screen display with waveshare e-paper 1,54 inch : altitude, vertical speed, ground speed, glide ratio and more 
+- Ground speed and glide ratio with GPS device 
+- Flight tracking with SD card reader and GPS 
 - Bluetooth communication with external device (optionnal)
-- Battery level (optionnal)
-- Microcontroler Cortex M0+
+- Battery level 
+- Microcontroler Arduino MKRZero - Cotex M0+
 
 
 How to build :
@@ -19,7 +19,8 @@ How to build :
 Pre-build kits can be found here :
 
 
-Contact me for more informations at prunkdump@gmail.com
+Contact me for more informations at jpg63@live.fr or
+                                    prunkdump@gmail.com
 
 
 Variometer Wiring :
@@ -83,7 +84,7 @@ Code configuration :
 !!! Don't skip this step !!!
 Open ./libraries/VarioSettings/VarioSettings.h and check all the parameters.
 To "comment" a line put a "//" at the beginning.
-Edit, modify parameters and copy SETTINGS.TXT to SDCARD
+Edit the SETTINGS.TXT file located in the library \ variosettings folder, modify parameters and copy it to the root of the SD card
 
 ---------------------------------
 YOU CAN NOW TRY YOUR VARIOMETER !
