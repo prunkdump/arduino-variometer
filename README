@@ -86,6 +86,8 @@ Open ./libraries/VarioSettings/VarioSettings.h and check all the parameters.
 To "comment" a line put a "//" at the beginning.
 Edit the SETTINGS.TXT file located in the library \ variosettings folder, modify parameters and copy it to the root of the SD card
 
+calibrate the accelerometer by placing the vario face down at the start
+
 ---------------------------------
 YOU CAN NOW TRY YOUR VARIOMETER !
 ---------------------------------
