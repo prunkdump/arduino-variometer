@@ -64,6 +64,8 @@
 #include <LK8Sentence.h>
 #include <IGCSentence.h>
 
+#include <accelcalibrator.h>
+
 #include <Utility.h>
 
 /*******************/
@@ -252,6 +254,14 @@ MultiDisplay multiDisplay(displayList, sizeof(displayList)/sizeof(ScreenSchedule
 #define POSITION_MEASURE_STANDARD_DEVIATION 0.1
 #ifdef HAVE_ACCELEROMETER 
 #define ACCELERATION_MEASURE_STANDARD_DEVIATION 0.3
+
+#define HIGH_BEEP_FREQ 1000.0
+#define LOW_BEEP_FREQ 100.0
+#define BASE_BEEP_DURATION 100.0
+
+#define MEASURE_DELAY 3000 
+
+AccelCalibrator calibrator;
 #else
 #define ACCELERATION_MEASURE_STANDARD_DEVIATION 0.6
 #endif //HAVE_ACCELEROMETER 
@@ -337,7 +347,7 @@ void displayBoot(void) {
 #ifdef HAVE_SCREEN
 
 #ifdef PROG_DEBUG
-  Serial.print("Display boot");
+  Serial.println("Display boot");
 #endif //PRO_DEBBUG
 
   screen.fillScreen(GxEPD_WHITE);
@@ -415,6 +425,8 @@ void setup() {
   toneAC_init();
 #endif
 
+delay(1000);
+
   /**********************/
   /* init accelerometer */
   /**********************/
@@ -471,8 +483,15 @@ void setup() {
 /******************/
 #ifdef HAVE_SPEAKER
 beeper.init(GnuSettings.VARIOMETER_SINKING_THRESHOLD, GnuSettings.VARIOMETER_CLIMBING_THRESHOLD, GnuSettings.VARIOMETER_NEAR_CLIMBING_SENSITIVITY, GnuSettings.VARIOMETER_BEEP_VOLUME);
-#endif
 
+#ifdef PROG_DEBUG
+  sprintf(tmpbuffer,"Volume : %i", GnuSettings.VARIOMETER_BEEP_VOLUME);
+  Serial.println(tmpbuffer);
+  Serial.flush();
+#endif //PROG_DEBUG
+
+beeper.setVolume(GnuSettings.VARIOMETER_BEEP_VOLUME);
+#endif
  
   /***************/
   /* init screen */
@@ -503,7 +522,126 @@ beeper.init(GnuSettings.VARIOMETER_SINKING_THRESHOLD, GnuSettings.VARIOMETER_CLI
    displayBoot();  
 #endif //HAVE_SCREEN
 
+  /******************/
+  /* Detect calibrated */
+  /******************/
+
+    // if we got this far, MPU9250 and MS5611 look OK
+  // Read calibrated accelerometer and gyro bias values saved in M0 flash
+
+   if (vertaccel_readAvailableCalibration() == false) {
+    
+#ifdef IMU_DEBUG
+  Serial.println("Uncalibrated Accelerometre");
+#endif //IMU_DEBUG
+
+    indicateUncalibratedAccelerometer(); // series of alternating low/high tones
+  }
+
+  /*---------------------------------------------------------------------------------------------------*/
+  /*                                                                                                   */
+  /*                             CALIBRATION                                                           */
+  /*                                                                                                   */
+  /*---------------------------------------------------------------------------------------------------*/
+
+
+#ifdef PROG_DEBUG
+  int tmpvolume = beeper.getVolume();
+  beeper.setVolume(10);
+#endif
+
+
+
+#ifdef HAVE_ACCELEROMETER
+  if( MpuCalibrationCond() ) {
+#ifdef HAVE_SPEAKER
+#ifdef IMU_DEBUG
+      Serial.println("Calibration");
+#endif //IMU_DEBUG
+
+    beeper.GenerateTone(GnuSettings.CALIB_TONE_FREQHZ, 3000);
+    // allow 10 seconds for the unit to be placed in calibration position with the 
+    // accelerometer +z pointing downwards. Indicate this delay with a series of short beeps
+    for (int inx = 0; inx < 50; inx++) {
+      delay(200); 
+      beeper.GenerateTone(GnuSettings.CALIB_TONE_FREQHZ,50);
+      }
+#endif //HAVE_SPEAKER
+#ifdef IMU_DEBUG
+    Serial.println("Calibrating accel & gyro");
+#endif IMU_DEBUG
+
+  // Calibration des accÃ©lerometres
+
+    calibrator.init();
+
+  /* start beep */
+    signalBeep(HIGH_BEEP_FREQ, BASE_BEEP_DURATION, 3);
+
+  /***************************/
+  /* make measure repeatedly */
+  /***************************/
   
+  /* wait for positionning accelerometer */
+    delay(MEASURE_DELAY);
+  
+  /* make measure */
+    calibrator.measure();
+    
+  /********************************************/
+  /* the reversed position launch calibration */
+  /********************************************/
+  
+  /* get orientation */
+    int orient = calibrator.getMeasureOrientation();
+    if( orient == ACCEL_CALIBRATOR_ORIENTATION_EXCEPTION ) {
+    
+    /**********************/
+    /* launch calibration */
+    /**********************/
+      if( !calibrator.canCalibrate() ) {
+      signalBeep(LOW_BEEP_FREQ, BASE_BEEP_DURATION, 3);
+      } else {
+        calibrator.calibrate();
+        signalBeep(HIGH_BEEP_FREQ, BASE_BEEP_DURATION, 3);
+      }
+    
+    } else {
+    
+    /****************/
+    /* push measure */
+    /****************/
+    
+      boolean measureValid = calibrator.pushMeasure();
+          
+      /* make corresponding beep */
+      if( measureValid ) {
+        signalBeep(HIGH_BEEP_FREQ, BASE_BEEP_DURATION*3, 1);
+      } else {
+        signalBeep(LOW_BEEP_FREQ, BASE_BEEP_DURATION*3, 1);
+      }
+    }
+     
+    /* start beep */
+    signalBeep(HIGH_BEEP_FREQ, BASE_BEEP_DURATION, 3);
+
+    GnuSettings.writeFlashSDSettings();
+
+    // indicate calibration complete
+#ifdef HAVE_SPEAKER
+    beeper.GenerateTone(GnuSettings.CALIB_TONE_FREQHZ, 1000);
+#endif //HAVE_SPEAKER
+
+    NVIC_SystemReset();      // processor software reset 
+
+  }
+#endif //HAVE_ACCELEROMETER
+
+
+#ifdef HAVE_SPEAKER
+ beeper.setVolume(tmpvolume);
+#endif //HAVE_SPEAKER
+ 
   /******************/
   /* init barometer */
   /******************/

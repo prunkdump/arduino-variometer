@@ -25,12 +25,15 @@ int batteryVoltage(void) {
 // set to 0, and this uncalibrated state is indicated with a sequence of alternating 
 // low and high beeps.
 void indicateUncalibratedAccelerometer() {
-  for (int cnt = 0; cnt < 5; cnt++) {
 #ifdef HAVE_SPEAKER
+  int tmpvolume = beeper.getVolume();	
+  beeper.setVolume(10);
+  for (int cnt = 0; cnt < 5; cnt++) {
     beeper.GenerateTone(200,100); 
     beeper.GenerateTone(2000,100);
-#endif //HAVE_SPEAKER
     }
+  beeper.setVolume(tmpvolume);		
+#endif //HAVE_SPEAKER
   }
 
 // "no-activity" power down is indicated with a series of descending
@@ -201,4 +204,3 @@ int8_t percentBat(double targetVoltage) {
   
  return result;
 }
-

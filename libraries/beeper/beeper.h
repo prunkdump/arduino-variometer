@@ -103,6 +103,7 @@ class Beeper {
 		     double nearClimbingSensitivity = BEEP_VELOCITY_DEFAULT_NEAR_CLIMBING_SENSITIVITY);
 
   void setVolume(uint8_t newVolume = BEEP_DEFAULT_VOLUME);
+  uint8_t getVolume();
 
   /* set near thermal alarm status */
   void setGlidingBeepState(boolean status);

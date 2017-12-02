@@ -41,6 +41,11 @@ void Beeper::setVolume(uint8_t newVolume) {
   volume = newVolume;
 }
 
+uint8_t  Beeper::getVolume() {
+
+  return volume;
+}
+
 void Beeper::setGlidingBeepState(boolean status) {
   if( status ) {
     bst_set(GLIDING_BEEP_ENABLED);

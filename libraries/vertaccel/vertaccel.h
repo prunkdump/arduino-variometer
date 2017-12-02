@@ -11,6 +11,13 @@
 /* accelerometer parameters */
 #define VERTACCEL_G_TO_MS 9.80665
 
+#define CALIBRATION_MPU_TIMEOUT 1000
+#define CALIBRATION_ZACCEL_THRESHOLD -0.95
+
+/* calibration condition based on accelerometer */
+/* !! you need to init vertaccel first !! */
+boolean MpuCalibrationCond(void);
+
 /*******************/
 /* init the device */
 /*******************/
@@ -37,5 +44,7 @@ void vertaccel_saveCalibration(double* cal);
 
 /* give the current calibration coefficients */
 double* vertaccel_getCalibration(void);
+
+boolean vertaccel_readAvailableCalibration(void);
 
 #endif
