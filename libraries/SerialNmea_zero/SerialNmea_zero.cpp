@@ -29,9 +29,8 @@ const char ggaTag[] PROGMEM = {"GPGGA"};
 SERCOM snsercom(VARIOMETER_SERIAL_SERCOM);
 
 SerialNmea serialNmea;
-#define HANDLER_SUFFIX _Handler
-#define SERIAL_NMEA_HANDLER VARIOMETER_SERIAL_SERCOM ## HANDLER_SUFFIX
-void SERIAL_NMEA_HANDLER() {
+
+void VARIOMETER_SERIAL_SERCOM_HANDLER() {
 
   if (snsercom.availableDataUART()) {
     serialNmea.rxCompleteVect();

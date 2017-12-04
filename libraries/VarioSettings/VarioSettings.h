@@ -134,6 +134,7 @@
 /* Set the Sercom and the pins used by GPS/Bluetooth */
 /* See p21 of the datasheet                          */
 #define VARIOMETER_SERIAL_SERCOM SERCOM2
+#define VARIOMETER_SERIAL_SERCOM_HANDLER SERCOM2_Handler
 #define VARIOMETER_SERIAL_TX_PIN 2
 #define VARIOMETER_SERIAL_RX_PIN 3
 #define VARIOMETER_SERIAL_PIN_FUNCTION PIO_SERCOM_ALT
