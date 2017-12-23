@@ -102,11 +102,13 @@ void VarioScreen::begin(void)
   setRotation(2);
 //  fillScreen(GxEPD_WHITE);
   setTextColor(GxEPD_BLACK);
-  update();  
+//  update();  
 
   updateWindow(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, false);  
+  while (GetState() != STATE_OK) {
+    updateWindow(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, false);
+  }
 }
-
 
 // Pass string and a cursor position, returns UL corner and W,H.
 /*void VarioScreen::getTextBounds(char *str, int16_t x, int16_t y,

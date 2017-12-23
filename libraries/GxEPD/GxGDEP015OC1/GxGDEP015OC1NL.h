@@ -5,7 +5,7 @@
 
    Author : J-M Zingg
 
-   Version : 2.2
+   Version : 2.3
 
    Support: limited, provided as example, no claim to be fit for serious use
 
@@ -66,7 +66,9 @@ class GxGDEP015OC1 : public GxEPD
 {
   public:
 #if defined(ESP8266)
-    GxGDEP015OC1(GxIO& io, uint8_t rst = D4, uint8_t busy = D2);
+    //GxGDEP015OC1(GxIO& io, int8_t rst = D4, int8_t busy = D2);
+    // use pin numbers, other ESP8266 than Wemos may not use Dx names
+    GxGDEP015OC1(GxIO& io, int8_t rst = 2, int8_t busy = 4);
 #else
     GxGDEP015OC1(GxIO& io, uint8_t rst = 9, uint8_t busy = 7);
 #endif
@@ -100,6 +102,14 @@ class GxGDEP015OC1 : public GxEPD
     void drawCornerTest(uint8_t em = 0x01);
 	unsigned int GetState(void);
   private:
+      template <typename T> static inline void
+    swap(T& a, T& b)
+    {
+      T t = a;
+      a = b;
+      b = t;
+    }
+    void _writeToWindow(uint16_t xs, uint16_t ys, uint16_t xd, uint16_t yd, uint16_t w, uint16_t h);
     void _writeData(uint8_t data);
     void _writeCommand(uint8_t command);
     void _writeCommandData(const uint8_t* pCommandData, uint8_t datalen);
@@ -146,12 +156,13 @@ class GxGDEP015OC1 : public GxEPD
 #endif
 };
 
+#ifndef GxEPD_Class
 #define GxEPD_Class GxGDEP015OC1
-
 #define GxEPD_WIDTH GxGDEP015OC1_WIDTH
 #define GxEPD_HEIGHT GxGDEP015OC1_HEIGHT
 #define GxEPD_BitmapExamples <GxGDEP015OC1/BitmapExamples.h>
 #define GxEPD_BitmapExamplesQ "GxGDEP015OC1/BitmapExamples.h"
+#endif
 
 #endif
 
