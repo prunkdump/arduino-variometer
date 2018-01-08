@@ -95,7 +95,7 @@ the "pilot" parameters in EEPROM. This must be done just one time.
 
 
 !!! Don't skip this step !!!
-Make a less than 2Go partition (typically 1,5Go) on the SS card. And
+Make a less than 2Go partition (typically 1,5Go) on the SD card. And
 format it in FAT16.
 
 
