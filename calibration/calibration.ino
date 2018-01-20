@@ -1,8 +1,7 @@
 #include <Arduino.h>
+#include <Wire.h>
 #include <I2Cdev.h>
-#include <ms5611.h>
-#include <vertaccel.h>
-#include <EEPROM.h>
+#include <ms5611_zero.h>
 #include <LightInvensense.h>
 #include <avr/pgmspace.h>
 #include <accelcalibrator.h>
@@ -114,13 +113,14 @@ void setup() {
   /*************************************/
   /* init accelerometer and calibrator */
   /*************************************/
-  Fastwire::setup(400,0);
+  Wire.begin();
   calibrator.init();
   
   /***************/
   /* init serial */
   /***************/
   Serial.begin(9600);
+  while( !Serial ) ;
   
   /*********************/
   /* display procedure */
