@@ -209,12 +209,11 @@ void ms5611_init() {
 
   /* convert D1 before starting interrupts */
   ms5611_convertD1();
+  delay(MS5611_CONV_DELAY);
 
   /* start interrupts */
   ms5611_setTimer();
 
-  /* delay to stabilize the device */
-  delay(MS5611_INTERRUPT_START_DELAY);
 }
 
 
