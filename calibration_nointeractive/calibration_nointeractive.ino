@@ -13,7 +13,7 @@
 #define LOW_BEEP_FREQ 100.0
 #define BASE_BEEP_DURATION 100.0
 
-#define MEASURE_DELAY 3000 
+#define MEASURE_DELAY 4000
 
 AccelCalibrator calibrator;
 
