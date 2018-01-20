@@ -208,8 +208,11 @@ boolean vertaccel_rawReady(double* accel, double* upVector, double* vertAccel) {
     upVector[2] = uz;
     *vertAccel = (ux*rax + uy*ray + uz*raz);
   }
- 
-  return newData;
+
+  boolean result = newData;
+  newData = false;
+  
+  return result;
 }
 
 
