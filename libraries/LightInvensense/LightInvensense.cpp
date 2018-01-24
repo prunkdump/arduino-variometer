@@ -571,6 +571,45 @@ int fastFIFOReset(void) {
 }
 
 
+#ifdef AK89xx_SECONDARY
+static unsigned char magSensAdj[3];
+
+void readMagSensAdj(void) {
+
+  /* get access */
+  disableDMP();
+
+  /************/
+  /* read adj */
+  /************/
+  unsigned char tmp[3];
+
+  /* bypass */
+  tmp[0] = BIT_BYPASS_EN;
+  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_INT_PIN_CFG, 1, tmp); 
+
+  /* get fuse access */
+  tmp[0] = AKM_POWER_DOWN;
+  I2Cdev::writeBytes(LIGHT_INVENSENSE_COMPASS_ADDR, AKM_REG_CNTL, 1, tmp);
+  delay(1);
+
+  tmp[0] = AKM_FUSE_ROM_ACCESS;
+  I2Cdev::writeBytes(LIGHT_INVENSENSE_COMPASS_ADDR, AKM_REG_CNTL, 1, tmp);
+  delay(1);
+  
+  /* read values */
+  I2Cdev::readBytes(LIGHT_INVENSENSE_COMPASS_ADDR, AKM_REG_ASAX, 3, magSensAdj);
+  
+  /* stop bypass */
+  tmp[0] = 0;
+  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_INT_PIN_CFG, 1, tmp);   
+
+  /* enable DMP */
+  enableDMP();
+}
+#endif
+
+
 int fastMPUInit(void) {
 
   unsigned char data[2];
@@ -733,7 +772,11 @@ int fastMPUInit(void) {
   /**************/
   /* reset fifo */
   /**************/
+#ifdef AK89xx_SECONDARY
+  readMagSensAdj(); //also reset FIFO
+#else
   fastFIFOReset();
+#endif
   
   return 0;
 }
@@ -852,7 +895,7 @@ bool fastMPUMagReady(void) {
   return (data & 0x40); //I2C_SLV4_DONE
 }
 
-int fastMPUReadMag(short* mag) {
+int fastMPUReadRawMag(short* mag) {
 
   /* read raw data */
   unsigned char tmp[9];
@@ -874,42 +917,36 @@ int fastMPUReadMag(short* mag) {
 #endif
 
   /* return */
-  mag[0] = (tmp[2] << 8) | tmp[1];
-  mag[1] = (tmp[4] << 8) | tmp[3];
-  mag[2] = (tmp[6] << 8) | tmp[5];
+  /* remap as accelerometer */
+  /* mag x -> y */
+  /* mag y -> x */
+  /* mag z -> -z */
+  
+  mag[1] = (tmp[2] << 8) | tmp[1];
+  mag[0] = (tmp[4] << 8) | tmp[3];
+  mag[2] = -((short)(tmp[6] << 8) | tmp[5]);
 
   return 0;
 }
 
-int fastMPUReadMagSensAdj(short* magAdj) {
+unsigned char* fastMPUGetMagSensAdj(void) {
 
-  /* get access */
-  disableDMP();
+  return magSensAdj;
+}
 
-  /************/
-  /* read adj */
-  /************/
-  unsigned char tmp[3];
+int fastMPUReadMag(short* mag) {
 
-  /* get fuse access */
-  tmp[0] = AKM_POWER_DOWN;
-  I2Cdev::writeBytes(LIGHT_INVENSENSE_COMPASS_ADDR, AKM_REG_CNTL, 1, tmp);
-  delay(1);
+  fastMPUReadRawMag(mag);
+  /* mag x -> y */
+  /* mag y -> x */
+  /* mag z -> -z */
+  mag[0] = ( (long)mag[0] * ((long)magSensAdj[1] + 128)  ) >> 8;
+  mag[1] = ( (long)mag[1] * ((long)magSensAdj[0] + 128)  ) >> 8;
+  mag[2] = ( (long)mag[2] * ((long)magSensAdj[2] + 128)  ) >> 8;
 
-  tmp[0] = AKM_FUSE_ROM_ACCESS;
-  I2Cdev::writeBytes(LIGHT_INVENSENSE_COMPASS_ADDR, AKM_REG_CNTL, 1, tmp);
-  delay(1);
-
-  /* read values */
-  I2Cdev::readBytes(LIGHT_INVENSENSE_COMPASS_ADDR, AKM_REG_ASAX, 3, tmp);
-  for(int i = 0; i<3; i++) {
-    magAdj[i] = tmp[i];
-  }
-
-  /* enable DMP */
-  enableDMP();
   return 0;
 }
+  
 #endif
 
   

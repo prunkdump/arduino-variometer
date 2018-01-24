@@ -5,8 +5,10 @@
 #include <LightInvensense.h>
 
 /* eeprom calibration adresses */
-#define VERTACCEL_EPROM_TAG 9806
-#define VERTACCEL_EPROM_ADDR 0x00
+#define VERTACCEL_ACCEL_EEPROM_ADDR 0x00
+#define VERTACCEL_ACCEL_EEPROM_TAG 0x9907
+#define VERTACCEL_MAG_EEPROM_ADDR 0x10
+#define VERTACCEL_MAG_EEPROM_TAG 0x8643
 
 /* accelerometer parameters */
 #define VERTACCEL_G_TO_MS 9.80665
@@ -32,10 +34,11 @@ double vertaccel_getValue();
 /* calibration */
 /***************/
 
-/* set the calibration vector in EEPROM */
-void vertaccel_saveCalibration(double* cal);
-
-/* give the current calibration coefficients */
-double* vertaccel_getCalibration(void);
+void vertaccel_readAccelCalibration(void);
+void vertaccel_saveAccelCalibration(double* cal);
+void vertaccel_readMagCalibration(void);
+void vertaccel_saveMagCalibration(double* cal);
+void vertaccel_getAccelCalibration(double* cal);
+void vertaccel_getMagCalibration(double* cal);
 
 #endif

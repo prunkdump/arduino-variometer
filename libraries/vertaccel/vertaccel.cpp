@@ -10,7 +10,10 @@
 /******************/
 
 /* calibration */
-static double accelCal[3];
+static short accelCal[3];
+#ifdef AK89xx_SECONDARY
+static short magCal[3];
+#endif
 
 static boolean newData;
 
@@ -22,54 +25,99 @@ static double va;
 /* calibration functions */
 /*************************/
 
-/* read calibration from EEPROM */
-void vertaccel_readCalibration(void) {
 
-  /* check tag */
-  uint16_t eepromTag;
-  eepromTag = EEPROM.read(VERTACCEL_EPROM_ADDR);
-  eepromTag <<= 8;
-  eepromTag += EEPROM.read(VERTACCEL_EPROM_ADDR + 0x01);
-  
-  if( eepromTag != VERTACCEL_EPROM_TAG ) {
-    accelCal[0] = 0.0;
-    accelCal[1] = 0.0;
-    accelCal[2] = 0.0;
-  } else {
-    /* read calibration settings */
-    uint8_t* datap = (uint8_t*)accelCal;
-    for( unsigned i = 0; i<sizeof(accelCal); i++ ) {
-      datap[i] =  EEPROM.read(VERTACCEL_EPROM_ADDR + 0x02 + i);
+void readEEPROMValues(int address, uint16_t eepromTag, short* buff) {
+
+  /* read tag */
+  uint16_t tag = EEPROM.read(address);
+  address++;
+  tag = (tag<<8) + EEPROM.read(address);
+  address++;
+
+  /* read values */
+  uint8_t* data = (uint8_t*)buff;
+  for( uint8_t i = 0; i<3*sizeof(short); i++) {
+    if( tag == eepromTag ) {
+      *data = EEPROM.read(address);
+    } else {
+      *data = 0;
     }
+    data++;
+    address++;
   }
 }
 
-/* save calibration to EEPROM */
-void vertaccel_saveCalibration(double* cal) {
+void writeEEPROMValues(int address, uint16_t eepromTag, short* buff) {
 
   /* write tag */
-  uint16_t eepromTag = VERTACCEL_EPROM_TAG;
-  EEPROM.write(VERTACCEL_EPROM_ADDR, (eepromTag>>8) & 0xff);
-  EEPROM.write(VERTACCEL_EPROM_ADDR + 0x01, eepromTag & 0xff);
-
-  /* save calibration settings */
-  uint8_t* datap = (uint8_t*)cal;
-  for( unsigned i = 0; i<3*sizeof(double); i++ ) {
-    EEPROM.write(VERTACCEL_EPROM_ADDR + 0x02 + i, datap[i]);
+  EEPROM.write(address, (eepromTag>>8) & 0xff);
+  EEPROM.write(address + 0x01, eepromTag & 0xff);
+  address += 2;
+  
+  /* write values */
+  uint8_t* data = (uint8_t*)buff;
+  for( uint8_t i = 0; i<3*sizeof(short); i++) {
+    EEPROM.write(address, *data);
+    data++;
+    address++;
   }
+}
+  
 
-  /* save in global var */
-  accelCal[0] = cal[0];
-  accelCal[1] = cal[1];
-  accelCal[2] = cal[2];
+/* read accel calibration from EEPROM */
+void vertaccel_readAccelCalibration(void) {
+
+  readEEPROMValues(VERTACCEL_ACCEL_EEPROM_ADDR, VERTACCEL_ACCEL_EEPROM_TAG, accelCal);
 }
 
-/* give calibration coefficients */
-double* vertaccel_getCalibration(void) {
+/* save accel calibration to EEPROM */
+void vertaccel_saveAccelCalibration(double* cal) {
 
-  return accelCal;
-}  
- 
+  for( uint8_t i = 0; i<3; i++ ) { 
+    accelCal[i] = (short)(cal[i] * LIGHT_INVENSENSE_ACCEL_SCALE);
+  }
+
+  writeEEPROMValues(VERTACCEL_ACCEL_EEPROM_ADDR, VERTACCEL_ACCEL_EEPROM_TAG, accelCal);
+}
+
+#ifdef AK89xx_SECONDARY
+/* read mag calibration from EEPROM */
+void vertaccel_readMagCalibration(void) {
+
+  readEEPROMValues(VERTACCEL_MAG_EEPROM_ADDR, VERTACCEL_MAG_EEPROM_TAG, magCal);
+}
+
+/* save mag calibration to EEPROM */
+void vertaccel_saveMagCalibration(double* cal) {
+
+  
+  for( uint8_t i = 0; i<3; i++ ) { 
+    magCal[i] = (short)cal[i];
+  }
+
+  writeEEPROMValues(VERTACCEL_MAG_EEPROM_ADDR, VERTACCEL_MAG_EEPROM_TAG, magCal);
+}
+#endif
+
+/* give accel calibration coefficients */
+void vertaccel_getAccelCalibration(double* cal) {
+  
+  for( uint8_t i = 0; i<3; i++ ) { 
+    cal[i] = (double)accelCal[i] / LIGHT_INVENSENSE_ACCEL_SCALE;
+  }
+}
+
+#ifdef AK89xx_SECONDARY
+/* give mag calibration coefficients */
+void vertaccel_getMagCalibration(double* cal) {
+
+  for( uint8_t i = 0; i<3; i++ ) { 
+    cal[i] = (double)magCal[i];
+  }
+}
+#endif
+
+
 
 
 /********************/
@@ -83,8 +131,9 @@ void vertaccel_init(void) {
   fastMPUInit();
 
   /* init calibration settings */
-  vertaccel_readCalibration();
-  
+  vertaccel_readAccelCalibration();
+  vertaccel_readMagCalibration();
+
   /* init data variables */
   newData = false;
 }
@@ -112,9 +161,9 @@ boolean vertaccel_dataReady() {
     double accel[3]; 
     double quat[4]; 
     
-    accel[0] = ((double)iaccel[0])/LIGHT_INVENSENSE_ACCEL_SCALE + accelCal[0];
-    accel[1] = ((double)iaccel[1])/LIGHT_INVENSENSE_ACCEL_SCALE + accelCal[1];
-    accel[2] = ((double)iaccel[2])/LIGHT_INVENSENSE_ACCEL_SCALE + accelCal[2];
+    accel[0] = ((double)(iaccel[0]+ accelCal[0]))/LIGHT_INVENSENSE_ACCEL_SCALE;
+    accel[1] = ((double)(iaccel[0]+ accelCal[1]))/LIGHT_INVENSENSE_ACCEL_SCALE;
+    accel[2] = ((double)(iaccel[0]+ accelCal[2]))/LIGHT_INVENSENSE_ACCEL_SCALE;
         
     quat[0] = ((double)iquat[0])/LIGHT_INVENSENSE_QUAT_SCALE;
     quat[1] = ((double)iquat[1])/LIGHT_INVENSENSE_QUAT_SCALE;

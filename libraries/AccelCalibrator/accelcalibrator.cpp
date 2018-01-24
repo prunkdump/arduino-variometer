@@ -17,7 +17,8 @@ void AccelCalibrator::init(void) {
   vertaccel_init();
 
   /* get the values stored in EEPROM */
-  double* cal = vertaccel_getCalibration();
+  double cal[3];
+  vertaccel_getAccelCalibration(cal);
   calibration[0] = cal[0];
   calibration[1] = cal[1];
   calibration[2] = cal[2];
@@ -205,7 +206,7 @@ void AccelCalibrator::calibrate(void) {
   calibration[1] = -calibrationCenter[1];
   calibration[2] = -calibrationCenter[2];
 
-  vertaccel_saveCalibration(calibration);
+  vertaccel_saveAccelCalibration(calibration);
   calibrated = true;
 }
 

@@ -67,8 +67,10 @@ void fastMPUSetTapCallback(void (*callback)(unsigned char, unsigned char));
 
 #ifdef AK89xx_SECONDARY
 bool fastMPUMagReady(void);
+int fastMPUReadRawMag(short* mag);
 int fastMPUReadMag(short* mag);
-int fastMPUReadMagSensAdj(short* magAdj);
+unsigned char* fastMPUGetMagSensAdj(void);
+
 #endif
 
 /******************/
