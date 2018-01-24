@@ -3,10 +3,7 @@
 #include <Arduino.h>
 
 #include <LightInvensense.h>
-
-#include <FlashAsEEPROM.h>
-
-#include <VarioSettings.h>
+#include <EEPROM.h>
 
 /******************/
 /* data variables */
@@ -25,143 +22,46 @@ static double va;
 /* calibration functions */
 /*************************/
 
-/* read calibration available from EEPROM */
-boolean vertaccel_readAvailableCalibration(void) {
-
-  /* check tag */
-  uint16_t eepromTag;
-  
-  if (!EEPROM.isValid()) {
-     Serial.println("EEPROM is empty, writing some example data:");
- 	return false;
-  }
-  else { 
-    eepromTag = EEPROM.read(VERTACCEL_EPROM_ADDR);
-    eepromTag <<= 8;
-    eepromTag += EEPROM.read(VERTACCEL_EPROM_ADDR + 0x01);
-  
-    if( eepromTag != VERTACCEL_EPROM_TAG ) { return false;  } 
-    else { return true;  }
-  }
-}
-
 /* read calibration from EEPROM */
 void vertaccel_readCalibration(void) {
 
   /* check tag */
-  /*
   uint16_t eepromTag;
   eepromTag = EEPROM.read(VERTACCEL_EPROM_ADDR);
   eepromTag <<= 8;
   eepromTag += EEPROM.read(VERTACCEL_EPROM_ADDR + 0x01);
   
   if( eepromTag != VERTACCEL_EPROM_TAG ) {
-  
     accelCal[0] = 0.0;
     accelCal[1] = 0.0;
     accelCal[2] = 0.0;
- 
   } else {
-  */
     /* read calibration settings */
-  /*
     uint8_t* datap = (uint8_t*)accelCal;
     for( unsigned i = 0; i<sizeof(accelCal); i++ ) {
       datap[i] =  EEPROM.read(VERTACCEL_EPROM_ADDR + 0x02 + i);
     }
   }
-  */
-   uint16_t eepromTag;
-  
- if (!EEPROM.isValid()) {
-    Serial.println("EEPROM is empty, writing some example data:");
-	if (GnuSettings.readFlashSDSettings() == true) {
-	  if ((GnuSettings.ACCELCALX ==0) && (GnuSettings.ACCELCALY ==0) &&	(GnuSettings.ACCELCALZ ==0)) {
-	    accelCal[0] = 0.0;
-        accelCal[1] = 0.0;
-        accelCal[2] = 0.0; 
- 
-	  }
-	  else {
-		accelCal[0] = GnuSettings.ACCELCALX;
-        accelCal[1] = GnuSettings.ACCELCALY;
-        accelCal[2] = GnuSettings.ACCELCALZ; 
-	  }
-	}
-	else {
-      accelCal[0] = 0.0;
-      accelCal[1] = 0.0;
-      accelCal[2] = 0.0; 
-	}
- }
- else { 
-   eepromTag = EEPROM.read(VERTACCEL_EPROM_ADDR);
-   eepromTag <<= 8;
-   eepromTag += EEPROM.read(VERTACCEL_EPROM_ADDR + 0x01);
-  
-  if( eepromTag != VERTACCEL_EPROM_TAG ) {
-     accelCal[0] = 0.0;
-     accelCal[1] = 0.0;
-     accelCal[2] = 0.0;
-   } else {
-     /* read calibration settings */
-     uint8_t* datap = (uint8_t*)accelCal;
-     for( unsigned i = 0; i<sizeof(accelCal); i++ ) {
-       datap[i] =  EEPROM.read(VERTACCEL_EPROM_ADDR + 0x02 + i);
-     }
-   }
- } 
 }
 
 /* save calibration to EEPROM */
 void vertaccel_saveCalibration(double* cal) {
 
   /* write tag */
-  /*
   uint16_t eepromTag = VERTACCEL_EPROM_TAG;
   EEPROM.write(VERTACCEL_EPROM_ADDR, (eepromTag>>8) & 0xff);
   EEPROM.write(VERTACCEL_EPROM_ADDR + 0x01, eepromTag & 0xff);
-  */
 
-  /* save calibration settings */
-  /*
-  uint8_t* datap = (uint8_t*)cal;
-  for( unsigned i = 0; i<3*sizeof(double); i++ ) {
-    EEPROM.write(VERTACCEL_EPROM_ADDR + 0x02 + i, datap[i]);
-  }
-  
-
-  /* save in global var *
-  accelCal[0] = cal[0];
-  accelCal[1] = cal[1];
-  accelCal[2] = cal[2];*/
-  
- 
-  /* write tag */
-  uint16_t eepromTag = VERTACCEL_EPROM_TAG;
-  EEPROM.write(VERTACCEL_EPROM_ADDR, (eepromTag>>8) & 0xff);
-  EEPROM.write(VERTACCEL_EPROM_ADDR + 0x01, eepromTag & 0xff);
-  EEPROM.commit();
-
-  
   /* save calibration settings */
   uint8_t* datap = (uint8_t*)cal;
   for( unsigned i = 0; i<3*sizeof(double); i++ ) {
     EEPROM.write(VERTACCEL_EPROM_ADDR + 0x02 + i, datap[i]);
   }
 
-  EEPROM.commit();
-  
   /* save in global var */
   accelCal[0] = cal[0];
   accelCal[1] = cal[1];
   accelCal[2] = cal[2];
-  
-  GnuSettings.ACCELCALX = cal[0];
-  GnuSettings.ACCELCALY = cal[1];
-  GnuSettings.ACCELCALZ = cal[2];
-  GnuSettings.writeFlashSDSettings();
- 
 }
 
 /* give calibration coefficients */
@@ -299,8 +199,11 @@ boolean vertaccel_rawReady(double* accel, double* upVector, double* vertAccel) {
     upVector[2] = uz;
     *vertAccel = (ux*rax + uy*ray + uz*raz);
   }
- 
-  return newData;
+
+  boolean result = newData;
+  newData = false;
+  
+  return result;
 }
 
 
@@ -315,32 +218,4 @@ void vertaccel_updateData() {
 /* get vertical acceleration */
 double vertaccel_getValue() {
   return va * VERTACCEL_G_TO_MS;
-}
-
-boolean MpuCalibrationCond(void) {
-
-  /* read raw accel */
-  short iaccel[3];
-  long iquat[4];
- 
-  int state = -1;
-  unsigned long startTime = millis();
-  
-  while( state != 0  && (millis() - startTime) <= CALIBRATION_MPU_TIMEOUT ) {
-    state = fastMPUReadFIFO(NULL,iaccel,iquat);
-  }
-
-  if( state != 0 ) {
-    return false;
-  }
-
-  /* compute z accel */
-  double zaccel = ((double)iaccel[2])/LIGHT_INVENSENSE_ACCEL_SCALE;
-
-  /* check orientation (we suppove no mouvements ) */
-  if( zaccel <= CALIBRATION_ZACCEL_THRESHOLD ) {
-    return true;
-  }
-
-  return false;
 }
