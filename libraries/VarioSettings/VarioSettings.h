@@ -4,7 +4,7 @@
 /*----------------------------*/
 /*          SOFTWARE          */
 /*      Vario parameters      */
-/*        Version 1           */
+/*        Version 2           */
 /*----------------------------*/
 
 /* Set your personnal info here and launch */
@@ -15,7 +15,7 @@
 #define VARIOMETER_GLIDER_NAME "MAC-PARA Muse 3"
 
 /* time zone relative to UTC */
-#define VARIOMETER_TIME_ZONE (+1) 
+#define VARIOMETER_TIME_ZONE (+2) 
 
 /*********/
 /* Beeps */
@@ -86,7 +86,7 @@
 /* GPS track recording on SD card starting condition :  */ 
 /* -> As soon as possible (GPS fix)                     */
 /* -> When flight start is detected                     */
-#define VARIOMETER_RECORD_WHEN_FLIGHT_START
+//#define VARIOMETER_RECORD_WHEN_FLIGHT_START
 
 /* What type of vario NMEA sentence is sent by bluetooth. */
 /* Possible values are :                                  */
@@ -123,9 +123,9 @@
 #define MPU9250
 
 /* Set the pins used for Screen and SD card modules */
-#define VARIOSCREEN_DC_PIN 4
+#define VARIOSCREEN_DC_PIN 2
 #define VARIOSCREEN_CS_PIN 3
-#define VARIOSCREEN_RST_PIN 2
+#define VARIOSCREEN_RST_PIN 4
 #define SDCARD_CS_PIN 14
 #define VOLTAGE_DIVISOR_PIN 16
 
@@ -152,6 +152,10 @@
 #define ALARM_GPSFIX
 /* Alarm Fly begin */
 #define ALARM_FLYBEGIN
+
+/* Model GPS */
+#define VARIOMETER_GPS_NEO6
+//#define VARIOMETER_GPS_NEO8
 
 /* Mute */
 //#define HAVE_MUTE

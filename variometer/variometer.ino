@@ -56,6 +56,10 @@
  * v 63.5     Optimisation librairie accélerometre - LightInvensense
  *            Ajout Mute sound 
  *            Correction problème de carte SD
+ *            ajout HAVE_MUTE pour activer ou non l'option mute
+ *            limitation de l'affichage de la vitesse a 99
+ *
+ * v 63.5.1   ajout du support Neo-8m
  *
  *******************/
  
@@ -746,7 +750,8 @@ if (maxVoltage < tmpVoltage) {maxVoltage = tmpVoltage;}
     double ratio = (meanDistance/3600.0)/deltaAlti;
 
     /* display speed and ratio */    
-    speedDigit.setValue( currentSpeed );
+    if (currentSpeed > 99)      speedDigit.setValue( 99 );
+    else                        speedDigit.setValue( currentSpeed );
     if( currentSpeed >= RATIO_MIN_SPEED && ratio >= 0.0 && ratio < RATIO_MAX_VALUE ) {
       ratioDigit.setValue(ratio);
     } else {

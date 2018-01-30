@@ -1,10 +1,23 @@
 #include <SerialNmea.h>
 
+#include <VarioSettings.h>
+
 #include <Arduino.h>
 
 #define NMEA_TAG_SIZE 5
+/*const char rmcTag[] PROGMEM = {"GPRMC"};
+const char ggaTag[] PROGMEM = {"GPGGA"};*/
+
+#if defined(VARIOMETER_GPS_NEO6) 
 const char rmcTag[] PROGMEM = {"GPRMC"};
 const char ggaTag[] PROGMEM = {"GPGGA"};
+#elif defined(VARIOMETER_GPS_NEO8)
+const char rmcTag[] PROGMEM = {"GNRMC"};
+const char ggaTag[] PROGMEM = {"GNGGA"};
+#else
+const char rmcTag[] PROGMEM = {"GPRMC"};
+const char ggaTag[] PROGMEM = {"GPGGA"};
+#endif
 
 #define serialState_set(bit) state |= (1 << bit)
 #define serialState_unset(bit) state &= ~(1 << bit)
