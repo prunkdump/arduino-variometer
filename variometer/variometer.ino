@@ -45,6 +45,26 @@ uint8_t variometerState = VARIOMETER_STATE_INITIAL;
 uint8_t variometerState = VARIOMETER_STATE_CALIBRATED;
 #endif //HAVE_GPS
 
+/***************/
+/* IMU objects */
+/***************/
+#ifdef HAVE_ACCELEROMETER
+#ifdef IMU_CALIBRATION_IN_EEPROM
+VertaccelSettings vertaccelSettings = Vertaccel::readEEPROMSettings();
+#else //!IMU_CALIBRATION_IN_EEPROM
+const VertaccelSettings vertaccelSettings = {
+  IMU_GYRO_CAL_BIAS
+  ,{ IMU_ACCEL_CAL_BIAS, IMU_ACCEL_CAL_SCALE }
+#ifdef AK89xx_SECONDARY
+  ,{ IMU_MAG_CAL_BIAS, IMU_MAG_CAL_PROJ_SCALE }
+#endif //AK89xx_SECONDARY
+};
+#endif //!IMU_CALIBRATION_IN_EEPROM
+
+Vertaccel vertaccel(vertaccelSettings);
+#endif //HAVE_ACCELEROMETER
+
+
 /*****************/
 /* screen objets */
 /*****************/
@@ -219,7 +239,7 @@ void setup() {
   /**********************/
   Fastwire::setup(FASTWIRE_SPEED, 0);
 #ifdef HAVE_ACCELEROMETER
-  vertaccel_init();
+  vertaccel.init();
   if( firmwareUpdateCond() ) {
    firmwareUpdate();
   }
@@ -278,21 +298,18 @@ void setup() {
   /* wait for first alti and acceleration */
   while( ! (ms5611_dataReady()
 #ifdef HAVE_ACCELEROMETER
-            && vertaccel_dataReady()
+            && vertaccel.dataReady()
 #endif //HAVE_ACCELEROMETER
             ) ) {
   }
   
   /* get first data */
   ms5611_updateData();
-#ifdef HAVE_ACCELEROMETER
-  vertaccel_updateData();
-#endif //HAVE_ACCELEROMETER
 
   /* init kalman filter */
   kalmanvert.init(ms5611_getAltitude(),
 #ifdef HAVE_ACCELEROMETER
-                  vertaccel_getValue(),
+                  vertaccel.getValue(),
 #else
                   0.0,
 #endif
@@ -316,12 +333,11 @@ void loop() {
   /* compute vertical velocity */
   /*****************************/
 #ifdef HAVE_ACCELEROMETER
-  if( ms5611_dataReady() && vertaccel_dataReady() ) {
+  if( ms5611_dataReady() && vertaccel.dataReady() ) {
     ms5611_updateData();
-    vertaccel_updateData();
 
     kalmanvert.update( ms5611_getAltitude(),
-                       vertaccel_getValue(),
+                       vertaccel.getValue(),
                        millis() );
 #else
   if( ms5611_dataReady() ) {

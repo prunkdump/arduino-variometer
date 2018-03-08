@@ -13,14 +13,16 @@ AccelCalibrator::AccelCalibrator() {
 
 void AccelCalibrator::init(void) {
   
-  /* init the accelerometer */
-  vertaccel_init();
+  /* init the accelerometer without calibration */
+  vertaccel.init();
 
   /* get the values stored in EEPROM */
-  double* cal = vertaccel_getCalibration();
-  calibration[0] = cal[0];
-  calibration[1] = cal[1];
-  calibration[2] = cal[2];
+  VertaccelCalibration accelCal;
+  vertaccel.readAccelCalibration(accelCal);
+
+  for(int i = 0; i<3; i++) {
+    calibration[i] = (double)accelCal.bias[i]/(double)(1 << VERTACCEL_CAL_BIAS_MULTIPLIER);
+  }
 }
 
 void AccelCalibrator::reset(void) {
@@ -33,16 +35,15 @@ void AccelCalibrator::reset(void) {
   
 void AccelCalibrator::measure(void) {
 
-  double accel[3];
-  double upVector[3];
-  double va;
-  
+  int16_t iaccel[3];
+  int32_t iquat[4];
+    
   /* empty the FIFO and stabilize the accelerometer */
   unsigned long currentTime = millis();
   while( millis() - currentTime < ACCEL_CALIBRATOR_WAIT_DURATION ) {
-    vertaccel_rawReady(accel, upVector, &va);
+    vertaccel.readRawAccel(iaccel, iquat);
   }
-
+  
   /* starting measures with mean filter */
   int count = 0;
   measuredAccel[0] = 0.0;
@@ -51,14 +52,14 @@ void AccelCalibrator::measure(void) {
   double accelSquareMean[3] = {0.0, 0.0, 0.0}; //to compute standard deviation
 
   while( count < ACCEL_CALIBRATOR_FILTER_SIZE ) {
-    if( vertaccel_rawReady(accel, upVector, &va) ) {
-      measuredAccel[0] += accel[0];
-      measuredAccel[1] += accel[1];
-      measuredAccel[2] += accel[2];
+    if( vertaccel.readRawAccel(iaccel, iquat) ) {
+      measuredAccel[0] += (double)iaccel[0];
+      measuredAccel[1] += (double)iaccel[1];
+      measuredAccel[2] += (double)iaccel[2];
 
-      accelSquareMean[0] +=  accel[0]*accel[0];
-      accelSquareMean[1] +=  accel[1]*accel[1];
-      accelSquareMean[2] +=  accel[2]*accel[2];
+      accelSquareMean[0] +=  (double)iaccel[0]*(double)iaccel[0];
+      accelSquareMean[1] +=  (double)iaccel[1]*(double)iaccel[1];
+      accelSquareMean[2] +=  (double)iaccel[2]*(double)iaccel[2];
     
       count++;
     }
@@ -83,6 +84,9 @@ void AccelCalibrator::measure(void) {
 
 int AccelCalibrator::getMeasureOrientation(void) {
 
+  /* compute the norm of the vector */
+  double norm = sqrt( measuredAccel[0]*measuredAccel[0] + measuredAccel[1]*measuredAccel[1] + measuredAccel[2]*measuredAccel[2] );
+
   /* determine measure orientation */
   /* a>threshold -> 0                (a=1  correspond to 0) */
   /* -threshold < a < threshold -> 2 (a=0  correspond to 2) */
@@ -91,9 +95,9 @@ int AccelCalibrator::getMeasureOrientation(void) {
   int accelOrient[3];
   int zeroCount = 0;
   for( int i=0; i<3; i++ ) {
-    if( measuredAccel[i] > ACCEL_CALIBRATOR_ORIENTATION_THRESHOLD ) {
+    if( measuredAccel[i]/norm > ACCEL_CALIBRATOR_ORIENTATION_THRESHOLD ) {
       accelOrient[i] = 0;
-    } else if( measuredAccel[i] > -ACCEL_CALIBRATOR_ORIENTATION_THRESHOLD ) {
+    } else if( measuredAccel[i]/norm > -ACCEL_CALIBRATOR_ORIENTATION_THRESHOLD ) {
       accelOrient[i] = 2;
       zeroCount++;
     } else {
@@ -124,7 +128,7 @@ int AccelCalibrator::getMeasureOrientation(void) {
 boolean AccelCalibrator::pushMeasure(void) {
 
   /* get orientation */
-  int orientPos = this->getMeasureOrientation();
+  int orientPos = getMeasureOrientation();
   if( orientPos < 0 ) 
     return false; //ambiguous orientation
  
@@ -158,20 +162,28 @@ boolean AccelCalibrator::canCalibrate(void) {
 void AccelCalibrator::calibrate(void) {
 
   /* check if we have enough measures */
-  if( ! this->canCalibrate() )
+  if( ! canCalibrate() )
     return;
+
+  /* compute base radius */
+  double baseRadius = 0.0;
+  for(int i=0; i<3*ACCEL_CALIBRATOR_ORIENTATION_COUNT;  i+=3) {
+    baseRadius += sqrt( accelList[i]*accelList[i] + accelList[i+1]*accelList[i+1] + accelList[i+2]*accelList[i+2] );
+  }
+  baseRadius /= (double)(3*ACCEL_CALIBRATOR_ORIENTATION_COUNT);
+  
 
   /****************************/
   /* make radius optimization */
   /****************************/
   double calibrationCenter[3];
-  double baseRadius = ACCEL_CALIBRATOR_BASE_RADIUS;
-  double baseRadiusDrift = ACCEL_CALIBRATOR_BASE_RADIUS_DRIFT;
-  double baseStep = ACCEL_CALIBRATOR_BASE_RADIUS_STEP;
+  double baseRadiusDrift = baseRadius * ACCEL_CALIBRATOR_BASE_RADIUS_DRIFT;
+  double baseStep = baseRadius * ACCEL_CALIBRATOR_BASE_RADIUS_STEP;
+  double optimizationPrecision = baseRadius * ACCEL_CALIBRATOR_OPTIMIZATION_PRECISION;
   double bestDistance = 100000.0;
   double bestRadius;
                         
-  while( baseStep > ACCEL_CALIBRATOR_OPTIMIZATION_PRECISION ) {
+  while( baseStep > optimizationPrecision ) {
               
     double currentRadius = baseRadius - baseRadiusDrift;
     double currentDistance;
@@ -200,22 +212,27 @@ void AccelCalibrator::calibrate(void) {
 		&accelList[ACCEL_CALIBRATOR_ORIENTATION_P3*3],
 		bestRadius, calibrationCenter);
 
-  /* save calibration */
-  calibration[0] = -calibrationCenter[0];
-  calibration[1] = -calibrationCenter[1];
-  calibration[2] = -calibrationCenter[2];
+  /* save calibration, without radius */
+  for(int i = 0; i<3; i++) {
+    calibration[i] = calibrationCenter[i];
+  }
+  
+  VertaccelCalibration accelCal = {{ (int16_t)(calibrationCenter[0]*(double)(1 << VERTACCEL_CAL_BIAS_MULTIPLIER))
+				     ,(int16_t)(calibrationCenter[1]*(double)(1 << VERTACCEL_CAL_BIAS_MULTIPLIER))
+				     ,(int16_t)(calibrationCenter[2]*(double)(1 << VERTACCEL_CAL_BIAS_MULTIPLIER)) } , 0};
 
-  vertaccel_saveCalibration(calibration);
+
+  vertaccel.saveAccelCalibration(accelCal);
   calibrated = true;
 }
 
 
 void AccelCalibrator::calibratedMeasure(void) {
 
-  this->measure();
-  measuredAccel[0] += calibration[0];
-  measuredAccel[1] += calibration[1];
-  measuredAccel[2] += calibration[2];
+  measure();
+  measuredAccel[0] -= calibration[0];
+  measuredAccel[1] -= calibration[1];
+  measuredAccel[2] -= calibration[2];
 
 }
 

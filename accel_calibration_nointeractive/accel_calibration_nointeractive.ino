@@ -38,8 +38,8 @@ void signalBeep(double freq, unsigned long duration, int count = 1) {
 void setup() {
   
   /* init calibrator */
-  delay(1000);
-  Fastwire::setup(400,0);
+  delay(VARIOMETER_POWER_ON_DELAY);
+  Fastwire::setup(FASTWIRE_SPEED, 0);
   calibrator.init();
   
   /* launch firmware update if needed */

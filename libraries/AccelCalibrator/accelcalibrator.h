@@ -90,6 +90,7 @@ class AccelCalibrator {
   
 
  private:
+  Vertaccel vertaccel;
   void computeCenter(double* v1, double* v2, double* v3, double radius, double* center);
   double computeDistanceVariance(double *v, double* center);
 

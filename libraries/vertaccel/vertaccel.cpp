@@ -1,221 +1,353 @@
 #include "vertaccel.h"
-
 #include <Arduino.h>
-
 #include <LightInvensense.h>
+
+#ifdef VERTACCEL_ENABLE_EEPROM
 #include <EEPROM.h>
+#endif
 
-/******************/
-/* data variables */
-/******************/
 
+/*-------------*/
 /* calibration */
-static double accelCal[3];
+/*-------------*/
 
-static boolean newData;
+void Vertaccel::readCurrentDMPGyroCalibration(uint8_t* gyroCal) {
 
-/* vertical acceleration */
-static double va;
+  fastMPUReadGyroBias(gyroCal);
+}
 
 
-/*************************/
-/* calibration functions */
-/*************************/
+#ifdef VERTACCEL_ENABLE_EEPROM
+/******************/
+/* EEPROM methods */
+/******************/
 
-/* read calibration from EEPROM */
-void vertaccel_readCalibration(void) {
+void readEEPROMValues(int address, uint16_t eepromTag, int length, uint8_t* data) {
 
-  /* check tag */
-  uint16_t eepromTag;
-  eepromTag = EEPROM.read(VERTACCEL_EPROM_ADDR);
-  eepromTag <<= 8;
-  eepromTag += EEPROM.read(VERTACCEL_EPROM_ADDR + 0x01);
-  
-  if( eepromTag != VERTACCEL_EPROM_TAG ) {
-    accelCal[0] = 0.0;
-    accelCal[1] = 0.0;
-    accelCal[2] = 0.0;
-  } else {
-    /* read calibration settings */
-    uint8_t* datap = (uint8_t*)accelCal;
-    for( unsigned i = 0; i<sizeof(accelCal); i++ ) {
-      datap[i] =  EEPROM.read(VERTACCEL_EPROM_ADDR + 0x02 + i);
+  /* read tag */
+  uint16_t tag = EEPROM.read(address);
+  address++;
+  tag = (tag<<8) + EEPROM.read(address);
+  address++;
+
+  /* read values */
+  for( uint8_t i = 0; i<length; i++) {
+    if( tag == eepromTag ) {
+      *data = EEPROM.read(address);
+    } else {
+      *data = 0;
     }
+    data++;
+    address++;
   }
 }
 
-/* save calibration to EEPROM */
-void vertaccel_saveCalibration(double* cal) {
+
+void writeEEPROMValues(int address, uint16_t eepromTag, int length, const uint8_t* data) {
 
   /* write tag */
-  uint16_t eepromTag = VERTACCEL_EPROM_TAG;
-  EEPROM.write(VERTACCEL_EPROM_ADDR, (eepromTag>>8) & 0xff);
-  EEPROM.write(VERTACCEL_EPROM_ADDR + 0x01, eepromTag & 0xff);
-
-  /* save calibration settings */
-  uint8_t* datap = (uint8_t*)cal;
-  for( unsigned i = 0; i<3*sizeof(double); i++ ) {
-    EEPROM.write(VERTACCEL_EPROM_ADDR + 0x02 + i, datap[i]);
+  EEPROM.write(address, (eepromTag>>8) & 0xff);
+  EEPROM.write(address + 0x01, eepromTag & 0xff);
+  address += 2;
+  
+  /* write values */
+  for( uint8_t i = 0; i<length; i++) {
+    EEPROM.write(address, *data);
+    data++;
+    address++;
   }
-
-  /* save in global var */
-  accelCal[0] = cal[0];
-  accelCal[1] = cal[1];
-  accelCal[2] = cal[2];
 }
 
-/* give calibration coefficients */
-double* vertaccel_getCalibration(void) {
 
-  return accelCal;
-}  
- 
+VertaccelSettings Vertaccel::readEEPROMSettings(void) {
 
+  VertaccelSettings settings;
+  readGyroCalibration(settings.gyroCal);
+  readAccelCalibration(settings.accelCal);
+#ifdef AK89xx_SECONDARY 
+  readMagCalibration(settings.magCal);
+#endif //AK89xx_SECONDARY
 
-/********************/
-/* public functions */
-/********************/
-
-/* init vertaccel */
-void vertaccel_init(void) {
-
-  /* init */
-  fastMPUInit();
-
-  /* init calibration settings */
-  vertaccel_readCalibration();
-  
-  /* init data variables */
-  newData = false;
+  return settings;
 }
 
-/* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
-/*   must be run as often as possible   */
-/* check if data ready and threat data  */
-/* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
-boolean vertaccel_dataReady() {
+
+void Vertaccel::saveGyroCalibration(const uint8_t* gyroCal) {
+
+  writeEEPROMValues(VERTACCEL_GYRO_CAL_EEPROM_ADDR, VERTACCEL_GYRO_CAL_EEPROM_TAG, 12, gyroCal);
+}
+
+void Vertaccel::readGyroCalibration(uint8_t* gyroCal) {
+
+  readEEPROMValues(VERTACCEL_GYRO_CAL_EEPROM_ADDR, VERTACCEL_GYRO_CAL_EEPROM_TAG, 12, gyroCal);
+}
+
+void Vertaccel::saveAccelCalibration(const VertaccelCalibration& accelCal) {
+
+  writeEEPROMValues(VERTACCEL_ACCEL_CAL_EEPROM_ADDR, VERTACCEL_ACCEL_CAL_EEPROM_TAG, sizeof(VertaccelCalibration), (uint8_t*)(&accelCal));
+}
+
+void Vertaccel::readAccelCalibration(VertaccelCalibration& accelCal) {
+
+  readEEPROMValues(VERTACCEL_ACCEL_CAL_EEPROM_ADDR, VERTACCEL_ACCEL_CAL_EEPROM_TAG, sizeof(VertaccelCalibration), (uint8_t*)(&accelCal));
+}
+
+#ifdef AK89xx_SECONDARY
+void Vertaccel::saveMagCalibration(const VertaccelCalibration& magCal) {
+
+  writeEEPROMValues(VERTACCEL_MAG_CAL_EEPROM_ADDR, VERTACCEL_MAG_CAL_EEPROM_TAG, sizeof(VertaccelCalibration), (uint8_t*)(&magCal));
+}
+
+void Vertaccel::readMagCalibration(VertaccelCalibration& magCal) {
+
+  readEEPROMValues(VERTACCEL_MAG_CAL_EEPROM_ADDR, VERTACCEL_MAG_CAL_EEPROM_TAG, sizeof(VertaccelCalibration), (uint8_t*)(&magCal));
+}
+#endif //AK89xx_SECONDARY
+#endif //VERTACCEL_ENABLE_EEPROM
   
-  short iaccel[3];
-  long iquat[4];
+
+
+/***************/
+/* init device */
+/***************/
+void Vertaccel::init(void) {
+
+  /* init MPU */
+  fastMPUInit(false);
+
+  /* set gyro calibration in the DMP */
+  fastMPUSetGyroBias(settings.gyroCal);
+
+  /* set accel calibration in the DMP */
+  int32_t accelBias[3];
+  for(int i = 0; i<3; i++) 
+    accelBias[i] = (int32_t)settings.accelCal.bias[i] << (15 - VERTACCEL_CAL_BIAS_MULTIPLIER);
+  fastMPUSetAccelBiasQ15(accelBias);
+  
+  /* start DMP */
+  fastMPUStart();
+}
+
+
+/* !!! WARNING : run as often as possible to check the FIFO stack !!! */
+uint8_t Vertaccel::dataReady(void) {
+
+  uint8_t newData = 0;
+  int16_t iaccel[3];
+  int32_t iquat[4];
    
   /* check if we have new data from imu */
   while( fastMPUReadFIFO(NULL, iaccel, iquat) >= 0 ) {
-    newData = true;
+    newData = VERTACCEL_HAVE_ACCEL;
   }
 
   /* if new data compute vertical acceleration */
   if( newData ) {
+
+    /*---------------------------------------*/
+    /*   vertical acceleration computation   */
+    /*---------------------------------------*/
 
     /***************************/
     /* normalize and calibrate */
     /***************************/
     double accel[3]; 
     double quat[4]; 
-    
-    accel[0] = ((double)iaccel[0])/LIGHT_INVENSENSE_ACCEL_SCALE + accelCal[0];
-    accel[1] = ((double)iaccel[1])/LIGHT_INVENSENSE_ACCEL_SCALE + accelCal[1];
-    accel[2] = ((double)iaccel[2])/LIGHT_INVENSENSE_ACCEL_SCALE + accelCal[2];
-        
-    quat[0] = ((double)iquat[0])/LIGHT_INVENSENSE_QUAT_SCALE;
-    quat[1] = ((double)iquat[1])/LIGHT_INVENSENSE_QUAT_SCALE;
-    quat[2] = ((double)iquat[2])/LIGHT_INVENSENSE_QUAT_SCALE;
-    quat[3] = ((double)iquat[3])/LIGHT_INVENSENSE_QUAT_SCALE;
-    
 
+    for(int i = 0; i<3; i++) {
+      int64_t calibratedAccel = (int64_t)iaccel[i] << VERTACCEL_CAL_BIAS_MULTIPLIER;
+      calibratedAccel -= (int64_t)settings.accelCal.bias[i];
+      calibratedAccel *= ((int64_t)settings.accelCal.scale + ((int64_t)1 << 15));
+      accel[i] = ((double)calibratedAccel)/((double)((int64_t)1 << (VERTACCEL_CAL_BIAS_MULTIPLIER + VERTACCEL_CAL_SCALE_MULTIPLIER + LIGHT_INVENSENSE_ACCEL_SCALE_SHIFT)));
+    }
+
+    
+    for(int i = 0; i<4; i++)
+      quat[i] = ((double)iquat[i])/LIGHT_INVENSENSE_QUAT_SCALE;
+    
+ 
     /******************************/
     /* real and vert acceleration */
     /******************************/
   
-    /* compute upper direction from quaternions */
-    double ux, uy, uz;
-    ux = 2*(quat[1]*quat[3]-quat[0]*quat[2]);
-    uy = 2*(quat[2]*quat[3]+quat[0]*quat[1]);
-    uz = 2*(quat[0]*quat[0]+quat[3]*quat[3])-1;
+    /* compute vertical direction from quaternions */
+    double v[3];
+    v[0] = 2*(quat[1]*quat[3]-quat[0]*quat[2]);
+    v[1] = 2*(quat[2]*quat[3]+quat[0]*quat[1]);
+    v[2] = 2*(quat[0]*quat[0]+quat[3]*quat[3])-1;
         
     /* compute real acceleration (without gravity) */
-    double rax, ray, raz;
-    rax = accel[0] - ux;
-    ray = accel[1] - uy;
-    raz = accel[2] - uz;
-    
-        
+    double ra[3];
+    for(int i = 0; i<3; i++) 
+      ra[i] = accel[i] - v[i];
+           
     /* compute vertical acceleration */
-    va = (ux*rax + uy*ray + uz*raz);
+    vertAccel = (v[0]*ra[0] + v[1]*ra[1] + v[2]*ra[2]);
+
+#ifdef AK89xx_SECONDARY
+    /*-------------------------------*/
+    /*   north vector computation    */
+    /*-------------------------------*/
+    if( fastMPUMagReady() ) {
+      newData = VERTACCEL_HAVE_ACCEL | VERTACCEL_HAVE_MAG;
+
+      /* get mag and calibrate */
+      int16_t iNorth[3];
+#ifdef VERTACCEL_USE_MAG_SENS_ADJ
+      fastMPUReadMag(iNorth);
+#else
+      fastMPUReadRawMag(iNorth);
+#endif //VERTACCEL_USE_MAG_SENS_ADJ
+
+      double n[3];
+      for(int i = 0; i<3; i++) {
+	int64_t calibratedMag = ((int64_t)iNorth[i]) << VERTACCEL_CAL_BIAS_MULTIPLIER;
+	calibratedMag -= (int64_t)settings.magCal.bias[i];
+	calibratedMag *= ((int64_t)settings.magCal.scale + ((int64_t)1 << 15));
+	n[i] = ((double)calibratedMag)/((double)((int64_t)1 << (VERTACCEL_CAL_BIAS_MULTIPLIER + VERTACCEL_CAL_SCALE_MULTIPLIER + LIGHT_INVENSENSE_MAG_PROJ_SCALE_SHIFT)));
+      }
+      
+      /* compute north vector by applying rotation from v to z to vertor n */
+      v[2] = -1.0 - v[2];
+      northVector[0] = (1+v[0]*v[0]/v[2])*n[0] + (v[0]*v[1]/v[2])*n[1] - v[0]*n[2];
+      northVector[1] = (v[0]*v[1]/v[2])*n[0] + (1+v[1]*v[1]/v[2])*n[1] - v[1]*n[2];
+    }
   }
- 
+#endif
+  
   return newData;
 }
 
 
-/* send raw data for debugging or calibration */ 
-boolean vertaccel_rawReady(double* accel, double* upVector, double* vertAccel) {
-  
-  short iaccel[3];
-  long iquat[4];
+uint8_t Vertaccel::dataFullReady(double* accel, double* quat, double* v, double* n) {
+
+  uint8_t newData = 0;
+  int16_t iaccel[3];
+  int32_t iquat[4];
    
   /* check if we have new data from imu */
   while( fastMPUReadFIFO(NULL, iaccel, iquat) >= 0 ) {
-    newData = true;
+    newData = VERTACCEL_HAVE_ACCEL;
   }
 
   /* if new data compute vertical acceleration */
   if( newData ) {
-    
-    /*************/
-    /* normalize */
-    /*************/ 
-    double quat[4]; 
-    
-    accel[0] = ((double)iaccel[0])/LIGHT_INVENSENSE_ACCEL_SCALE;
-    accel[1] = ((double)iaccel[1])/LIGHT_INVENSENSE_ACCEL_SCALE;
-    accel[2] = ((double)iaccel[2])/LIGHT_INVENSENSE_ACCEL_SCALE;
-        
-    quat[0] = ((double)iquat[0])/LIGHT_INVENSENSE_QUAT_SCALE;
-    quat[1] = ((double)iquat[1])/LIGHT_INVENSENSE_QUAT_SCALE;
-    quat[2] = ((double)iquat[2])/LIGHT_INVENSENSE_QUAT_SCALE;
-    quat[3] = ((double)iquat[3])/LIGHT_INVENSENSE_QUAT_SCALE;
-    
 
+    /*---------------------------------------*/
+    /*   vertical acceleration computation   */
+    /*---------------------------------------*/
+
+    /***************************/
+    /* normalize and calibrate */
+    /***************************/
+    for(int i = 0; i<3; i++) {
+      int64_t calibratedAccel = (int64_t)iaccel[i] << VERTACCEL_CAL_BIAS_MULTIPLIER;
+      calibratedAccel -= (int64_t)settings.accelCal.bias[i];
+      calibratedAccel *= ((int64_t)settings.accelCal.scale + ((int64_t)1 << 15));
+      accel[i] = ((double)calibratedAccel)/((double)((int64_t)1 << (VERTACCEL_CAL_BIAS_MULTIPLIER + VERTACCEL_CAL_SCALE_MULTIPLIER + LIGHT_INVENSENSE_ACCEL_SCALE_SHIFT)));
+    }
+
+    
+    for(int i = 0; i<4; i++)
+      quat[i] = ((double)iquat[i])/LIGHT_INVENSENSE_QUAT_SCALE;
+    
+ 
     /******************************/
     /* real and vert acceleration */
     /******************************/
   
-    /* compute upper direction from quaternions */
-    double ux, uy, uz;
-    ux = 2*(quat[1]*quat[3]-quat[0]*quat[2]);
-    uy = 2*(quat[2]*quat[3]+quat[0]*quat[1]);
-    uz = 2*(quat[0]*quat[0]+quat[3]*quat[3])-1;
+    /* compute vertical direction from quaternions */
+    v[0] = 2*(quat[1]*quat[3]-quat[0]*quat[2]);
+    v[1] = 2*(quat[2]*quat[3]+quat[0]*quat[1]);
+    v[2] = 2*(quat[0]*quat[0]+quat[3]*quat[3])-1;
         
     /* compute real acceleration (without gravity) */
-    double rax, ray, raz;
-    rax = accel[0] - ux;
-    ray = accel[1] - uy;
-    raz = accel[2] - uz;
-    
-        
+    double ra[3];
+    for(int i = 0; i<3; i++) 
+      ra[i] = accel[i] - v[i];
+           
     /* compute vertical acceleration */
-    upVector[0] = ux;
-    upVector[1] = uy;
-    upVector[2] = uz;
-    *vertAccel = (ux*rax + uy*ray + uz*raz);
+    vertAccel = (v[0]*ra[0] + v[1]*ra[1] + v[2]*ra[2]);
+
+#ifdef AK89xx_SECONDARY
+    /*-------------------------------*/
+    /*   north vector computation    */
+    /*-------------------------------*/
+    if( fastMPUMagReady() ) {
+      newData = VERTACCEL_HAVE_ACCEL | VERTACCEL_HAVE_MAG;
+
+      /* get mag and calibrate */
+      int16_t iNorth[3];
+#ifdef VERTACCEL_USE_MAG_SENS_ADJ
+      fastMPUReadMag(iNorth);
+#else
+      fastMPUReadRawMag(iNorth);
+#endif //VERTACCEL_USE_MAG_SENS_ADJ
+
+      for(int i = 0; i<3; i++) {
+	int64_t calibratedMag = ((int64_t)iNorth[i]) << VERTACCEL_CAL_BIAS_MULTIPLIER;
+	calibratedMag -= (int64_t)settings.magCal.bias[i];
+	calibratedMag *= ((int64_t)settings.magCal.scale + ((int64_t)1 << 15));
+	n[i] = ((double)calibratedMag)/((double)((int64_t)1 << (VERTACCEL_CAL_BIAS_MULTIPLIER + VERTACCEL_CAL_SCALE_MULTIPLIER + LIGHT_INVENSENSE_MAG_PROJ_SCALE_SHIFT)));
+      }
+      
+      /* compute north vector by applying rotation from v to z to vertor n */
+      double save = v[2];
+      v[2] = -1.0 - v[2];
+      northVector[0] = (1+v[0]*v[0]/v[2])*n[0] + (v[0]*v[1]/v[2])*n[1] - v[0]*n[2];
+      northVector[1] = (v[0]*v[1]/v[2])*n[0] + (1+v[1]*v[1]/v[2])*n[1] - v[1]*n[2];
+      v[2] = save;
+    }
+  }
+#endif
+  
+  return newData;
+}
+
+
+/* when ready get data */
+double Vertaccel::getValue(void) {
+
+  return vertAccel * VERTACCEL_G_TO_MS;
+}
+
+#ifdef AK89xx_SECONDARY
+double* Vertaccel::getNorthVector(void) {
+
+  return northVector;
+}
+#endif //AK89xx_SECONDARY
+
+
+
+/* direct access to sensors */
+uint8_t Vertaccel::readRawAccel(int16_t* accel, int32_t* quat) {
+
+  uint8_t haveValue = 0;
+
+  while( fastMPUReadFIFO(NULL, accel, quat) >= 0 ) {
+    haveValue = VERTACCEL_HAVE_ACCEL;
   }
 
-  boolean result = newData;
-  newData = false;
+  return haveValue;
+}
+
   
-  return result;
-}
+#ifdef AK89xx_SECONDARY
+uint8_t Vertaccel::readRawMag(int16_t* mag) {
 
+  uint8_t haveValue = 0;
 
-/* must be run before reading values */
-void vertaccel_updateData() {
+  if( fastMPUMagReady() ) {
+#ifdef VERTACCEL_USE_MAG_SENS_ADJ
+    fastMPUReadMag(mag);
+#else
+    fastMPUReadRawMag(mag);
+#endif //VERTACCEL_USE_MAG_SENS_ADJ
+    haveValue = VERTACCEL_HAVE_MAG;
+  }
 
-  /* start a new acceleration computation */
-  newData = false;
-}
+  return haveValue;
+}  
+#endif //AK89xx_SECONDARY
 
-
-/* get vertical acceleration */
-double vertaccel_getValue() {
-  return va * VERTACCEL_G_TO_MS;
-}
