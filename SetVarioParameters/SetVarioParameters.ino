@@ -16,6 +16,7 @@
 /*!! Before building check :                  !!*/
 /*!! libraries/VarioSettings/VarioSettings.h  !!*/
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+Vertaccel vertaccel;
 
 
 #define BEEP_FREQ 800
@@ -27,12 +28,10 @@ IGCHeader header;
 
 void setup() {
   
-  /* wait a little */
-  delay(1000);
-    
-  /* launch firmware update if needed */
-  Fastwire::setup(400,0);
-  vertaccel_init();
+   /* launch firmware update if needed */
+  delay(VARIOMETER_POWER_ON_DELAY);
+  Fastwire::setup(FASTWIRE_SPEED, 0);
+  vertaccel.init();
   if( firmwareUpdateCond() ) {
    firmwareUpdate();
   }
