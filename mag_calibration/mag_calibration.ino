@@ -12,8 +12,8 @@
 #define RESULT_DISPLAY_DELAY 1000
 
 double magCalibration[3];
-short magMinValues[3];
-short magMaxValues[3];
+int16_t magMinValues[3];
+int16_t magMaxValues[3];
 bool extUpdated[3];
 
 unsigned long lastDisplayTimestamp;
@@ -24,18 +24,28 @@ unsigned long lastDisplayTimestamp;
 #define STATE_CALIBRATED 3
 int state = STATE_INITIAL;
 
-void setup() {
-  delay(2000);
+Vertaccel vertaccel;
 
+void setup() {
+
+  /* start devices */
+  delay(VARIOMETER_POWER_ON_DELAY);
+  Fastwire::setup(FASTWIRE_SPEED, 0);
+  vertaccel.init();
+  if( firmwareUpdateCond() ) {
+   firmwareUpdate();
+  }
+ 
   /* init serial */
   Serial.begin(9600);
 
-  /* init device */
-  Fastwire::setup(FASTWIRE_SPEED, 0);
-  vertaccel_init();
-
   /* read current calibration */
-  vertaccel_getMagCalibration(magCalibration);
+  VertaccelCalibration magCal;
+  vertaccel.readMagCalibration(magCal);
+  for(int i=0; i<3; i++) {
+    magCalibration[i] = (double)magCal.bias[i]/(double)(1 << VERTACCEL_CAL_BIAS_MULTIPLIER);
+  }
+  
   Serial.print("------------------\n");
   Serial.print("Current calibration coefficients :\n");
   for( uint8_t i = 0; i<3; i++ ) {
@@ -52,10 +62,9 @@ void setup() {
   for( int i = 0; i<3; i++) {
     magMaxValues[i] = magMinValues[i];
   }
-
 }
 
-short newMag[3];
+int16_t newMag[3];
 
 void loop() {
 
@@ -125,13 +134,17 @@ void loop() {
 
       if( state == STATE_CALIBRATING ) {
         for( int i = 0; i<3; i++) {
-          magCalibration[i] = -((double)magMinValues[i] + (double)magMaxValues[i])/2.0;
+          magCalibration[i] = ((double)magMinValues[i] + (double)magMaxValues[i])/2.0;
           Serial.println(magCalibration[i], 3);
         }
       }
 
       if( c == 's' ) {
-        vertaccel_saveMagCalibration(magCalibration);
+        /* save mag calibration */
+        VertaccelCalibration magCal = {{ (int16_t)(magCalibration[0]*(double)(1 << VERTACCEL_CAL_BIAS_MULTIPLIER))
+                                         ,(int16_t)(magCalibration[1]*(double)(1 << VERTACCEL_CAL_BIAS_MULTIPLIER))
+                                         ,(int16_t)(magCalibration[2]*(double)(1 << VERTACCEL_CAL_BIAS_MULTIPLIER)) }, VERTACCEL_DEFAULT_MAG_CAL_PROJ_SCALE};
+        vertaccel.saveMagCalibration(magCal);
         state = STATE_CALIBRATED;
       } else {
         state = STATE_DISPLAY;
@@ -206,11 +219,11 @@ void loop() {
         Serial.print("------------------\n");
 
         Serial.print( "(" );
-        Serial.print(newMag[0] + (short)magCalibration[0], DEC);
+        Serial.print(newMag[0] - (int16_t)magCalibration[0], DEC);
         Serial.print( ", " );
-        Serial.print(newMag[1] + (short)magCalibration[1], DEC);
+        Serial.print(newMag[1] - (int16_t)magCalibration[1], DEC);
         Serial.print( ", " );
-        Serial.print(newMag[2] + (short)magCalibration[2], DEC);
+        Serial.print(newMag[2] - (int16_t)magCalibration[2], DEC);
         Serial.print( ")\n" );
      }
     }
