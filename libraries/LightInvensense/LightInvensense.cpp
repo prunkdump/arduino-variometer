@@ -37,7 +37,7 @@
 /**************************************/
 
 /*----------------PASTE HERE -------------------*/
-const unsigned char compressedFirmware[] PROGMEM = {
+const uint8_t compressedFirmware[] PROGMEM = {
    0x00, 0x01, 0x70, 0x00, 0x03, 0x24, 0x00, 0x02, 0x02, 0x00, 0x00, 0x03, 0x00, 0x02, 0x65, 0x00,
    0x00, 0x54, 0xFF, 0xEF, 0x00, 0x01, 0xFA, 0x80, 0x00, 0x00, 0x0B, 0x12, 0x82, 0x00, 0x00, 0x01,
    0x03, 0x0C, 0x30, 0xC3, 0x0E, 0x8C, 0x8C, 0xE9, 0x14, 0xD5, 0x40, 0x02, 0x13, 0x71, 0x0F, 0x8E,
@@ -215,7 +215,7 @@ const unsigned char compressedFirmware[] PROGMEM = {
 #define COMPRESSED_DMP_PAQUET_LENGTH 26
 /*----------------END HERE -------------------*/
 
-static unsigned char dmpChunk[DMP_CHUNK_SIZE];
+static uint8_t dmpChunk[DMP_CHUNK_SIZE];
 
 #ifdef LIGHT_INVENSENSE_BUILD
 /************************/
@@ -248,10 +248,10 @@ void print_hex_value(uint8_t value) {
 }
 
 /* read dmp memory byte per byte */
-static unsigned short memPos = (unsigned short)(-1);
-static unsigned short chunkPos = 0;
+static uint16_t memPos = (uint16_t)(-1);
+static uint16_t chunkPos = 0;
 
-unsigned char readDmpMemory(void) {
+uint8_t readDmpMemory(void) {
 
   memPos++;
 
@@ -262,7 +262,7 @@ unsigned char readDmpMemory(void) {
   }
 
   /* get the code char */
-  unsigned char c = dmpChunk[chunkPos];
+  uint8_t c = dmpChunk[chunkPos];
   chunkPos++;
   
   return c;
@@ -284,7 +284,7 @@ int createCompressedFirmware(void) {
     return -1;
   
   /* set fsrs */
-  unsigned short fsr;
+  uint16_t fsr;
   
   switch( LIGHT_INVENSENSE_GYRO_FSR ) {
   case  INV_FSR_250DPS: fsr = 250; break;
@@ -336,7 +336,7 @@ int createCompressedFirmware(void) {
   bool zeroFound = false;
   unsigned zeroCount;
 
-  Serial.print("const unsigned char compressedFirmware[] PROGMEM = {\n   ");
+  Serial.print("const uint8_t compressedFirmware[] PROGMEM = {\n   ");
   
   /* read all the code */
   while( readPos < INV_DMP_CODE_SIZE ) {
@@ -384,7 +384,7 @@ int createCompressedFirmware(void) {
   /******************/
   /* get dmp config */
   /******************/
-  unsigned char data;
+  uint8_t data;
 
   /* start dmp */
   mpu_set_dmp_state(1);
@@ -482,11 +482,11 @@ uint8_t decodeCompressedFirmware(void) {
   return 0x00;
 }
   
-int fastMpuWriteMem(unsigned short memAddr, unsigned char *data);
+int fastMpuWriteMem(uint16_t memAddr, uint16_t length, const uint8_t *data);
 
 int loadCompressedFirmware(void) {
   
-  unsigned short writePos = 0;
+  uint16_t writePos = 0;
   while( writePos < INV_DMP_CODE_SIZE ) {
 
     /* decompress chunk */
@@ -495,7 +495,7 @@ int loadCompressedFirmware(void) {
     }
 
     /* write chunk */
-    if( fastMpuWriteMem(writePos, dmpChunk) < 0 ) 
+    if( fastMpuWriteMem(writePos, DMP_CHUNK_SIZE, dmpChunk) < 0 ) 
       return -1;
 
     /* next */
@@ -513,24 +513,40 @@ int loadCompressedFirmware(void) {
 /*                                  */
 /*----------------------------------*/
 
-int fastMpuWriteMem(unsigned short memAddr, unsigned char *data) {
+int fastMpuWriteMem(uint16_t memAddr, uint16_t length, const uint8_t *data) {
 
-  unsigned char com[2];
+  uint8_t com[2];
 
   /* set bank */
-  com[0] = (unsigned char)(memAddr >> 8);
-  com[1] = (unsigned char)(memAddr & 0xFF);
+  com[0] = (uint8_t)(memAddr >> 8);
+  com[1] = (uint8_t)(memAddr & 0xFF);
   I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_BANK_SEL, 2, com);
 
   /* write data */
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_MEM_R_W, DMP_CHUNK_SIZE, data);
+  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_MEM_R_W, length, data);
+  
+  return 0;
+}
+
+
+int fastMpuReadMem(uint16_t memAddr, uint16_t length, uint8_t *data) {
+
+  uint8_t com[2];
+
+  /* set bank */
+  com[0] = (uint8_t)(memAddr >> 8);
+  com[1] = (uint8_t)(memAddr & 0xFF);
+  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_BANK_SEL, 2, com);
+
+  /* write data */
+  I2Cdev::readBytes(INV_HW_ADDR, INV_REG_MEM_R_W, length, data);
   
   return 0;
 }
 
 void disableDMP(void) {
   
-  unsigned char data;
+  uint8_t data;
 
   /* clear */
   data = 0;
@@ -546,7 +562,7 @@ void disableDMP(void) {
 
 void enableDMP(void) {
 
-  unsigned char data;
+  uint8_t data;
 
   /* enable DMP FIFO */
   data = BIT_DMP_EN |
@@ -572,7 +588,7 @@ int fastFIFOReset(void) {
 
 
 #ifdef AK89xx_SECONDARY
-static unsigned char magSensAdj[3];
+static uint8_t magSensAdj[3];
 
 void readMagSensAdj(void) {
 
@@ -582,7 +598,7 @@ void readMagSensAdj(void) {
   /************/
   /* read adj */
   /************/
-  unsigned char tmp[3];
+  uint8_t tmp[3];
 
   /* bypass */
   tmp[0] = BIT_BYPASS_EN;
@@ -610,9 +626,144 @@ void readMagSensAdj(void) {
 #endif
 
 
-int fastMPUInit(void) {
 
-  unsigned char data[2];
+
+void saveInt32(int32_t value, uint8_t* data) {
+
+  for( int i = 3; i>=0; i-- ) {
+      data[i] = value & 0xff;
+      value >>= 8;
+  }
+}
+  
+
+/****************************************************************/
+/* Gyro bias in DMP :                                           */
+/*                                                              */
+/*  mpuGyroBias = ( (gyroBias in q16) * INV_GYRO_SF ) >> 30     */
+/****************************************************************/
+void computeGyroBias(int32_t bias, uint8_t* data) {
+
+  int64_t qbias = (int64_t)bias * INV_GYRO_SF;
+  qbias >> 30;
+
+  saveInt32( (int32_t)qbias, data);
+}
+
+int fastMPUSetGyroBias(const uint8_t* bias) {
+
+  /* write to DMP memory */
+  fastMpuWriteMem(INV_D_EXT_GYRO_BIAS, 12, bias);
+
+  return 0;
+}
+
+int fastMPUReadGyroBias(uint8_t* bias) {
+
+  /* read from DMP memory */
+  fastMpuReadMem(INV_D_EXT_GYRO_BIAS, 12, bias);
+
+  return 0;
+}
+
+int fastMPUSetGyroBias(const int16_t* bias) {
+
+  uint8_t data[12];
+
+  /* compute gyro bias */
+  uint8_t* datap = data;
+  for(int i = 0; i<3; i++) {
+    int32_t qbias = (int32_t)bias[i] << 16;
+    computeGyroBias(qbias, datap);
+    datap += 4;
+  }
+
+  /* set on DMP */
+  fastMPUSetGyroBias(data);
+}
+
+
+int fastMPUSetGyroBiasQ16(const int32_t* bias) {
+
+  uint8_t data[12];
+
+  /* compute gyro bias */
+  uint8_t* datap = data;
+  for(int i = 0; i<3; i++) {
+    computeGyroBias(bias[i], datap);
+    datap += 4;
+  }
+
+  /* set on DMP */
+  fastMPUSetGyroBias(data);
+}
+
+
+/******************************/
+/* Accel bias on DMP :        */
+/*                            */
+/* Stored on q15 format       */
+/******************************/
+int fastMPUSetAccelBias(const uint8_t* bias) {
+
+  /* write to DMP memory */
+  fastMpuWriteMem(INV_D_ACCEL_BIAS, 12, bias);
+
+  return 0;
+}
+
+int fastMPUReadAccelBias(uint8_t* bias) {
+
+  /* read from DMP memory */
+  fastMpuReadMem(INV_D_ACCEL_BIAS, 12, bias);
+
+  return 0;
+}
+
+
+/* accel bias must be saved in q15 format */
+int fastMPUSetAccelBias(const int16_t* bias) {
+
+  uint8_t data[12];
+
+  /* convert to q15 */
+  uint8_t* datap = data;
+  for(int i = 0; i<3; i++) {
+    int32_t qbias = (int32_t)bias[i] << 15;
+    saveInt32(qbias, datap);
+    datap += 4;
+  }
+
+  /* save */  
+  fastMPUSetAccelBias(data);
+
+  return 0;
+}
+
+
+/* directly in q15 */
+int fastMPUSetAccelBiasQ15(const int32_t* bias) {
+
+  uint8_t data[12];
+  
+  uint8_t* datap = data;
+  for(int i = 0; i<3; i++) {
+    saveInt32(bias[i], datap);
+    datap += 4;
+  }
+
+  /* save */  
+  fastMPUSetAccelBias(data);
+
+  return 0;
+}
+
+
+void fastMPUStart(void);
+
+int fastMPUInit(bool startMPU) {
+
+  uint8_t data[2];
 
   /*****************/
   /* Reset device  */
@@ -772,38 +923,45 @@ int fastMPUInit(void) {
   /**************/
   /* reset fifo */
   /**************/
-#ifdef AK89xx_SECONDARY
-  readMagSensAdj(); //also reset FIFO
-#else
-  fastFIFOReset();
-#endif
+  if( startMPU ) {
+    fastMPUStart();
+  }
   
   return 0;
 }
 
 
+void fastMPUStart(void) {
+
+#ifdef AK89xx_SECONDARY
+  readMagSensAdj(); //also reset FIFO
+#else
+  fastFIFOReset();
+#endif
+}
+
 
 /* tap call back */
-void (*tapCallBack)(unsigned char, unsigned char) = NULL;
+void (*tapCallBack)(uint8_t, uint8_t) = NULL;
 
-void fastMPUSetTapCallback(void (*callback)(unsigned char, unsigned char)) {
+void fastMPUSetTapCallback(void (*callback)(uint8_t, uint8_t)) {
 
   tapCallBack = callback;
 }
 
 
 
-int fastMPUReadFIFO(short *gyro, short *accel, long *quat) {
+int fastMPUReadFIFO(int16_t *gyro, int16_t *accel, int32_t *quat) {
 
-  unsigned char data[2];
+  uint8_t data[2];
 
   /*******************/
   /* read one paquet */
   /*******************/
-  unsigned char dmpPaquet[COMPRESSED_DMP_PAQUET_LENGTH];
+  uint8_t dmpPaquet[COMPRESSED_DMP_PAQUET_LENGTH];
   
   /* read fifo count for one paquet */
-  unsigned short fifoCount;
+  uint16_t fifoCount;
 
   I2Cdev::readBytes(INV_HW_ADDR, INV_REG_FIFO_COUNT_H, 2, data);
   fifoCount = (data[0] << 8) | data[1];
@@ -826,49 +984,49 @@ int fastMPUReadFIFO(short *gyro, short *accel, long *quat) {
   /********************/
   /* parse DMP paquet */
   /********************/
-  unsigned char* dmpPaquetP = dmpPaquet;
+  uint8_t* dmpPaquetP = dmpPaquet;
   
 #ifdef COMPRESSED_DMP_PAQUET_QUAT
   for(int i = 0; i<4; i++ ) {
     quat[i] = 0;
     for(int j = 0; j<4; j++) {
       quat[i] <<= 8;
-      quat[i] += (long)(*dmpPaquetP);
+      quat[i] += (int32_t)(*dmpPaquetP);
       dmpPaquetP++;
     }
   }
 
   /* 
-  quat[0] = ((long)fifo_data[0] << 24) | ((long)fifo_data[1] << 16) | ((long)fifo_data[2] << 8) | fifo_data[3];
-  quat[1] = ((long)fifo_data[4] << 24) | ((long)fifo_data[5] << 16) | ((long)fifo_data[6] << 8) | fifo_data[7];
-  quat[2] = ((long)fifo_data[8] << 24) | ((long)fifo_data[9] << 16) | ((long)fifo_data[10] << 8) | fifo_data[11];
-  quat[3] = ((long)fifo_data[12] << 24) | ((long)fifo_data[13] << 16) | ((long)fifo_data[14] << 8) | fifo_data[15];
+  quat[0] = ((int32_t)fifo_data[0] << 24) | ((int32_t)fifo_data[1] << 16) | ((int32_t)fifo_data[2] << 8) | fifo_data[3];
+  quat[1] = ((int32_t)fifo_data[4] << 24) | ((int32_t)fifo_data[5] << 16) | ((int32_t)fifo_data[6] << 8) | fifo_data[7];
+  quat[2] = ((int32_t)fifo_data[8] << 24) | ((int32_t)fifo_data[9] << 16) | ((int32_t)fifo_data[10] << 8) | fifo_data[11];
+  quat[3] = ((int32_t)fifo_data[12] << 24) | ((int32_t)fifo_data[13] << 16) | ((int32_t)fifo_data[14] << 8) | fifo_data[15];
   */
 #endif
 
 #ifdef COMPRESSED_DMP_PAQUET_RAW_ACCEL
   for(int i = 0; i<3; i++ ) {
-    accel[i] = ((short)(dmpPaquetP[0]) << 8) | (short)(dmpPaquetP[1]);
+    accel[i] = ((int16_t)(dmpPaquetP[0]) << 8) | (int16_t)(dmpPaquetP[1]);
     dmpPaquetP += 2;
   }
 
   /*
-  accel[0] = ((short)fifo_data[ii+0] << 8) | fifo_data[ii+1];
-  accel[1] = ((short)fifo_data[ii+2] << 8) | fifo_data[ii+3];
-  accel[2] = ((short)fifo_data[ii+4] << 8) | fifo_data[ii+5];  
+  accel[0] = ((int16_t)fifo_data[ii+0] << 8) | fifo_data[ii+1];
+  accel[1] = ((int16_t)fifo_data[ii+2] << 8) | fifo_data[ii+3];
+  accel[2] = ((int16_t)fifo_data[ii+4] << 8) | fifo_data[ii+5];  
   */
 #endif
 
 #ifdef COMPRESSED_DMP_PAQUET_GYRO
   for(int i = 0; i<3; i++ ) {
-    gyro[i] = ((short)(dmpPaquetP[0]) << 8) | (short)(dmpPaquetP[1]);
+    gyro[i] = ((int16_t)(dmpPaquetP[0]) << 8) | (int16_t)(dmpPaquetP[1]);
     dmpPaquetP += 2;
   }
 
   /*
-  gyro[0] = ((short)fifo_data[ii+0] << 8) | fifo_data[ii+1];
-  gyro[1] = ((short)fifo_data[ii+2] << 8) | fifo_data[ii+3];
-  gyro[2] = ((short)fifo_data[ii+4] << 8) | fifo_data[ii+5];
+  gyro[0] = ((int16_t)fifo_data[ii+0] << 8) | fifo_data[ii+1];
+  gyro[1] = ((int16_t)fifo_data[ii+2] << 8) | fifo_data[ii+3];
+  gyro[2] = ((int16_t)fifo_data[ii+4] << 8) | fifo_data[ii+5];
   */
 #endif
 
@@ -876,9 +1034,9 @@ int fastMPUReadFIFO(short *gyro, short *accel, long *quat) {
 #ifdef COMPRESSED_DMP_PAQUET_GESTURE
 #ifdef COMPRESSED_DMP_PAQUET_TAP
   if( (dmpPaquetP[1] & INT_SRC_TAP) && tapCallBack ) {
-    unsigned char tap = 0x3F & dmpPaquetP[3];
-    unsigned char direction = tap >> 3;
-    unsigned char count = (tap % 8) + 1;
+    uint8_t tap = 0x3F & dmpPaquetP[3];
+    uint8_t direction = tap >> 3;
+    uint8_t count = (tap % 8) + 1;
     tapCallBack(direction, count);
   }
 #endif //COMPRESSED_DMP_PAQUET_TAP
@@ -890,15 +1048,15 @@ int fastMPUReadFIFO(short *gyro, short *accel, long *quat) {
 #ifdef AK89xx_SECONDARY
 bool fastMPUMagReady(void) {
 
-  unsigned char data;
+  uint8_t data;
   I2Cdev::readBytes(INV_HW_ADDR, INV_REG_I2C_MST_STATUS, 1, &data);
   return (data & 0x40); //I2C_SLV4_DONE
 }
 
-int fastMPUReadRawMag(short* mag) {
+int fastMPUReadRawMag(int16_t* mag) {
 
   /* read raw data */
-  unsigned char tmp[9];
+  uint8_t tmp[9];
   I2Cdev::readBytes(INV_HW_ADDR, INV_REG_RAW_COMPASS, 8, tmp);
 
   /* check for errors */
@@ -924,25 +1082,25 @@ int fastMPUReadRawMag(short* mag) {
   
   mag[1] = (tmp[2] << 8) | tmp[1];
   mag[0] = (tmp[4] << 8) | tmp[3];
-  mag[2] = -((short)(tmp[6] << 8) | tmp[5]);
+  mag[2] = -((int16_t)(tmp[6] << 8) | tmp[5]);
 
   return 0;
 }
 
-unsigned char* fastMPUGetMagSensAdj(void) {
+uint8_t* fastMPUGetMagSensAdj(void) {
 
   return magSensAdj;
 }
 
-int fastMPUReadMag(short* mag) {
+int fastMPUReadMag(int16_t* mag) {
 
   fastMPUReadRawMag(mag);
   /* mag x -> y */
   /* mag y -> x */
   /* mag z -> -z */
-  mag[0] = ( (long)mag[0] * ((long)magSensAdj[1] + 128)  ) >> 8;
-  mag[1] = ( (long)mag[1] * ((long)magSensAdj[0] + 128)  ) >> 8;
-  mag[2] = ( (long)mag[2] * ((long)magSensAdj[2] + 128)  ) >> 8;
+  mag[0] = ( (int32_t)mag[0] * ((int32_t)magSensAdj[1] + 128)  ) >> 8;
+  mag[1] = ( (int32_t)mag[1] * ((int32_t)magSensAdj[0] + 128)  ) >> 8;
+  mag[2] = ( (int32_t)mag[2] * ((int32_t)magSensAdj[2] + 128)  ) >> 8;
 
   return 0;
 }

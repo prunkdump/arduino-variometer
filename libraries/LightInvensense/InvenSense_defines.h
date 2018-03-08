@@ -321,4 +321,9 @@
 #define MAX_COMPASS_SAMPLE_RATE (100)
 #endif
 
+#define INV_D_EXT_GYRO_BIAS       (61 * 16)
+#define INV_D_ACCEL_BIAS            (660)
+#define INV_DMP_SAMPLE_RATE     (200)
+#define INV_GYRO_SF             (46850825LL * 200 / INV_DMP_SAMPLE_RATE)
+
 #endif
