@@ -111,9 +111,9 @@ void loop() {
       for( int i = 0; i<3; i++) {
         magCalibration[i] = ((double)magMinValues[i] + (double)magMaxValues[i])/2.0;
       }
-      VertaccelCalibration magCal = {{ (int16_t)(magCalibration[0]*(double)(1 << VERTACCEL_CAL_BIAS_MULTIPLIER))
-                                         ,(int16_t)(magCalibration[1]*(double)(1 << VERTACCEL_CAL_BIAS_MULTIPLIER))
-                                         ,(int16_t)(magCalibration[2]*(double)(1 << VERTACCEL_CAL_BIAS_MULTIPLIER)) }, VERTACCEL_DEFAULT_MAG_CAL_PROJ_SCALE};
+      VertaccelCalibration magCal = {{ (int16_t)(magCalibration[0]*(double)(1 << VERTACCEL_MAG_CAL_BIAS_MULTIPLIER))
+                                         ,(int16_t)(magCalibration[1]*(double)(1 << VERTACCEL_MAG_CAL_BIAS_MULTIPLIER))
+                                         ,(int16_t)(magCalibration[2]*(double)(1 << VERTACCEL_MAG_CAL_BIAS_MULTIPLIER)) }, VERTACCEL_DEFAULT_MAG_CAL_PROJ_SCALE};
       vertaccel.saveMagCalibration(magCal);
       
       delay(2000);

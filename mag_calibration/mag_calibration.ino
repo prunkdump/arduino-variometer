@@ -43,7 +43,7 @@ void setup() {
   VertaccelCalibration magCal;
   vertaccel.readMagCalibration(magCal);
   for(int i=0; i<3; i++) {
-    magCalibration[i] = (double)magCal.bias[i]/(double)(1 << VERTACCEL_CAL_BIAS_MULTIPLIER);
+    magCalibration[i] = (double)magCal.bias[i]/(double)(1 << VERTACCEL_MAG_CAL_BIAS_MULTIPLIER);
   }
   
   Serial.print("------------------\n");
@@ -141,9 +141,9 @@ void loop() {
 
       if( c == 's' ) {
         /* save mag calibration */
-        VertaccelCalibration magCal = {{ (int16_t)(magCalibration[0]*(double)(1 << VERTACCEL_CAL_BIAS_MULTIPLIER))
-                                         ,(int16_t)(magCalibration[1]*(double)(1 << VERTACCEL_CAL_BIAS_MULTIPLIER))
-                                         ,(int16_t)(magCalibration[2]*(double)(1 << VERTACCEL_CAL_BIAS_MULTIPLIER)) }, VERTACCEL_DEFAULT_MAG_CAL_PROJ_SCALE};
+        VertaccelCalibration magCal = {{ (int16_t)(magCalibration[0]*(double)(1 << VERTACCEL_MAG_CAL_BIAS_MULTIPLIER))
+                                         ,(int16_t)(magCalibration[1]*(double)(1 << VERTACCEL_MAG_CAL_BIAS_MULTIPLIER))
+                                         ,(int16_t)(magCalibration[2]*(double)(1 << VERTACCEL_MAG_CAL_BIAS_MULTIPLIER)) }, VERTACCEL_DEFAULT_MAG_CAL_PROJ_SCALE};
         vertaccel.saveMagCalibration(magCal);
         state = STATE_CALIBRATED;
       } else {

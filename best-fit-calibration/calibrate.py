@@ -6,10 +6,11 @@ from math import *
 
 
 DEFAULT_RECORD_FILE = "RECORD00.IGC"
-VERTACCEL_CAL_BIAS_MULTIPLIER = 6    # multiplied by 2^x
-VERTACCEL_CAL_SCALE_MULTIPLIER = 16  # multiplied by (scale + 2^15)/(2^x)
-ACCEL_BASE_SCALE = 13                # scaled by 2^x
-MAG_BASE_PROJ_SCALE = 7              # scaled by 2^x 
+VERTACCEL_ACCEL_CAL_BIAS_MULTIPLIER = 6    # bias = value/2^multiplier
+VERTACCEL_MAG_CAL_BIAS_MULTIPLIER = 4
+VERTACCEL_CAL_SCALE_MULTIPLIER = 16        # scale = 1 + value/2^multiplier
+ACCEL_BASE_SCALE = 13                      # scaled by 2^x
+MAG_BASE_PROJ_SCALE = 7                    # scaled by 2^x 
 
 COEFFICIENT_MULTIPLIER = 15 # q15 format, 16 bit coefficient of max 2.0
 
@@ -150,22 +151,22 @@ print("}")
 # accel bias #
 sys.stdout.write("#define IMU_ACCEL_CAL_BIAS {")
 for i in range(3):
-    sys.stdout.write( str(int(np.rint((accelGSphere[i]*(2**VERTACCEL_CAL_BIAS_MULTIPLIER))))) )
+    sys.stdout.write(str(int(np.rint(  accelGSphere[i]*float(2**VERTACCEL_ACCEL_CAL_BIAS_MULTIPLIER)  ))))
     if( i != 2 ):
         sys.stdout.write(", ")
 print("}")
 
 # accel scale #
-print "#define IMU_ACCEL_CAL_SCALE", int(np.rint(  (float(2**ACCEL_BASE_SCALE)*float(2**VERTACCEL_CAL_SCALE_MULTIPLIER))/(accelGSphere[3]) - float(2**15)  )) 
+print "#define IMU_ACCEL_CAL_SCALE", int(np.rint(  float(2**(ACCEL_BASE_SCALE+VERTACCEL_CAL_SCALE_MULTIPLIER))/accelGSphere[3] - float(2**VERTACCEL_CAL_SCALE_MULTIPLIER) ))
 
 # mag bias #
 sys.stdout.write("#define IMU_MAG_CAL_BIAS {")
 for i in range(3):
-    sys.stdout.write( str(int(np.rint((magGSphere[i]*(2**VERTACCEL_CAL_BIAS_MULTIPLIER))))) )
+    sys.stdout.write(str(int(np.rint(  magGSphere[i]*float(2**VERTACCEL_MAG_CAL_BIAS_MULTIPLIER)  ))))
     if( i != 2 ):
         sys.stdout.write(", ")
 print("}")
 
 # mag proj scale #
-print "#define IMU_MAG_CAL_PROJ_SCALE", int(np.rint(  (float(2**MAG_BASE_PROJ_SCALE)*float(2**VERTACCEL_CAL_SCALE_MULTIPLIER))/(projCoeff[1]*magGSphere[3]) - float(2**15)  ))
+print "#define IMU_MAG_CAL_PROJ_SCALE", int(np.rint(  float(2**(MAG_BASE_PROJ_SCALE+VERTACCEL_CAL_SCALE_MULTIPLIER))/(projCoeff[1]*magGSphere[3]) - float(2**VERTACCEL_CAL_SCALE_MULTIPLIER)  ))
 

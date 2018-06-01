@@ -20,17 +20,18 @@
 
 /* Bias is multiplied by 2^multiplier                 */
 /* maximum bias correction value is 2^(15-multiplier) */
-#define VERTACCEL_CAL_BIAS_MULTIPLIER 6
+#define VERTACCEL_ACCEL_CAL_BIAS_MULTIPLIER 6
+#define VERTACCEL_MAG_CAL_BIAS_MULTIPLIER 4
 
-/* Value is scaled by (scale + 2^15)/(2^multiplier)  */
-/* minimum scale is 2^(15-mutiplier) and maximum scale 2 - 2^(15-mutiplier) */
+/* Measure is scaled by (1 + scale/2^multiplier) */
+/* minimum scale is 1 - 2^(15-mutiplier) and maximum scale 1 + 2^(15-mutiplier) */
 /* !! A default scale is applied before (see LightInvensense.h) !! */ 
 #define VERTACCEL_CAL_SCALE_MULTIPLIER 16
 
 /* base struct */
 struct VertaccelCalibration {
   int16_t bias[3];
-  uint16_t scale;
+  int16_t scale;
 };
 
 /* calibration settings */
@@ -43,8 +44,8 @@ struct VertaccelSettings {
 };
 
 /* default settings */
-#define VERTACCEL_DEFAULT_MAG_PROJ_COEFF 0.41177616
-#define VERTACCEL_DEFAULT_MAG_CAL_PROJ_SCALE 52184
+#define VERTACCEL_DEFAULT_MAG_PROJ_COEFF 0.745346
+#define VERTACCEL_DEFAULT_MAG_CAL_PROJ_SCALE -16689
 
 const VertaccelSettings defaultVertaccelSettings = {
   {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}

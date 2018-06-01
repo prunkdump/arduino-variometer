@@ -2,3 +2,5 @@
 \#*\#
 *.hex
 *.HEX
+best-fit-calibration/*.IGC
+best-fit-calibration/*.pyc

@@ -21,7 +21,7 @@ void AccelCalibrator::init(void) {
   vertaccel.readAccelCalibration(accelCal);
 
   for(int i = 0; i<3; i++) {
-    calibration[i] = (double)accelCal.bias[i]/(double)(1 << VERTACCEL_CAL_BIAS_MULTIPLIER);
+    calibration[i] = (double)accelCal.bias[i]/(double)(1 << VERTACCEL_ACCEL_CAL_BIAS_MULTIPLIER);
   }
 }
 
@@ -217,9 +217,9 @@ void AccelCalibrator::calibrate(void) {
     calibration[i] = calibrationCenter[i];
   }
   
-  VertaccelCalibration accelCal = {{ (int16_t)(calibrationCenter[0]*(double)(1 << VERTACCEL_CAL_BIAS_MULTIPLIER))
-				     ,(int16_t)(calibrationCenter[1]*(double)(1 << VERTACCEL_CAL_BIAS_MULTIPLIER))
-				     ,(int16_t)(calibrationCenter[2]*(double)(1 << VERTACCEL_CAL_BIAS_MULTIPLIER)) } , 0};
+  VertaccelCalibration accelCal = {{ (int16_t)(calibrationCenter[0]*(double)(1 << VERTACCEL_ACCEL_CAL_BIAS_MULTIPLIER))
+				     ,(int16_t)(calibrationCenter[1]*(double)(1 << VERTACCEL_ACCEL_CAL_BIAS_MULTIPLIER))
+				     ,(int16_t)(calibrationCenter[2]*(double)(1 << VERTACCEL_ACCEL_CAL_BIAS_MULTIPLIER)) } , 0};
 
 
   vertaccel.saveAccelCalibration(accelCal);

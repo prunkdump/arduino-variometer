@@ -128,7 +128,7 @@
 #define IMU_ACCEL_CAL_BIAS {0, 0, 0}
 #define IMU_ACCEL_CAL_SCALE 0
 #define IMU_MAG_CAL_BIAS {0, 0, 0}
-#define IMU_MAG_CAL_PROJ_SCALE 52184
+#define IMU_MAG_CAL_PROJ_SCALE -16689
 
 
 /* Set the pins used for Screen and SD card modules */
