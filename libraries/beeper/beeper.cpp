@@ -58,7 +58,7 @@ void beeper::setBeepParameters(double velocity) {
   /* compute the beep freq that depend to beep type */
   switch( beepType ) {
   case BEEP_TYPE_SINKING :
-    beepFreq = SINKING_BEEP_BASE_FREQ;
+    beepFreq = SINKING_BEEP_BASE_FREQ + SINKING_BEEP_FREQ_COEFF * velocity;
     break;
 
   case BEEP_TYPE_SILENT :
@@ -173,16 +173,27 @@ void beeper::setBeepPaternPosition(double velocity) {
   }
 
   /************************************/
-  /* check if the beep have a partern */
+  /* check if the beep have a patern  */
   /************************************/
   if( !haveAlarm &&
-      (beepType == BEEP_TYPE_SINKING || beepType == BEEP_TYPE_SILENT) ) {
+       beepType == BEEP_TYPE_SILENT ) {
     return;
   }
-  
+   
   unsigned long currentTime = millis();
   double currentLength = (double)(currentTime - beepStartTime) / 1000.0;
-
+  
+  /*********************************************/
+  /* should sinking tone frequency be updated? */
+  /*********************************************/  
+  if( !haveAlarm &&
+       beepType == BEEP_TYPE_SINKING ) {
+    if (currentTime > beepStartTime + SINKING_BEEP_LENGTH) {
+      bst_set(BEEP_NEW_FREQ);
+      beepStartTime = currentTime;
+    }
+  } 
+  
   /*******************************************/
   /* does the position depends on velocity ? */
   /*******************************************/
@@ -250,7 +261,6 @@ void beeper::setBeepPaternPosition(double velocity) {
 
 
 void beeper::setTone() {
-  
   /* alarme case */
   if(  bst_isset(CLIMBING_ALARM) || bst_isset(SINKING_ALARM) ) { 
 
