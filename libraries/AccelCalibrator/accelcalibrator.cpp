@@ -167,10 +167,14 @@ void AccelCalibrator::calibrate(void) {
 
   /* compute base radius */
   double baseRadius = 0.0;
-  for(int i=0; i<3*ACCEL_CALIBRATOR_ORIENTATION_COUNT;  i+=3) {
-    baseRadius += sqrt( accelList[i]*accelList[i] + accelList[i+1]*accelList[i+1] + accelList[i+2]*accelList[i+2] );
+  int orientationCount = 0;
+  for(int i=0; i<ACCEL_CALIBRATOR_ORIENTATION_COUNT;  i++) {
+    if( accelListDone[i] ) {
+      baseRadius += sqrt( accelList[i*3]*accelList[i*3] + accelList[i*3+1]*accelList[i*3+1] + accelList[i*3+2]*accelList[i*3+2] );
+      orientationCount++;
+    }
   }
-  baseRadius /= (double)(3*ACCEL_CALIBRATOR_ORIENTATION_COUNT);
+  baseRadius /= (double)(orientationCount);
   
 
   /****************************/
@@ -290,23 +294,40 @@ void AccelCalibrator::computeCenter(double* v1, double* v2, double* v3, double r
   double q[3];
   q[0]= eq1[1]*eq1[1] + 1 + eq2[1]*eq2[1];
   q[1]= 2*eq1[1]*(v1[0]-eq1[3])-2*v1[1]+2*eq2[1]*(v1[2]-eq2[3]);
-  q[2]= (v1[0]-eq1[3])*(v1[0]-eq1[3]) + v1[1]*v1[1] + (v1[2]-eq2[3])*(v1[2]-eq2[3])-radius;
+  q[2]= (v1[0]-eq1[3])*(v1[0]-eq1[3]) + v1[1]*v1[1] + (v1[2]-eq2[3])*(v1[2]-eq2[3])-(radius*radius);
       
   /* solve quadratic */
   double d = q[1]*q[1] - 4*q[0]*q[2];
   double y1 = (-q[1]-sqrt(d))/(2*q[0]);
   double y2 = (-q[1]+sqrt(d))/(2*q[0]);
       
-  /* compute points */
-  if( -0.1 < y1 && y1 < 0.1 ) {      
-    center[1] = y1;
-    center[0] = eq1[3]-eq1[1]*y1;
-    center[2] = eq2[3]-eq2[1]*y1;
+  /* compute centers and norms */
+  double center1[3];
+  double norm1;
+  double center2[3];
+  double norm2;
+
+  center1[1] = y1;
+  center1[0] = eq1[3]-eq1[1]*y1;
+  center1[2] = eq2[3]-eq2[1]*y1;
+  norm1 = center1[0]*center1[0] + center1[1]*center1[1] + center1[2]*center1[2]; 
+  
+  center2[1] = y2;
+  center2[0] = eq1[3]-eq1[1]*y2;
+  center2[2] = eq2[3]-eq2[1]*y2;
+  norm2 = center2[0]*center2[0] + center2[1]*center2[1] + center2[2]*center2[2];
+
+  /* get the center closest to the origin */
+  if( norm1 < norm2 ) {
+    center[0] = center1[0];
+    center[1] = center1[1];
+    center[2] = center1[2];
   } else {
-    center[1] = y2;
-    center[0] = eq1[3]-eq1[1]*y2;
-    center[2] = eq2[3]-eq2[1]*y2;
+    center[0] = center2[0];
+    center[1] = center2[1];
+    center[2] = center2[2];
   }
+
 }
 
 
