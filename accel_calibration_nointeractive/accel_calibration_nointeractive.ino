@@ -8,6 +8,7 @@
 #include <accelcalibrator.h>
 #include <toneAC.h>
 #include <FirmwareUpdater.h>
+#include <VarioSettings.h>
 
 #define HIGH_BEEP_FREQ 1000.0
 #define LOW_BEEP_FREQ 100.0
