@@ -8,7 +8,7 @@
 
 /* default threshold */
 #define BEEP_VELOCITY_DEFAULT_SINKING_THRESHOLD (-2.0)
-#define BEEP_VELOCITY_DEFAULT_CLIMBING_THRESHOLD 2.0
+#define BEEP_VELOCITY_DEFAULT_CLIMBING_THRESHOLD 0.2
 #define BEEP_VELOCITY_DEFAULT_NEAR_CLIMBING_SENSITIVITY 0.5
 
 /* avoid changing beep freq too often */
@@ -26,6 +26,7 @@
 /* climbing beep sound freq computation : BEEP_FREQ_COEFF * velocity + BEEP_BASE_FREQ */
 #define CLIMBING_BEEP_BASE_FREQ 386.0
 #define CLIMBING_BEEP_FREQ_COEFF 141.0
+#define CLIMBING_BEEP_FREQ_UPDATE 1  // update climbing beep frequency after X milliseconds. 0 = monotonous beep, do not update frequency while beep is playing
 
 /* climbing beep velocity filter */
 /* filteredVelocity = beepVelocity * BEEP_VELOCITY_FILTER_COEFF + BEEP_VELOCITY_FILTER_BASE */
@@ -35,7 +36,9 @@
 /********************/
 /* THE SINKING BEEP */
 /********************/
-#define SINKING_BEEP_BASE_FREQ 100.0
+#define SINKING_BEEP_BASE_FREQ 533.0
+#define SINKING_BEEP_FREQ_COEFF 67.0
+#define SINKING_BEEP_FREQ_UPDATE 1  // update sinking beep frequency after X milliseconds. 0 = monotonous beep, do not update frequency while beep is playing
 
 /********************/
 /* THE GLIDING BEEP */
@@ -57,7 +60,6 @@
 /* THE SINKING ALARM */
 /*********************/
 #define SINKING_ALARM_LENGTH 0.7
-
 #define SINKING_ALARM_FREQ 100.0 
 
 
@@ -120,6 +122,7 @@ class beeper {
   double beepClimbingThreshold;
   uint8_t volume;
   unsigned long beepStartTime;
+  unsigned long beepFreqUpdatePosition;
   double beepVelocity;
   double beepFreq;
   double beepPaternBasePosition;

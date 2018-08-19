@@ -58,7 +58,7 @@ void beeper::setBeepParameters(double velocity) {
   /* compute the beep freq that depend to beep type */
   switch( beepType ) {
   case BEEP_TYPE_SINKING :
-    beepFreq = SINKING_BEEP_BASE_FREQ;
+    beepFreq = SINKING_BEEP_BASE_FREQ + SINKING_BEEP_FREQ_COEFF * velocity;
     break;
 
   case BEEP_TYPE_SILENT :
@@ -137,6 +137,7 @@ void beeper::setVelocity(double velocity) {
   if( (beepTypeChange && !bst_isset(CLIMBING_ALARM) && !bst_isset(SINKING_ALARM) ) ||
       (startAlarm) ) {
     beepStartTime = millis();
+	beepFreqUpdatePosition = beepStartTime;
     beepPaternBasePosition = 0.0;
     beepPaternPosition = 0.0;
     bst_set(BEEP_NEW_FREQ); //force changing freq
@@ -173,16 +174,28 @@ void beeper::setBeepPaternPosition(double velocity) {
   }
 
   /************************************/
-  /* check if the beep have a partern */
+  /* check if the beep have a patern  */
   /************************************/
   if( !haveAlarm &&
-      (beepType == BEEP_TYPE_SINKING || beepType == BEEP_TYPE_SILENT) ) {
+       beepType == BEEP_TYPE_SILENT ) {
     return;
   }
   
   unsigned long currentTime = millis();
   double currentLength = (double)(currentTime - beepStartTime) / 1000.0;
 
+  /*********************************/
+  /* update sinking tone frequency */
+  /*********************************/  
+  if( !haveAlarm &&
+       beepType == BEEP_TYPE_SINKING ) {
+    if (currentTime > beepFreqUpdatePosition + SINKING_BEEP_FREQ_UPDATE && SINKING_BEEP_FREQ_UPDATE > 0) {
+      bst_set(BEEP_NEW_FREQ);
+      beepFreqUpdatePosition = currentTime;
+    }
+return;
+  } 
+  
   /*******************************************/
   /* does the position depends on velocity ? */
   /*******************************************/
@@ -194,6 +207,10 @@ void beeper::setBeepPaternPosition(double velocity) {
     if( currentLength + beepPaternBasePosition > beepPaternPosition ) {
       beepPaternPosition = currentLength + beepPaternBasePosition;
     }
+    if (currentTime > beepFreqUpdatePosition + CLIMBING_BEEP_FREQ_UPDATE && CLIMBING_BEEP_FREQ_UPDATE > 0) {
+      bst_set(BEEP_NEW_FREQ);
+      beepFreqUpdatePosition = currentTime;	
+	}
   } else {
     beepPaternPosition = currentLength;
   }
@@ -295,9 +312,9 @@ void beeper::setTone() {
     /****************/
     if( beepType == BEEP_TYPE_SINKING ) {
       if( !bst_isset(BEEP_HIGH) || bst_isset(BEEP_NEW_FREQ) ) {
-	toneAC(beepFreq, volume);
-	bst_set(BEEP_HIGH);
-      }
+	    toneAC(beepFreq, volume);
+	    bst_set(BEEP_HIGH);
+	  }
     }
 
     /**********/
@@ -335,15 +352,15 @@ void beeper::setTone() {
     /************/
     else {
       if( beepPaternPosition < CLIMBING_BEEP_HIGH_LENGTH ) {
-	if( !bst_isset(BEEP_HIGH) ) {
-	  toneAC(beepFreq, volume);
-	  bst_set(BEEP_HIGH);
-	} else if( bst_isset(BEEP_NEW_FREQ) ) {
-	  toneAC(beepFreq, volume);
-	}
+	    if( !bst_isset(BEEP_HIGH) ) {
+	      toneAC(beepFreq, volume);
+	      bst_set(BEEP_HIGH);
+	    } else if( bst_isset(BEEP_NEW_FREQ) ) {
+	      toneAC(beepFreq, volume);
+	    }
       } else {
-	toneAC(0.0);
-	bst_unset(BEEP_HIGH);
+	    toneAC(0.0);
+	    bst_unset(BEEP_HIGH);
       }
     }
   }
