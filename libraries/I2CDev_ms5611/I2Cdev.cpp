@@ -599,7 +599,7 @@ bool I2Cdev::writeWord(uint8_t devAddr, uint8_t regAddr, uint16_t data) {
  * @param data Buffer to copy new data from
  * @return Status of operation (true = success)
  */
-bool I2Cdev::writeBytes(uint8_t devAddr, uint8_t regAddr, uint8_t length, uint8_t* data, boolean lockMS5611) {
+bool I2Cdev::writeBytes(uint8_t devAddr, uint8_t regAddr, uint8_t length, const uint8_t* data, boolean lockMS5611) {
     /* lock the ms5611 */
     if( lockMS5611 ) {
         ms5611_lock();

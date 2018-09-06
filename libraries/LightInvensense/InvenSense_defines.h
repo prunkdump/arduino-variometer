@@ -189,7 +189,12 @@
 #define INV_REG_S1_ADDR        (0x28)
 #define INV_REG_S1_REG         (0x29)
 #define INV_REG_S1_CTRL        (0x2A)
+#define INV_REG_S4_ADDR        (0x31)
+#define INV_REG_S4_REG         (0x32)
+#define INV_REG_S4_DO          (0x33)
 #define INV_REG_S4_CTRL        (0x34)
+#define INV_REG_S4_DI          (0x35)
+#define INV_REG_I2C_MST_STATUS (0x36)
 #define INV_REG_S0_DO          (0x63)
 #define INV_REG_S1_DO          (0x64)
 #define INV_REG_I2C_DELAY_CTRL (0x67)
@@ -263,7 +268,12 @@
 #define INV_REG_S1_ADDR        (0x28)
 #define INV_REG_S1_REG         (0x29)
 #define INV_REG_S1_CTRL        (0x2A)
+#define INV_REG_S4_ADDR        (0x31)
+#define INV_REG_S4_REG         (0x32)
+#define INV_REG_S4_DO          (0x33)
 #define INV_REG_S4_CTRL        (0x34)
+#define INV_REG_S4_DI          (0x35)
+#define INV_REG_I2C_MST_STATUS (0x36)
 #define INV_REG_S0_DO          (0x63)
 #define INV_REG_S1_DO          (0x64)
 #define INV_REG_I2C_DELAY_CTRL (0x67)
@@ -310,5 +320,10 @@
 #ifdef AK89xx_SECONDARY
 #define MAX_COMPASS_SAMPLE_RATE (100)
 #endif
+
+#define INV_D_EXT_GYRO_BIAS       (61 * 16)
+#define INV_D_ACCEL_BIAS            (660)
+#define INV_DMP_SAMPLE_RATE     (200)
+#define INV_GYRO_SF             (46850825LL * 200 / INV_DMP_SAMPLE_RATE)
 
 #endif

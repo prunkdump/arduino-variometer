@@ -8,8 +8,8 @@
 boolean firmwareUpdateCond(void) {
 
   /* read raw accel */
-  short iaccel[3];
-  long iquat[4];
+  int16_t iaccel[3];
+  int32_t iquat[4];
  
   int state = -1;
   unsigned long startTime = millis();

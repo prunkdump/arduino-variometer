@@ -86,7 +86,7 @@
 /* GPS track recording on SD card starting condition :  */ 
 /* -> As soon as possible (GPS fix)                     */
 /* -> When flight start is detected                     */
-//#define VARIOMETER_RECORD_WHEN_FLIGHT_START
+#define VARIOMETER_RECORD_WHEN_FLIGHT_START
 
 /* What type of vario NMEA sentence is sent by bluetooth. */
 /* Possible values are :                                  */
@@ -112,7 +112,7 @@
 #define HAVE_SCREEN
 #define HAVE_GPS
 #define HAVE_SDCARD
-//#define HAVE_BLUETOOTH
+#define HAVE_BLUETOOTH
 #define HAVE_VOLTAGE_DIVISOR
 
 #define HAVE_SCREEN_JPG63
@@ -122,12 +122,32 @@
 /*   MPU6050, MPU6500, MPU9150, MPU9250              */
 #define MPU9250
 
-/* Set the pins used for Screen and SD card modules */
-#define VARIOSCREEN_DC_PIN 2
+/* calibration method */
+// by EEPROM
+//#define IMU_CALIBRATION_IN_EEPROM
+// or by static value
+#define IMU_GYRO_CAL_BIAS {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
+#define IMU_ACCEL_CAL_BIAS {0, 0, 0}
+#define IMU_ACCEL_CAL_SCALE 0
+#define IMU_MAG_CAL_BIAS {0, 0, 0}
+#define IMU_MAG_CAL_PROJ_SCALE -16689
+
+/* Set the pins used for Screen V1 */
+#define VARIOSCREEN_DC_PIN 4
 #define VARIOSCREEN_CS_PIN 3
-#define VARIOSCREEN_RST_PIN 4
+#define VARIOSCREEN_RST_PIN 2
+
+/* Set the pins used for Screen V2 */
+//#define VARIOSCREEN_DC_PIN 2
+//#define VARIOSCREEN_CS_PIN 3
+//#define VARIOSCREEN_RST_PIN 4
+
+/* Set the pins used for SD card modules */
 #define SDCARD_CS_PIN 14
 #define VOLTAGE_DIVISOR_PIN 16
+
+/* time needed to power on all the devices */
+#define VARIOMETER_POWER_ON_DELAY 2000
 
 /* The screen contrast */
 #define VARIOSCREEN_CONTRAST 60
@@ -152,10 +172,6 @@
 #define ALARM_GPSFIX
 /* Alarm Fly begin */
 #define ALARM_FLYBEGIN
-
-/* Model GPS */
-#define VARIOMETER_GPS_NEO6
-//#define VARIOMETER_GPS_NEO8
 
 /* Mute */
 //#define HAVE_MUTE

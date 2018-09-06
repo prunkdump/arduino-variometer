@@ -217,7 +217,16 @@ void lightfat16::write(uint8_t inByte) {
 }
 
 void lightfat16::sync() {
-  this->blockWriteSync();
+
+  /* moving to root entry, write the current block */
+  uint8_t* data = this->blockSet(fileEntryBlock, fileEntryPos);
+
+  /* set size */
+  uint32_t currentBlockSize = (*(uint32_t*)&data[ROOT_ENTRY_SIZE_POS]) % BLOCK_SIZE;
+  *(uint32_t*)&data[ROOT_ENTRY_SIZE_POS] += fileDataPos - currentBlockSize;
+
+  /* return to current block */
+  data = this->blockSet(fileDataBlock, fileDataPos);
 }
 
 void lightfat16::fileNewBlock() {
