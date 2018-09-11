@@ -61,12 +61,31 @@
  *
  * v 63.5.1   ajout du support Neo-8m
  *
- *******************/
+ * v 63.6     changement librairie MPU - Accélérometre et Magnetometre
+ *            Modification fichier VarioSettings.h pour le Kit V3
+ *            
+ *            Difference avec la version Prunkdump
+ *            
+ *            Indicateur de fix Gps 
+ *            Indicateur d'enregistrement
+ *            Alarme sonore de non presence de la carte SD
+ *            Bip de fix gps
+ *            bip de debut d'enregistrement 
+ * 
+ *******************
+ * Compilation :
+ * 
+ *            Arduino Pro or Pro Mini
+ *            ATemega328P (3.3V, 8Mhz)
+ *            
+ */
+ 
+
  
 /*******************/
 /* General objects */
 /*******************/
-#define VARIOMETER_POWER_ON_DELAY 2000 
+//#define VARIOMETER_POWER_ON_DELAY 2000 
 
 #define VARIOMETER_STATE_INITIAL 0
 #define VARIOMETER_STATE_DATE_RECORDED 1

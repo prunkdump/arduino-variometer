@@ -126,35 +126,51 @@
 // by EEPROM
 //#define IMU_CALIBRATION_IN_EEPROM
 // or by static value
-#define IMU_GYRO_CAL_BIAS {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
-#define IMU_ACCEL_CAL_BIAS {0, 0, 0}
-#define IMU_ACCEL_CAL_SCALE 0
-#define IMU_MAG_CAL_BIAS {0, 0, 0}
-#define IMU_MAG_CAL_PROJ_SCALE -16689
+#define IMU_GYRO_CAL_BIAS {0x00, 0x00, 0x1b, 0x92, 0x00, 0x00, 0x23, 0x4f, 0x00, 0x01, 0x1c, 0x7f}
+#define IMU_ACCEL_CAL_BIAS {3042, 7981, 1753}
+#define IMU_ACCEL_CAL_SCALE -288
+#define IMU_MAG_CAL_BIAS {9049, 7449, 6753}
+#define IMU_MAG_CAL_PROJ_SCALE -3384
 
 /* Set the pins used for Screen V1 */
-#define VARIOSCREEN_DC_PIN 4
-#define VARIOSCREEN_CS_PIN 3
-#define VARIOSCREEN_RST_PIN 2
+//#define VARIOSCREEN_DC_PIN 4
+//#define VARIOSCREEN_CS_PIN 3
+//#define VARIOSCREEN_RST_PIN 2
 
 /* Set the pins used for Screen V2 */
 //#define VARIOSCREEN_DC_PIN 2
 //#define VARIOSCREEN_CS_PIN 3
 //#define VARIOSCREEN_RST_PIN 4
 
+/* Set the pins used for Screen V3 */
+#define VARIOSCREEN_DC_PIN 6
+#define VARIOSCREEN_CS_PIN 7
+#define VARIOSCREEN_RST_PIN 8
+
 /* Set the pins used for SD card modules */
 #define SDCARD_CS_PIN 14
 #define VOLTAGE_DIVISOR_PIN 16
 
 /* time needed to power on all the devices */
-#define VARIOMETER_POWER_ON_DELAY 2000
+/* Version 1 et 2                          */
+//#define VARIOMETER_POWER_ON_DELAY 2000
+
+/* time needed to power on all the devices */
+/* Version 3                               */
+#define VARIOMETER_POWER_ON_DELAY 3000
 
 /* The screen contrast */
 #define VARIOSCREEN_CONTRAST 60
 
 /* The voltage divisor */
+/* Version 1 et 2      */
+//#define VOLTAGE_DIVISOR_VALUE 1.27
+//#define VOLTAGE_DIVISOR_REF_VOLTAGE 3.3
+
+/* The voltage divisor */
+/* Version 3           */
 #define VOLTAGE_DIVISOR_VALUE 1.27
-#define VOLTAGE_DIVISOR_REF_VOLTAGE 3.3
+#define VOLTAGE_DIVISOR_REF_VOLTAGE 3
 
 /* The bauds rate used by the GPS and Bluetooth modules. */
 /* GPS and bluetooth need to have the same bauds rate.   */
