@@ -212,8 +212,8 @@ uint8_t Vertaccel::dataReady(void) {
       northVector[0] = (1+v[0]*v[0]/v[2])*n[0] + (v[0]*v[1]/v[2])*n[1] - v[0]*n[2];
       northVector[1] = (v[0]*v[1]/v[2])*n[0] + (1+v[1]*v[1]/v[2])*n[1] - v[1]*n[2];
     }
-  }
 #endif
+  }
   
   return newData;
 }
@@ -298,8 +298,8 @@ uint8_t Vertaccel::dataFullReady(double* accel, double* quat, double* v, double*
       northVector[1] = (v[0]*v[1]/v[2])*n[0] + (1+v[1]*v[1]/v[2])*n[1] - v[1]*n[2];
       v[2] = save;
     }
-  }
 #endif
+  }
   
   return newData;
 }

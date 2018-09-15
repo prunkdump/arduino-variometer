@@ -126,11 +126,11 @@
 // by EEPROM
 //#define IMU_CALIBRATION_IN_EEPROM
 // or by static value
-#define IMU_GYRO_CAL_BIAS {0x00, 0x00, 0x1b, 0x92, 0x00, 0x00, 0x23, 0x4f, 0x00, 0x01, 0x1c, 0x7f}
-#define IMU_ACCEL_CAL_BIAS {3042, 7981, 1753}
-#define IMU_ACCEL_CAL_SCALE -288
-#define IMU_MAG_CAL_BIAS {9049, 7449, 6753}
-#define IMU_MAG_CAL_PROJ_SCALE -3384
+#define IMU_GYRO_CAL_BIAS {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
+#define IMU_ACCEL_CAL_BIAS {0, 0, 0}
+#define IMU_ACCEL_CAL_SCALE 0
+#define IMU_MAG_CAL_BIAS {0, 0, 0}
+#define IMU_MAG_CAL_PROJ_SCALE -16689
 
 /* Set the pins used for Screen V1 */
 //#define VARIOSCREEN_DC_PIN 4

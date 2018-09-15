@@ -418,10 +418,6 @@ void setup() {
   
   /* get first data */
   ms5611_updateData();
-  
-/*#ifdef HAVE_ACCELEROMETER
-  vertaccel_updateData();
-#endif //HAVE_ACCELEROMETER*/
 
   /* init kalman filter */
   kalmanvert.init(ms5611_getAltitude(),
@@ -452,8 +448,6 @@ void loop() {
 #ifdef HAVE_ACCELEROMETER
   if( ms5611_dataReady() && vertaccel.dataReady() ) {
     ms5611_updateData();
-    
-//    vertaccel_updateData();
 
     kalmanvert.update( ms5611_getAltitude(),
                        vertaccel.getValue(),
@@ -903,4 +897,3 @@ recordIndicator.setActifRECORD();
   createSDCardTrackFile();
 #endif // defined(HAVE_SDCARD) && defined(VARIOMETER_RECORD_WHEN_FLIGHT_START)
 }
-
