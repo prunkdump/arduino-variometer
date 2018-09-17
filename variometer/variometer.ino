@@ -20,6 +20,7 @@
 #include <LK8Sentence.h>
 #include <IGCSentence.h>
 #include <FirmwareUpdater.h>
+#include <variostat.h>
 
 
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
@@ -66,11 +67,14 @@
  *            
  *            Difference avec la version Prunkdump
  *            
- *            Indicateur de fix Gps 
- *            Indicateur d'enregistrement
+ *            Indicateur de fix Gps (triangle)
+ *            Indicateur d'enregistrement (carre)
+ *            Indicateur de tendance sur 10sec (fleche)
  *            Alarme sonore de non presence de la carte SD
  *            Bip de fix gps
  *            bip de debut d'enregistrement 
+ *    
+ *  v 63.6.1  Ajout de l'ecran de stat du dernier vol
  * 
  *******************
  * Compilation :
@@ -78,7 +82,7 @@
  *            Arduino Pro or Pro Mini
  *            ATemega328P (3.3V, 8Mhz)
  *            
- */
+ *******************/
  
 
  
@@ -317,6 +321,8 @@ void beeperTapCallback(unsigned char direction, unsigned char count) {
 }
 #endif //defined(HAVE_ACCELEROMETER) && defined(HAVE_SPEAKER) 
 
+VarioStat flystat;
+
 /*-----------------*/
 /*      SETUP      */
 /*-----------------*/
@@ -368,23 +374,45 @@ void setup() {
        toneAC(900);
        delay(1000);
        toneAC(0);
-       delay(1000);
     }       
 #endif //HAVE_SPEAKER && ALARM_SDCARD
   }  
 #endif //defined(HAVE_SDCARD) && defined(HAVE_GPS)
- 
+
+  flystat.Display();
+
+   
   /***************/
   /* init screen */
   /***************/
 #ifdef HAVE_SCREEN
   screen.begin(VARIOSCREEN_CONTRAST);
+ 
+ #ifdef HAVE_SCREEN_JPG63
+  unsigned long timer = millis();
   int8_t tmptime[] = {0,SUB_VERSION,VERSION};
   screenTime.setTime(tmptime);
  
- #ifdef HAVE_SCREEN_JPG63
-  DisplayDuration = true;
   varioScreen.setPage(1);
+  DisplayDuration = true;
+  screenTime.update();
+
+#ifdef HAVE_VOLTAGE_DIVISOR
+      /* update battery level */
+      batLevel.setVoltage( analogRead(VOLTAGE_DIVISOR_PIN) );
+      batLevel.update();
+#endif //HAVE_VOLTAGE_DIVISOR
+
+  altiDigit.setValue(flystat.GetAlti());
+  altiDigit.update();
+  varioDigit.setValue(flystat.GetVarioMin());
+  varioDigit.update();
+  speedDigit.setValue(flystat.GetSpeed());
+  speedDigit.update();
+  kmhunit.update();
+  msunit.update();
+  munit.update();  
+
  #endif HAVE_SCREEN_JPG63
  #endif //HAVE_SCREEN
   
@@ -418,6 +446,10 @@ void setup() {
   
   /* get first data */
   ms5611_updateData();
+  
+/*#ifdef HAVE_ACCELEROMETER
+  vertaccel_updateData();
+#endif //HAVE_ACCELEROMETER*/
 
   /* init kalman filter */
   kalmanvert.init(ms5611_getAltitude(),
@@ -429,7 +461,26 @@ void setup() {
                   POSITION_MEASURE_STANDARD_DEVIATION,
                   ACCELERATION_MEASURE_STANDARD_DEVIATION,
                   millis());
-   
+
+
+ #ifdef HAVE_SCREEN_JPG63
+  while ((millis() - timer) < 3000) {   
+  }
+
+  screenTime.setTime(flystat.GetDuration());
+  screenTime.update();
+  screenTime.display();
+  varioDigit.setValue(flystat.GetVarioMax());
+  varioDigit.update();
+  varioDigit.display();
+
+  DisplayDuration = true;
+  varioScreen.setPage(1);
+  delay(3000); 
+  speedDigit.setValue(0);
+
+ #endif HAVE_SCREEN_JPG63
+
 }
 
 #if defined(HAVE_SDCARD) && defined(HAVE_GPS)
@@ -448,6 +499,8 @@ void loop() {
 #ifdef HAVE_ACCELEROMETER
   if( ms5611_dataReady() && vertaccel.dataReady() ) {
     ms5611_updateData();
+    
+//    vertaccel_updateData();
 
     kalmanvert.update( ms5611_getAltitude(),
                        vertaccel.getValue(),
@@ -466,10 +519,15 @@ void loop() {
     beeper.setVelocity( kalmanvert.getVelocity() );
 #endif //HAVE_SPEAKER
 
+double currentalti  = kalmanvert.getCalibratedPosition();
+double currentvario = kalmanvert.getVelocity();
+flystat.SetAlti(currentalti);
+flystat.SetVario(currentvario);
+
     /* set screen */
 #ifdef HAVE_SCREEN
-    altiDigit.setValue(kalmanvert.getCalibratedPosition());
-    varioDigit.setValue(kalmanvert.getVelocity() );
+    altiDigit.setValue(currentalti);
+    varioDigit.setValue(currentvario);
 #endif //HAVE_SCREEN
    
     
@@ -692,6 +750,7 @@ if (maxVoltage < tmpVoltage) {maxVoltage = tmpVoltage;}
       screenTime.correctTimeZone( VARIOMETER_TIME_ZONE );
       screenElapsedTime.setCurrentTime( screenTime.getTime() );
 
+      flystat.SetDuration(screenElapsedTime.getTime());
       /* update satelite count */
       satLevel.setSatelliteCount( nmeaParser.satelliteCount );
 #endif //HAVE_GPS  
@@ -786,6 +845,8 @@ if (maxVoltage < tmpVoltage) {maxVoltage = tmpVoltage;}
     /* display speed and ratio */    
     if (currentSpeed > 99)      speedDigit.setValue( 99 );
     else                        speedDigit.setValue( currentSpeed );
+
+    flystat.SetSpeed(currentSpeed);
     if( currentSpeed >= RATIO_MIN_SPEED && ratio >= 0.0 && ratio < RATIO_MAX_VALUE ) {
       ratioDigit.setValue(ratio);
     } else {
@@ -801,7 +862,10 @@ if (maxVoltage < tmpVoltage) {maxVoltage = tmpVoltage;}
   /* screen update */
   varioScreen.displayStep();
 
-#endif //HAVE_SCREEN 
+#endif //HAVE_SCREEN
+
+  flystat.Handle(); 
+
 }
 
 
@@ -896,4 +960,6 @@ recordIndicator.setActifRECORD();
 #if defined(HAVE_SDCARD) && defined(HAVE_GPS) && defined(VARIOMETER_RECORD_WHEN_FLIGHT_START)
   createSDCardTrackFile();
 #endif // defined(HAVE_SDCARD) && defined(VARIOMETER_RECORD_WHEN_FLIGHT_START)
+  flystat.Begin();
 }
+
