@@ -3,6 +3,9 @@
 
 #include <Arduino.h>
 
+/* the maximum silent time before the timestamp is updated */
+#define SERIAL_NMEA_MAX_SILENT_TIME 5
+
 /**********************/
 /*  serial registers  */
 /**********************/
@@ -72,6 +75,8 @@ class SerialNmea {
   void lock(void); //lock rx completely to write manually
   void write(uint8_t c);
   void release(void);
+  unsigned long getReceiveTimestamp(void);
+  unsigned long getLastReceiveTimestamp(void);
   
   void rxCompleteVect(void);
   void udrEmptyVect(void);
@@ -89,7 +94,8 @@ class SerialNmea {
   volatile int8_t nmeaParseStep;
   volatile uint8_t nmeaParity;
   volatile uint8_t parityTag;
-  
+  volatile unsigned long receiveTimestamp;
+  volatile unsigned long lastReceiveTimestamp;
 };
 
 extern SerialNmea serialNmea;

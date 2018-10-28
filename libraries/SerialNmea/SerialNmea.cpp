@@ -82,6 +82,13 @@ void SerialNmea::begin(unsigned long baud, bool rxEnable) {
 
 void SerialNmea::rxCompleteVect(void) {
 
+  /* update timestamps */
+  unsigned long currentTime = millis();
+  if( currentTime - lastReceiveTimestamp > SERIAL_NMEA_MAX_SILENT_TIME ) {
+    receiveTimestamp = currentTime;
+  }
+  lastReceiveTimestamp = currentTime;
+
   /* read */
   uint8_t c = UDR;
 
@@ -109,7 +116,6 @@ void SerialNmea::rxCompleteVect(void) {
       ( serialState_isset(RMC_FOUND) && writePos == rmcPos ) ||        //never overwrite same sentence
       ( serialState_isset(GGA_FOUND) && writePos == ggaPos ) ) {
     /* one character is not saved so stop parser */
-    writePos = txHead;
     nmeaParseStep = -1;
     return;
   }
@@ -163,7 +169,6 @@ void SerialNmea::rxCompleteVect(void) {
    
     if( c != ',' || (! serialState_isset(RMC_TAG_FOUND) && ! serialState_isset(GGA_TAG_FOUND) ) ) {
       nmeaParseStep = -1; //bad sensence
-      writePos = txHead;
     }
 
     else {
@@ -189,7 +194,6 @@ void SerialNmea::rxCompleteVect(void) {
      
     if( nmeaParity != parityTag ) {
       nmeaParseStep = -1; //bad sensence
-      writePos = txHead;
     } else {
       /*********************************/
       /* we have a new nmea sentence ! */
@@ -274,6 +278,16 @@ void SerialNmea::release() {
   serialState_unset(LOCKED);
 }
 
+unsigned long SerialNmea::getReceiveTimestamp(void) {
+
+  return receiveTimestamp;
+}
+
+unsigned long SerialNmea::getLastReceiveTimestamp(void) {
+
+  return lastReceiveTimestamp;
+}
+
 uint8_t SerialNmea::read(void) {
 
   uint8_t c = buffer[readPos];
@@ -307,8 +321,3 @@ void SerialNmea::write(uint8_t c) {
   txHead = nextPos;
   sbi(UCSRB, UDRIE);
 }
-
-
-
-
-  
