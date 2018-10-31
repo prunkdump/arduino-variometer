@@ -62,15 +62,19 @@
 #define FLIGHT_START_VARIO_HIGH_THRESHOLD 0.5
 #define FLIGHT_START_MIN_SPEED 10.0
 
-/* Speed filtering :                                               */
-/* Greater values give smoother speed. The base unit is 2 seconds  */
-/* so size = 5 use the last 10 seconds to average speed.           */
-#define VARIOMETER_SPEED_FILTER_SIZE 5
+/* Display integrated climb rate or instantaneous values */
+//#define VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE
+
+/* Integration parameters  (in ms)                  */
+/* !     also used for computing glide ratio      ! */
+/* ! even if you don't use integrated climb rate  ! */
+#define VARIOMETER_INTEGRATION_TIME 5000
+#define VARIOMETER_INTEGRATION_DISPLAY_FREQ 2.0
 
 /* Set the GPS precision needed to use the GPS altitude value  */
 /* to calibrate the barometric altitude.                       */
 /*      !!! the best possible precision is 100 !!!             */ 
-#define VARIOMETER_GPS_ALTI_CALIBRATION_PRECISION_THRESHOLD 200
+#define VARIOMETER_GPS_ALTI_CALIBRATION_PRECISION_THRESHOLD 350
 
 
 /*****************************/
@@ -151,6 +155,10 @@
 /* The bauds rate used by the GPS and Bluetooth modules. */
 /* GPS and bluetooth need to have the same bauds rate.   */
 #define GPS_BLUETOOTH_BAUDS 9600
+
+/* The GPS period in ms                             */
+/* use the gps-time-analysis sketch to determine it */
+#define GPS_PERIOD 1000
 
 /* I2C speed                                   */
 /* You can try 800 on <8mhz microcontrollers   */ 

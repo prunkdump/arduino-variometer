@@ -20,7 +20,7 @@
 #include <LK8Sentence.h>
 #include <IGCSentence.h>
 #include <FirmwareUpdater.h>
-
+#include <FlightHistory.h>
 
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 /*!!            !!! WARNING  !!!              !!*/
@@ -160,6 +160,45 @@ kalmanvert kalmanvert;
 beeper beeper(VARIOMETER_SINKING_THRESHOLD, VARIOMETER_CLIMBING_THRESHOLD, VARIOMETER_NEAR_CLIMBING_SENSITIVITY, VARIOMETER_BEEP_VOLUME);
 #endif
 
+/************************************/
+/* glide ratio / average climb rate */
+/************************************/
+#if defined(HAVE_GPS) || defined(VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE)
+
+/* determine history params */
+#ifdef HAVE_GPS
+#ifdef VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE
+/* unsure period divide GPS_PERIOD */
+const double historyGPSPeriodCountF = (double)(VARIOMETER_INTEGRATION_DISPLAY_FREQ)*(double)(GPS_PERIOD)/(1000.0);
+const int8_t historyGPSPeriodCount = (int8_t)(0.5 + historyGPSPeriodCountF);
+
+const double historyPeriodF = (double)(GPS_PERIOD)/(double)(historyGPSPeriodCount);
+const unsigned historyPeriod = (unsigned)(0.5 + historyPeriodF);
+#else
+/* GPS give the period */
+const int8_t historyGPSPeriodCount = 1;
+const unsigned historyPeriod = GPS_PERIOD;
+#endif //VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE
+
+const double historyCountF = (double)(VARIOMETER_INTEGRATION_TIME)/(double)historyPeriod;
+const int8_t historyCount = (int8_t)(0.5 + historyCountF);
+#else
+const double historyCountF = (double)(VARIOMETER_INTEGRATION_DISPLAY_FREQ)*(double)(VARIOMETER_INTEGRATION_TIME)/(1000.0);
+const int8_t historyCount = (int8_t)(0.5 + historyCountF);
+
+const double historyPeriodF = (double)(VARIOMETER_INTEGRATION_TIME)/(double)historyCount;
+const unsigned historyPeriod = (unsigned)(0.5 + historyPeriodF);
+#endif //HAVE_GPS
+
+/* create history */
+#ifdef HAVE_GPS
+SpeedFlightHistory<historyPeriod, historyCount, historyGPSPeriodCount> history;
+#else
+FlightHistory<historyPeriod, historyCount> history;
+#endif
+
+#endif //defined(HAVE_GPS) || defined(VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE)
+
 /***************/
 /* gps objects */
 /***************/
@@ -170,13 +209,6 @@ NmeaParser nmeaParser;
 #ifdef HAVE_BLUETOOTH
 boolean lastSentence = false;
 #endif //HAVE_BLUETOOTH
-
-unsigned long RMCSentenceTimestamp; //for the speed filter
-double RMCSentenceCurrentAlti; //for the speed filter
-unsigned long speedFilterTimestamps[VARIOMETER_SPEED_FILTER_SIZE];
-double speedFilterSpeedValues[VARIOMETER_SPEED_FILTER_SIZE];
-double speedFilterAltiValues[VARIOMETER_SPEED_FILTER_SIZE];
-int8_t speedFilterPos = 0;
 
 #ifdef HAVE_SDCARD
 lightfat16 file(SDCARD_CS_PIN);
@@ -316,7 +348,11 @@ void setup() {
                   POSITION_MEASURE_STANDARD_DEVIATION,
                   ACCELERATION_MEASURE_STANDARD_DEVIATION,
                   millis());
-   
+                  
+  /* init history */
+#if defined(HAVE_GPS) || defined(VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE)
+  history.init(ms5611_getAltitude(), millis());
+#endif //defined(HAVE_GPS) || defined(VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE)
 }
 
 #if defined(HAVE_SDCARD) && defined(HAVE_GPS)
@@ -353,10 +389,21 @@ void loop() {
     beeper.setVelocity( kalmanvert.getVelocity() );
 #endif //HAVE_SPEAKER
 
+    /* set history */
+#if defined(HAVE_GPS) || defined(VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE)
+    history.setAlti(kalmanvert.getCalibratedPosition(), millis());
+#endif
+
     /* set screen */
 #ifdef HAVE_SCREEN
     altiDigit.setValue(kalmanvert.getCalibratedPosition());
-    varioDigit.setValue(kalmanvert.getVelocity() );
+#ifdef VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE
+    if( history.haveNewClimbRate() ) {
+      varioDigit.setValue(history.getClimbRate());
+    }
+#else
+    varioDigit.setValue(kalmanvert.getVelocity());
+#endif //VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE
 #endif //HAVE_SCREEN
    
     
@@ -410,8 +457,6 @@ void loop() {
     
     /* try to lock sentences */
     if( serialNmea.lockRMC() ) {
-      RMCSentenceTimestamp = millis();
-      RMCSentenceCurrentAlti = kalmanvert.getPosition(); //useless to take calibrated here
       nmeaParser.beginRMC();
     } else if( serialNmea.lockGGA() ) {
       nmeaParser.beginGGA();
@@ -488,6 +533,10 @@ void loop() {
           /* calibrate */
           double gpsAlti = nmeaParser.getAlti();
           kalmanvert.calibratePosition(gpsAlti);
+#if defined(HAVE_GPS) || defined(VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE)
+          history.init(gpsAlti, millis());
+#endif //defined(HAVE_GPS) || defined(VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE)
+
           variometerState = VARIOMETER_STATE_CALIBRATED;
 #if defined(HAVE_SDCARD) && ! defined(VARIOMETER_RECORD_WHEN_FLIGHT_START)
           createSDCardTrackFile();
@@ -567,46 +616,9 @@ void loop() {
   /* when getting speed from gps, display speed and ratio */
   if ( nmeaParser.haveNewSpeedValue() ) {
 
-    /* get new values */
-    unsigned long baseTime = speedFilterTimestamps[speedFilterPos];
-    unsigned long deltaTime = RMCSentenceTimestamp; //delta computed later
-    speedFilterTimestamps[speedFilterPos] = RMCSentenceTimestamp;
-    
-    double deltaAlti = speedFilterAltiValues[speedFilterPos]; //computed later
-    speedFilterAltiValues[speedFilterPos] = RMCSentenceCurrentAlti; 
-
     double currentSpeed = nmeaParser.getSpeed();
-    speedFilterSpeedValues[speedFilterPos] = currentSpeed;
+    double ratio = history.getGlideRatio(currentSpeed, serialNmea.getReceiveTimestamp());
 
-    speedFilterPos++;
-    if( speedFilterPos >= VARIOMETER_SPEED_FILTER_SIZE )
-      speedFilterPos = 0;
-
-    /* compute deltas */
-    deltaAlti -= RMCSentenceCurrentAlti;
-    deltaTime -= baseTime;
-    
-    /* compute mean distance */
-    double meanDistance = 0;
-    int step = 0;
-    while( step < VARIOMETER_SPEED_FILTER_SIZE ) {
-
-      /* compute distance */
-      unsigned long currentTime = speedFilterTimestamps[speedFilterPos];
-      meanDistance += speedFilterSpeedValues[speedFilterPos] * (double)(currentTime - baseTime);
-      baseTime = currentTime;
-
-      /* next */
-      speedFilterPos++;
-      if( speedFilterPos >= VARIOMETER_SPEED_FILTER_SIZE )
-        speedFilterPos = 0;
-      step++;
-    }
-
-    /* compute glide ratio */
-    double ratio = (meanDistance/3600.0)/deltaAlti;
-
-    /* display speed and ratio */    
     speedDigit.setValue( currentSpeed );
     if( currentSpeed >= RATIO_MIN_SPEED && ratio >= 0.0 && ratio < RATIO_MAX_VALUE ) {
       ratioDigit.setValue(ratio);
@@ -699,4 +711,3 @@ void enableflightStartComponents(void) {
   createSDCardTrackFile();
 #endif // defined(HAVE_SDCARD) && defined(VARIOMETER_RECORD_WHEN_FLIGHT_START)
 }
-
