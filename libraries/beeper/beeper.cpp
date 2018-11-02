@@ -58,7 +58,7 @@ void beeper::setBeepParameters(double velocity) {
   /* compute the beep freq that depend to beep type */
   switch( beepType ) {
   case BEEP_TYPE_SINKING :
-    beepFreq = SINKING_BEEP_BASE_FREQ;
+    beepFreq = SINKING_BEEP_FREQ_COEFF * velocity + SINKING_BEEP_BASE_FREQ;
     break;
 
   case BEEP_TYPE_SILENT :
@@ -155,12 +155,15 @@ void beeper::setVelocity(double velocity) {
     }
   }
  
-  /* check if we need to change the beep parameters */
-  /* !!! not forcing freq change !!! */
+  /* check if we need to change the beep parameters  */
+  /* !!! not forcing freq change on patern beeps !!! */
+  /*     just wait for the next silent               */
   if( startAlarm || beepTypeChange ||
       velocity > beepVelocity + BEEP_VELOCITY_SENSITIVITY ||
       velocity < beepVelocity - BEEP_VELOCITY_SENSITIVITY ) {
     setBeepParameters(velocity);
+    if( beepType == BEEP_TYPE_SINKING )
+      bst_set(BEEP_NEW_FREQ);  //sinking beep don't have patern
   }
 }
 
@@ -172,9 +175,9 @@ void beeper::setBeepPaternPosition(double velocity) {
     haveAlarm = true;
   }
 
-  /************************************/
-  /* check if the beep have a partern */
-  /************************************/
+  /***********************************/
+  /* check if the beep have a patern */
+  /***********************************/
   if( !haveAlarm &&
       (beepType == BEEP_TYPE_SINKING || beepType == BEEP_TYPE_SILENT) ) {
     return;
