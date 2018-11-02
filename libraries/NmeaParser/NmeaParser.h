@@ -36,7 +36,7 @@ class NmeaParser {
   bool haveNewSpeedValue(void);
   bool haveDate(void);
   double getAlti(void);
-  double getSpeed(void);
+  double getSpeed(void); //in KMH
   bool isParsing(void);
   bool isParsingRMC(void);
   bool isParsingGGA(void);
