@@ -21,7 +21,7 @@
 #include <IGCSentence.h>
 #include <FirmwareUpdater.h>
 #include <variostat.h>
-
+#include <FlightHistory.h>
 
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 /*!!            !!! WARNING  !!!              !!*/
@@ -34,7 +34,7 @@
 /*******************/
 
 #define VERSION 63
-#define SUB_VERSION 6
+#define SUB_VERSION 7
 
 /*******************/
 /*    Historique   */
@@ -75,6 +75,10 @@
  *            bip de debut d'enregistrement 
  *    
  *  v 63.6.1  Ajout de l'ecran de stat du dernier vol
+ *  
+ *  v 63.7.0  22/09/2018
+ *            Ajout affichage tendance moyenne sur 10 sec 
+ *            en double affichage avec l'indicateur de finesse
  * 
  *******************
  * Compilation :
@@ -189,6 +193,7 @@ ScreenDigit varioDigit(screen, VARIOSCREEN_VARIO_ANCHOR_X, VARIOSCREEN_VARIO_ANC
 ScreenDigit speedDigit(screen, VARIOSCREEN_SPEED_ANCHOR_X, VARIOSCREEN_SPEED_ANCHOR_Y, 0, false);
 #ifdef HAVE_SCREEN_JPG63
 ScreenDigit ratioDigit(screen, VARIOSCREEN_GR_ANCHOR_X, VARIOSCREEN_GR_ANCHOR_Y, 0, false);
+ScreenDigit trendDigit(screen, VARIOSCREEN_GR_ANCHOR_X, VARIOSCREEN_GR_ANCHOR_Y, 1, false);
 #else
 ScreenDigit ratioDigit(screen, VARIOSCREEN_GR_ANCHOR_X, VARIOSCREEN_GR_ANCHOR_Y, 1, false);
 #endif //HAVE_SCREEN_JPG63
@@ -215,7 +220,7 @@ int maxVoltage = 0;
 ScreenSchedulerObject displayList[] = { {&msunit, 0}, {&munit, 0}, {&altiDigit, 0}, {&varioDigit, 0}
 #ifdef HAVE_GPS
 #ifdef HAVE_SCREEN_JPG63
-  									   ,{&kmhunit, 0}, {&speedDigit, 0}, {&ratioDigit, 0}, {&satLevel, 0}, {&screenTime, 1}, {&screenElapsedTime, 0}, {&recordIndicator, 0} , {&trendLevel, 0}
+  									   ,{&kmhunit, 0}, {&speedDigit, 0}, {&trendDigit, 1}, {&ratioDigit, 0}, {&satLevel, 0}, {&screenTime, 1}, {&screenElapsedTime, 0}, {&recordIndicator, 0} , {&trendLevel, 0}
 #else
                                        ,{&kmhunit, 0}, {&grunit, 0}, {&speedDigit, 0}, {&ratioDigit, 0}, {&satLevel, 0}, {&screenTime, 1}, {&screenElapsedTime, 1}, {&recordIndicator, 0} , {&trendLevel, 0}
 #endif //HAVE_SCREEN_JPG63  
@@ -258,6 +263,45 @@ beeper beeper(VARIOMETER_SINKING_THRESHOLD, VARIOMETER_CLIMBING_THRESHOLD, VARIO
 #define BEEP_FREQ 800
 #endif
 
+/************************************/
+/* glide ratio / average climb rate */
+/************************************/
+#if defined(HAVE_GPS) || defined(VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE) || (RATIO_CLIMB_RATE > 1)
+
+/* determine history params */
+#ifdef HAVE_GPS
+#if defined(VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE) || (RATIO_CLIMB_RATE > 1)
+/* unsure period divide GPS_PERIOD */
+const double historyGPSPeriodCountF = (double)(VARIOMETER_INTEGRATION_DISPLAY_FREQ)*(double)(GPS_PERIOD)/(1000.0);
+const int8_t historyGPSPeriodCount = (int8_t)(0.5 + historyGPSPeriodCountF);
+
+const double historyPeriodF = (double)(GPS_PERIOD)/(double)(historyGPSPeriodCount);
+const unsigned historyPeriod = (unsigned)(0.5 + historyPeriodF);
+#else
+/* GPS give the period */
+const int8_t historyGPSPeriodCount = 1;
+const unsigned historyPeriod = GPS_PERIOD;
+#endif //VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE || (RATIO_CLIMB_RATE > 1)
+
+const double historyCountF = (double)(VARIOMETER_INTEGRATION_TIME)/(double)historyPeriod;
+const int8_t historyCount = (int8_t)(0.5 + historyCountF);
+#else
+const double historyCountF = (double)(VARIOMETER_INTEGRATION_DISPLAY_FREQ)*(double)(VARIOMETER_INTEGRATION_TIME)/(1000.0);
+const int8_t historyCount = (int8_t)(0.5 + historyCountF);
+
+const double historyPeriodF = (double)(VARIOMETER_INTEGRATION_TIME)/(double)historyCount;
+const unsigned historyPeriod = (unsigned)(0.5 + historyPeriodF);
+#endif //HAVE_GPS
+
+/* create history */
+#ifdef HAVE_GPS
+SpeedFlightHistory<historyPeriod, historyCount, historyGPSPeriodCount> history;
+#else
+FlightHistory<historyPeriod, historyCount> history;
+#endif
+
+#endif //defined(HAVE_GPS) || defined(VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE) || (RATIO_CLIMB_RATE > 1)
+
 /***************/
 /* gps objects */
 /***************/
@@ -268,13 +312,6 @@ NmeaParser nmeaParser;
 #ifdef HAVE_BLUETOOTH
 boolean lastSentence = false;
 #endif //HAVE_BLUETOOTH
-
-unsigned long RMCSentenceTimestamp; //for the speed filter
-double RMCSentenceCurrentAlti; //for the speed filter
-unsigned long speedFilterTimestamps[VARIOMETER_SPEED_FILTER_SIZE];
-double speedFilterSpeedValues[VARIOMETER_SPEED_FILTER_SIZE];
-double speedFilterAltiValues[VARIOMETER_SPEED_FILTER_SIZE];
-int8_t speedFilterPos = 0;
 
 #ifdef HAVE_SDCARD
 lightfat16 file(SDCARD_CS_PIN);
@@ -321,7 +358,10 @@ void beeperTapCallback(unsigned char direction, unsigned char count) {
 }
 #endif //defined(HAVE_ACCELEROMETER) && defined(HAVE_SPEAKER) 
 
+#ifdef HAVE_SCREEN_JPG63
 VarioStat flystat;
+//VarioTrend CalculTrend;
+#endif //HAVE_SCREEN_JPG63
 
 /*-----------------*/
 /*      SETUP      */
@@ -379,8 +419,9 @@ void setup() {
   }  
 #endif //defined(HAVE_SDCARD) && defined(HAVE_GPS)
 
+#ifdef HAVE_SCREEN_JPG63
   flystat.Display();
-
+#endif //HAVE_SCREEN_JPG63
    
   /***************/
   /* init screen */
@@ -407,7 +448,9 @@ void setup() {
   altiDigit.update();
   varioDigit.setValue(flystat.GetVarioMin());
   varioDigit.update();
-  speedDigit.setValue(flystat.GetSpeed());
+  double tmpspeed = flystat.GetSpeed();
+  if (tmpspeed > 99) tmpspeed = 99;
+  speedDigit.setValue(tmpspeed);
   speedDigit.update();
   kmhunit.update();
   msunit.update();
@@ -447,10 +490,6 @@ void setup() {
   /* get first data */
   ms5611_updateData();
   
-/*#ifdef HAVE_ACCELEROMETER
-  vertaccel_updateData();
-#endif //HAVE_ACCELEROMETER*/
-
   /* init kalman filter */
   kalmanvert.init(ms5611_getAltitude(),
 #ifdef HAVE_ACCELEROMETER
@@ -462,6 +501,10 @@ void setup() {
                   ACCELERATION_MEASURE_STANDARD_DEVIATION,
                   millis());
 
+  /* init history */
+#if defined(HAVE_GPS) || defined(VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE) || (RATIO_CLIMB_RATE > 1)
+  history.init(ms5611_getAltitude(), millis());
+#endif //defined(HAVE_GPS) || defined(VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE) || (RATIO_CLIMB_RATE > 1)
 
  #ifdef HAVE_SCREEN_JPG63
   while ((millis() - timer) < 3000) {   
@@ -479,9 +522,9 @@ void setup() {
   delay(3000); 
   speedDigit.setValue(0);
 
- #endif HAVE_SCREEN_JPG63
-
+//  CalculTrend.Init();  
 }
+#endif //HAVE_SCREEN_JPG63
 
 #if defined(HAVE_SDCARD) && defined(HAVE_GPS)
 void createSDCardTrackFile(void);
@@ -500,8 +543,6 @@ void loop() {
   if( ms5611_dataReady() && vertaccel.dataReady() ) {
     ms5611_updateData();
     
-//    vertaccel_updateData();
-
     kalmanvert.update( ms5611_getAltitude(),
                        vertaccel.getValue(),
                        millis() );
@@ -519,18 +560,55 @@ void loop() {
     beeper.setVelocity( kalmanvert.getVelocity() );
 #endif //HAVE_SPEAKER
 
+    /* set history */
+#if defined(HAVE_GPS) || defined(VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE) || (RATIO_CLIMB_RATE > 1)
+    history.setAlti(kalmanvert.getCalibratedPosition(), millis());
+#endif
+
 double currentalti  = kalmanvert.getCalibratedPosition();
 double currentvario = kalmanvert.getVelocity();
-flystat.SetAlti(currentalti);
-flystat.SetVario(currentvario);
 
     /* set screen */
+
+#ifdef HAVE_SCREEN_JPG63
+    flystat.SetAlti(currentalti);
+    flystat.SetVario(currentvario);
+#endif //HAVE_SCREENçJPG63
+
 #ifdef HAVE_SCREEN
     altiDigit.setValue(currentalti);
+#ifdef HAVE_SCREEN_JPG63
+#ifdef VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE
+    if( history.haveNewClimbRate() ) {
+      varioDigit.setValue(history.getClimbRate());
+    }
+#else
     varioDigit.setValue(currentvario);
+#endif //VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE   
+
+#if (RATIO_CLIMB_RATE > 1) 
+    if( history.haveNewClimbRate() ) {
+      double TmpTrend;
+      TmpTrend = history.getClimbRate();
+      if (abs(TmpTrend) < 10) trendDigit.setValue(abs(TmpTrend)); 
+      else                    trendDigit.setValue(9.9);
+      
+      if (TmpTrend == 0)     trendLevel.stateTREND(0);
+      else if (TmpTrend > 0) trendLevel.stateTREND(1);
+      else                   trendLevel.stateTREND(-1);
+    }  
+#endif // (RATIO_CLIMB_RATE > 1)
+#else
+#ifdef VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE
+    if( history.haveNewClimbRate() ) {
+      varioDigit.setValue(history.getClimbRate());
+    }
+#else
+    varioDigit.setValue(currentvario);
+#endif //VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE
+#endif //HAVE_SCREEN_JPG63
 #endif //HAVE_SCREEN
-   
-    
+     
   }
 
   /*****************/
@@ -539,7 +617,6 @@ flystat.SetVario(currentvario);
 #ifdef HAVE_SPEAKER
   beeper.update();
 #endif //HAVE_SPEAKER
-
 
   /********************/
   /* update bluetooth */
@@ -581,8 +658,6 @@ flystat.SetVario(currentvario);
     
     /* try to lock sentences */
     if( serialNmea.lockRMC() ) {
-      RMCSentenceTimestamp = millis();
-      RMCSentenceCurrentAlti = kalmanvert.getPosition(); //useless to take calibrated here
       nmeaParser.beginRMC();
     } else if( serialNmea.lockGGA() ) {
       nmeaParser.beginGGA();
@@ -590,6 +665,7 @@ flystat.SetVario(currentvario);
       lastSentence = true;
 #endif //HAVE_BLUETOOTH
 #ifdef HAVE_SDCARD      
+
       /* start to write IGC B frames */
       if( sdcardState == SDCARD_STATE_READY ) {
 #ifdef VARIOMETER_SDCARD_SEND_CALIBRATED_ALTITUDE
@@ -665,9 +741,15 @@ flystat.SetVario(currentvario);
 
 #ifdef HAVE_SCREEN
           recordIndicator.setActifGPSFIX();
-#endif //HAVE_SCREEN                    
+#endif //HAVE_SCREEN  
+                  
           double gpsAlti = nmeaParser.getAlti();
           kalmanvert.calibratePosition(gpsAlti);
+
+#if defined(HAVE_GPS) || defined(VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE) || (RATIO_CLIMB_RATE > 1)
+          history.init(gpsAlti, millis());
+#endif //defined(HAVE_GPS) || defined(VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE) || (RATIO_CLIMB_RATE > 1)
+
           variometerState = VARIOMETER_STATE_CALIBRATED;
 #if defined(HAVE_SDCARD) && ! defined(VARIOMETER_RECORD_WHEN_FLIGHT_START)
           createSDCardTrackFile();
@@ -712,7 +794,6 @@ flystat.SetVario(currentvario);
 #if defined(HAVE_SCREEN) && defined(HAVE_VOLTAGE_DIVISOR) 
 int tmpVoltage = analogRead(VOLTAGE_DIVISOR_PIN);
 if (maxVoltage < tmpVoltage) {maxVoltage = tmpVoltage;}
-//maxVoltage = analogRead(VOLTAGE_DIVISOR_PIN);
 #endif //HAVE_VOLTAGE_DIVISOR
 
 
@@ -729,11 +810,24 @@ if (maxVoltage < tmpVoltage) {maxVoltage = tmpVoltage;}
     if( lowFreqDuration > VARIOMETER_BASE_PAGE_DURATION ) {
 #ifdef HAVE_GPS //no multipage without GPS
 
-#ifdef HAVE_SCREEN_JPG63      
-      displayList[8].page = 1;
-      displayList[9].page = 0;
-      DisplayDuration = true;
+#ifdef HAVE_SCREEN_JPG63   
 
+#if (RATIO_CLIMBRATE == 1)   
+      displayList[6].page  = 1;
+      displayList[7].page  = 0;
+#elseif (RATIO_CLIMBRATE == 2)
+      displayList[6].page  = 0;
+      displayList[7].page  = 1;
+#elseif
+      displayList[6].page  = 1;
+      displayList[7].page  = 0;
+#endif
+//      displayList[12].page = 1;
+
+      displayList[9].page = 1;
+      displayList[10].page = 0;
+             
+      DisplayDuration = true;
       varioScreen.setPage(0);
 #else      
       varioScreen.nextPage();
@@ -750,7 +844,10 @@ if (maxVoltage < tmpVoltage) {maxVoltage = tmpVoltage;}
       screenTime.correctTimeZone( VARIOMETER_TIME_ZONE );
       screenElapsedTime.setCurrentTime( screenTime.getTime() );
 
+ #ifdef HAVE_SCREEN_JPG63
       flystat.SetDuration(screenElapsedTime.getTime());
+ #endif //HAVE_SCREEN_JPG63
+ 
       /* update satelite count */
       satLevel.setSatelliteCount( nmeaParser.satelliteCount );
 #endif //HAVE_GPS  
@@ -761,11 +858,25 @@ if (maxVoltage < tmpVoltage) {maxVoltage = tmpVoltage;}
       batLevel.setVoltage( maxVoltage );
       maxVoltage = 0;
 #endif //HAVE_VOLTAGE_DIVISOR
-#ifdef HAVE_SCREEN_JPG63      
-      displayList[8].page = 0;
-      displayList[9].page = 1;
-      DisplayDuration = false;
+#ifdef HAVE_SCREEN_JPG63 
+     
+#if (RATIO_CLIMBRATE == 1)   
+      displayList[6].page = 1;
+      displayList[7].page = 0;
+#elseif (RATIO_CLIMBRATE == 2)
+      displayList[6].page = 0;
+      displayList[7].page = 1;
+#else
+      displayList[6].page = 0;
+      displayList[7].page = 1;
+#endif   
 
+//      displayList[12].page = 0;
+
+      displayList[9].page = 0;
+      displayList[10].page = 1;
+       
+      DisplayDuration = false;
       varioScreen.setPage(0);
 
 #endif //HAVE_SCREEN_JPG63         
@@ -776,7 +887,7 @@ if (maxVoltage < tmpVoltage) {maxVoltage = tmpVoltage;}
 #endif //HAVE_GPS multipage support      
     }
   }
-   
+  
   /*****************/
   /* update screen */
   /*****************/
@@ -784,76 +895,23 @@ if (maxVoltage < tmpVoltage) {maxVoltage = tmpVoltage;}
   /* when getting speed from gps, display speed and ratio */
   if ( nmeaParser.haveNewSpeedValue() ) {
 
-    /* get new values */
-    unsigned long baseTime = speedFilterTimestamps[speedFilterPos];
-    unsigned long deltaTime = RMCSentenceTimestamp; //delta computed later
-    speedFilterTimestamps[speedFilterPos] = RMCSentenceTimestamp;
-    
-    double deltaAlti = speedFilterAltiValues[speedFilterPos]; //computed later
-    speedFilterAltiValues[speedFilterPos] = RMCSentenceCurrentAlti; 
-
     double currentSpeed = nmeaParser.getSpeed();
-    speedFilterSpeedValues[speedFilterPos] = currentSpeed;
+    double ratio = history.getGlideRatio(currentSpeed, serialNmea.getReceiveTimestamp());
 
-    double meanAltitude = 0;
-    double currentAlti  = RMCSentenceCurrentAlti;
+ #ifdef HAVE_SCREEN_JPG63
+     flystat.SetSpeed(currentSpeed);
+ #endif //HAVE_SCREEN_JPG63
 
-    /*compute trend */
-    
-    int8_t previousAltiPos = ((int8_t)speedFilterPos) - 3;
-    if( previousAltiPos < 0 ) {
-      previousAltiPos += VARIOMETER_SPEED_FILTER_SIZE;
-    }
-    double previousAlti = speedFilterAltiValues[previousAltiPos];   
-    int8_t trend;
-
-    if ( ( (currentAlti - previousAlti) >= -1) && ( (currentAlti - previousAlti) <= 3)) {trend = 0;}
-    else if ((currentAlti - previousAlti) < -1) { trend = -1;}
-    else { trend = 1;}
-    
-    /* display trend */
-    trendLevel.stateTREND( trend );
-
-    speedFilterPos++;
-    if( speedFilterPos >= VARIOMETER_SPEED_FILTER_SIZE )
-      speedFilterPos = 0;
-
-    /* compute deltas */
-    deltaAlti -= RMCSentenceCurrentAlti;
-    deltaTime -= baseTime;
-    
-    /* compute mean distance */
-    double meanDistance = 0;
-    int step = 0;
-    while( step < VARIOMETER_SPEED_FILTER_SIZE ) {
-
-      /* compute distance */
-      unsigned long currentTime = speedFilterTimestamps[speedFilterPos];
-      meanDistance += speedFilterSpeedValues[speedFilterPos] * (double)(currentTime - baseTime);
-      baseTime = currentTime;
-
-      /* next */
-      speedFilterPos++;
-      if( speedFilterPos >= VARIOMETER_SPEED_FILTER_SIZE )
-        speedFilterPos = 0;
-      step++;
-    }
-
-    /* compute glide ratio */
-    double ratio = (meanDistance/3600.0)/deltaAlti;
-
-    /* display speed and ratio */    
+    // display speed and ratio    
     if (currentSpeed > 99)      speedDigit.setValue( 99 );
     else                        speedDigit.setValue( currentSpeed );
 
-    flystat.SetSpeed(currentSpeed);
     if( currentSpeed >= RATIO_MIN_SPEED && ratio >= 0.0 && ratio < RATIO_MAX_VALUE ) {
       ratioDigit.setValue(ratio);
     } else {
       ratioDigit.setValue(0.0);
     }
   }
-
 
 #endif //HAVE_GPS
 
@@ -960,6 +1018,9 @@ recordIndicator.setActifRECORD();
 #if defined(HAVE_SDCARD) && defined(HAVE_GPS) && defined(VARIOMETER_RECORD_WHEN_FLIGHT_START)
   createSDCardTrackFile();
 #endif // defined(HAVE_SDCARD) && defined(VARIOMETER_RECORD_WHEN_FLIGHT_START)
+#ifdef HAVE_SCREEN_JPG63
   flystat.Begin();
+//  CalculTrend.Enable();
+#endif //HAVE_SCREEN_JPG63
 }
 
