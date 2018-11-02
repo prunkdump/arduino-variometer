@@ -8,7 +8,7 @@
 
 /* default threshold */
 #define BEEP_VELOCITY_DEFAULT_SINKING_THRESHOLD (-2.0)
-#define BEEP_VELOCITY_DEFAULT_CLIMBING_THRESHOLD 2.0
+#define BEEP_VELOCITY_DEFAULT_CLIMBING_THRESHOLD 0.2
 #define BEEP_VELOCITY_DEFAULT_NEAR_CLIMBING_SENSITIVITY 0.5
 
 /* avoid changing beep freq too often */
@@ -35,7 +35,8 @@
 /********************/
 /* THE SINKING BEEP */
 /********************/
-#define SINKING_BEEP_BASE_FREQ 100.0
+#define SINKING_BEEP_BASE_FREQ 386.0
+#define SINKING_BEEP_FREQ_COEFF 33.0
 
 /********************/
 /* THE GLIDING BEEP */

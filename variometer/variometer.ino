@@ -81,6 +81,9 @@
  *            en double affichage avec l'indicateur de finesse
  *            Ajout possibilité d'avoir le vario intégré sur N seconde sur 
  *            l'affichage principal
+ *            
+ *  v 63.7.1  02/11/2018
+ *            Ajout du son des dégueulantes variabl          
  * 
  *******************
  * Compilation :
@@ -95,8 +98,6 @@
 /*******************/
 /* General objects */
 /*******************/
-//#define VARIOMETER_POWER_ON_DELAY 2000 
-
 #define VARIOMETER_STATE_INITIAL 0
 #define VARIOMETER_STATE_DATE_RECORDED 1
 #define VARIOMETER_STATE_CALIBRATED 2
