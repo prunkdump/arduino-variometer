@@ -76,9 +76,11 @@
  *    
  *  v 63.6.1  Ajout de l'ecran de stat du dernier vol
  *  
- *  v 63.7.0  22/09/2018
- *            Ajout affichage tendance moyenne sur 10 sec 
+ *  v 63.7.0  01/10/2018
+ *            Ajout affichage tendance moyenne sur 5 sec 
  *            en double affichage avec l'indicateur de finesse
+ *            Ajout possibilité d'avoir le vario intégré sur N seconde sur 
+ *            l'affichage principal
  * 
  *******************
  * Compilation :
