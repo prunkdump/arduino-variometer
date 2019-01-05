@@ -112,3 +112,62 @@ This must be done just one time.
 ---------------------------------
 YOU CAN NOW TRY YOUR VARIOMETER !
 ---------------------------------
+
+
+Version JPG63
+--------------
+
+/*******************/
+/*    Historical   */
+/*******************/
+/* v 63.0     add version number
+ *            alternative mono-screen add
+ *            smoothing the measurement of the battery
+ *            
+ * v 63.1     Vario trend added on 6sec
+ *            Improved vario sound 
+ *            
+ * v 63.2     BT improvement            
+ * 
+ * v 63.3     Hardware version 3
+ *            BT correction
+ *
+ * v 63.4     Added 3 levels mode in ToneAC
+ *            Modifying SPI Management  
+ *
+ * v 63.5     Accelerometer library optimization - LightInvensense
+ *            Adding Mute sound 
+ *            Fixed SD card problem
+ *            adding HAVE_MUTE to enable or disable the mute option
+ *            limitation of the speed display to 99
+ *
+ * v 63.5.1   adding Neo-8m support
+ *
+ * v 63.6     change library MPU - Accelerometer and Magnetometer
+ *            Modification VarioSettings.h file for the V3 Kit
+ *            
+ *            Difference with the Prunkdump version
+ *            
+ *            Gps fix indicator (triangle)
+ *            Recording indicator (square)
+ *            Trend indicator on 10sec (arrow)
+ *            No sound alarm of the SD card
+ *            Beep of gps fix
+ *            Start recording beep 
+ *    
+ *  v 63.6.1  Adding the stat screen of the last flight
+ *  
+ *  v 63.7.0  01/10/2018
+ *            Added average trend display on 5 sec dual display with fineness indicator
+ *            Added possibility to have the integrated vario on N seconds on the main display
+ *            
+ *  v 63.7.1  02/11/2018
+ *            Adding the sound of disgusting variable          
+ * 
+ *******************
+ * Compilation :
+ * 
+ *            Arduino Pro or Pro Mini
+ *            ATemega328P (3.3V, 8Mhz)
+ *            
+ *******************/

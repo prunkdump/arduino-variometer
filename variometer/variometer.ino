@@ -83,7 +83,7 @@
  *            l'affichage principal
  *            
  *  v 63.7.1  02/11/2018
- *            Ajout du son des dégueulantes variabl          
+ *            Ajout du son des dégueulantes variable          
  * 
  *******************
  * Compilation :
