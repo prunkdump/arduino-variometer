@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <beeper.h>
-#include <toneAC.h>
+#include "toneHAL.h"
+#include "toneHAL_PRO.h"
 
 beeper::beeper(double sinkingThreshold, double climbingThreshold, double nearClimbingSensitivity, uint8_t baseVolume) {
 
@@ -109,15 +110,15 @@ void beeper::setVelocity(double velocity) {
     /* need climbing alarm ? */
     if( beepType == BEEP_TYPE_SINKING || beepType == BEEP_TYPE_SILENT ) {
       if( velocity > beepGlidingThreshold && velocity < beepClimbingThreshold ) {
-	startAlarm = true;
-	bst_set(CLIMBING_ALARM);
+				startAlarm = true;
+				bst_set(CLIMBING_ALARM);
       }
     }
     /* else need sinking alarm ? */
     else {
       if( velocity > beepSinkingThreshold && velocity < beepGlidingThreshold ) {
-	startAlarm = true;
-	bst_set(SINKING_ALARM);
+				startAlarm = true;
+				bst_set(SINKING_ALARM);
       }
     }
   }
@@ -265,20 +266,20 @@ void beeper::setTone() {
       /* get half position */
       double halfPaternPosition = beepPaternPosition;
       if( halfPaternPosition > (CLIMBING_ALARM_LENGTH/2.0) ) {
-	halfPaternPosition -= (CLIMBING_ALARM_LENGTH/2.0);
+				halfPaternPosition -= (CLIMBING_ALARM_LENGTH/2.0);
       }
 
       /* set tone */
       if( halfPaternPosition < CLIMBING_ALARM_HIGH_LENGTH ) {
-	if( !bst_isset(BEEP_HIGH) ) {
-	  toneAC(CLIMBING_ALARM_FREQ, volume);
-	  bst_set(BEEP_HIGH);
-	} else if( bst_isset(BEEP_NEW_FREQ) ) {
-	  toneAC(CLIMBING_ALARM_FREQ, volume);
-	}
+			if( !bst_isset(BEEP_HIGH) ) {
+				toneHAL.tone(CLIMBING_ALARM_FREQ, volume);
+				bst_set(BEEP_HIGH);
+			} else if( bst_isset(BEEP_NEW_FREQ) ) {
+				toneHAL.tone(CLIMBING_ALARM_FREQ, volume);
+				}
       } else {
-	toneAC(0.0);
-	bst_unset(BEEP_HIGH);
+				toneHAL.tone(0.0);
+				bst_unset(BEEP_HIGH);
       }
     }
 
@@ -287,8 +288,8 @@ void beeper::setTone() {
     /*****************/
     else {
       if( !bst_isset(BEEP_HIGH) || bst_isset(BEEP_NEW_FREQ) ) {
-	toneAC(SINKING_ALARM_FREQ, volume);
-	bst_set(BEEP_HIGH);
+				toneHAL.tone(SINKING_ALARM_FREQ, volume);
+				bst_set(BEEP_HIGH);
       }
     }
   } else {
@@ -298,8 +299,8 @@ void beeper::setTone() {
     /****************/
     if( beepType == BEEP_TYPE_SINKING ) {
       if( !bst_isset(BEEP_HIGH) || bst_isset(BEEP_NEW_FREQ) ) {
-	toneAC(beepFreq, volume);
-	bst_set(BEEP_HIGH);
+				toneHAL.tone(beepFreq, volume);
+				bst_set(BEEP_HIGH);
       }
     }
 
@@ -307,7 +308,7 @@ void beeper::setTone() {
     /* silent */
     /**********/
     else if( beepType == BEEP_TYPE_SILENT ) {
-      toneAC(0.0);
+      toneHAL.tone(0.0);
       bst_unset(BEEP_HIGH);
     }
 
@@ -316,20 +317,20 @@ void beeper::setTone() {
     /***********/
     else if(  beepType == BEEP_TYPE_GLIDING ) {
       if( bst_isset(GLIDING_BEEP_ENABLED) ) {
-	if( beepPaternPosition < GLIDING_BEEP_HIGH_LENGTH ) {
-	  if( !bst_isset(BEEP_HIGH) ) {
-	    toneAC(beepFreq, volume);
-	    bst_set(BEEP_HIGH);
-	  } else if( bst_isset(BEEP_NEW_FREQ) ) {
-	    toneAC(beepFreq, volume);
-	  }
-	} else {
-	  toneAC(0.0);
-	  bst_unset(BEEP_HIGH);
-	}
+				if( beepPaternPosition < GLIDING_BEEP_HIGH_LENGTH ) {
+					if( !bst_isset(BEEP_HIGH) ) {
+						toneHAL.tone(beepFreq, volume);
+						bst_set(BEEP_HIGH);
+					} else if( bst_isset(BEEP_NEW_FREQ) ) {
+						toneHAL.tone(beepFreq, volume);
+					}
+				} else {
+				toneHAL.tone(0.0);
+				bst_unset(BEEP_HIGH);
+				}
       } else {
-	toneAC(0.0);
-	bst_unset(BEEP_HIGH);
+				toneHAL.tone(0.0);
+				bst_unset(BEEP_HIGH);
       }
     }
 
@@ -338,15 +339,15 @@ void beeper::setTone() {
     /************/
     else {
       if( beepPaternPosition < CLIMBING_BEEP_HIGH_LENGTH ) {
-	if( !bst_isset(BEEP_HIGH) ) {
-	  toneAC(beepFreq, volume);
-	  bst_set(BEEP_HIGH);
-	} else if( bst_isset(BEEP_NEW_FREQ) ) {
-	  toneAC(beepFreq, volume);
-	}
+				if( !bst_isset(BEEP_HIGH) ) {
+					toneHAL.tone(beepFreq, volume);
+					bst_set(BEEP_HIGH);
+				} else if( bst_isset(BEEP_NEW_FREQ) ) {
+				toneHAL.tone(beepFreq, volume);
+				}
       } else {
-	toneAC(0.0);
-	bst_unset(BEEP_HIGH);
+				toneHAL.tone(0.0);
+				bst_unset(BEEP_HIGH);
       }
     }
   }

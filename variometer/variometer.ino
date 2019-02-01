@@ -8,7 +8,8 @@
 #include <LightInvensense.h>
 #include <kalmanvert.h>
 #include <beeper.h>
-#include <toneAC.h>
+#include "toneHAL.h"
+#include "toneHAL_PRO.h"
 #include <avr/pgmspace.h>
 #include <varioscreen.h>
 #include <digit.h>
@@ -34,7 +35,7 @@
 /*******************/
 
 #define VERSION 63
-#define SUB_VERSION 7
+#define SUB_VERSION 8
 
 /*******************/
 /*    Historique   */
@@ -85,6 +86,9 @@
  *  v 63.7.1  02/11/2018
  *            Ajout du son des dégueulantes variable          
  * 
+ *  v 63.8    31/01/2019
+ *            Ajout bibliothèque ToneHAL
+ *            
  *******************
  * Compilation :
  * 
@@ -262,6 +266,7 @@ ScreenScheduler varioScreen(screen, displayList, sizeof(displayList)/sizeof(Scre
 kalmanvert kalmanvert;
 
 #ifdef HAVE_SPEAKER
+ToneHAL toneHAL;
 beeper beeper(VARIOMETER_SINKING_THRESHOLD, VARIOMETER_CLIMBING_THRESHOLD, VARIOMETER_NEAR_CLIMBING_SENSITIVITY, VARIOMETER_BEEP_VOLUME);
 #define BEEP_FREQ 800
 #endif
@@ -354,7 +359,7 @@ void beeperTapCallback(unsigned char direction, unsigned char count) {
 
   static bool muted = false;
   muted = !muted;
-  toneACMute(muted);
+  toneHAL.mute(muted);
 #ifdef HAVE_SCREEN
   muteIndicator.setMuteState(muted);
 #endif //HAVE_SCREEN
@@ -403,6 +408,11 @@ void setup() {
   screen.enableSPI();
 #endif //HAVE_SCREEN
 
+#if defined( HAVE_SPEAKER)
+  toneHAL.init();
+#endif
+
+
   /****************/
   /* init SD Card */
   /****************/
@@ -414,9 +424,9 @@ void setup() {
   {
 #if defined( HAVE_SPEAKER) && defined (ALARM_SDCARD)
    for( int i = 0; i<4; i++) {
-       toneAC(900);
+       toneHAL.tone(900);
        delay(1000);
-       toneAC(0);
+       toneHAL.tone(0);
     }       
 #endif //HAVE_SPEAKER && ALARM_SDCARD
   }  
@@ -737,9 +747,9 @@ double currentvario = kalmanvert.getVelocity();
           
           /* calibrate */
  #if defined(HAVE_SPEAKER) && defined(ALARM_GPSFIX)
-          toneAC(BEEP_FREQ);
+          toneHAL.tone(BEEP_FREQ);
           delay(200);
-          toneAC(0);
+          toneHAL.tone(0);
  #endif //defined(HAVE_SPEAKER) && defined(ALARM_GPSFIX)
 
 #ifdef HAVE_SCREEN
@@ -991,9 +1001,9 @@ void enableflightStartComponents(void) {
 #if defined( HAVE_SPEAKER) && defined(ALARM_FLYBEGIN)
 
 for( int i = 0; i<2; i++) {
-   toneAC(BEEP_FREQ);
+   toneHAL.tone(BEEP_FREQ);
    delay(200);
-   toneAC(0);
+   toneHAL.tone(0);
    delay(200);
 }
 #endif //HAVE_SPEAKER && ALARM_FLYBEGIN

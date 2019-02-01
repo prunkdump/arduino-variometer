@@ -1,6 +1,9 @@
 #ifndef BEEPER_H
 #define BEEPER_H
 
+#include "toneHAL.h"
+#include "toneHAL_PRO.h"
+
 /***************************/
 /* beep general parameters */
 /***************************/
@@ -129,5 +132,6 @@ class beeper {
   uint8_t beepType;
 };
 
+extern ToneHAL toneHAL;
 
 #endif
