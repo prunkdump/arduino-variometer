@@ -162,7 +162,10 @@ Version JPG63
  *            Added possibility to have the integrated vario on N seconds on the main display
  *            
  *  v 63.7.1  02/11/2018
- *            Adding the sound of disgusting variable          
+ *            Adding the sound of disgusting variable     
+ *
+ *  v 63.8    01/02/2019
+ *            Adding toneHAL librarie 
  * 
  *******************
  * Compilation :
