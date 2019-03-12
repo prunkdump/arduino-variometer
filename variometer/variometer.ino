@@ -89,6 +89,10 @@
  *  v 63.8    31/01/2019
  *            Ajout bibliothèque ToneHAL
  *            
+ *  v 63.8.1  12/03/2019
+ *            Maj ToneHAL
+ *            Correction RATIO_CLIMB_RATE
+ *            
  *******************
  * Compilation :
  * 
@@ -825,10 +829,10 @@ if (maxVoltage < tmpVoltage) {maxVoltage = tmpVoltage;}
 
 #ifdef HAVE_SCREEN_JPG63   
 
-#if (RATIO_CLIMBRATE == 1)   
+#if (RATIO_CLIMB_RATE == 1)   
       displayList[6].page  = 1;
       displayList[7].page  = 0;
-#elseif (RATIO_CLIMBRATE == 2)
+#elseif (RATIO_CLIMB_RATE == 2)
       displayList[6].page  = 0;
       displayList[7].page  = 1;
 #elseif
@@ -873,10 +877,10 @@ if (maxVoltage < tmpVoltage) {maxVoltage = tmpVoltage;}
 #endif //HAVE_VOLTAGE_DIVISOR
 #ifdef HAVE_SCREEN_JPG63 
      
-#if (RATIO_CLIMBRATE == 1)   
+#if (RATIO_CLIMB_RATE == 1)   
       displayList[6].page = 1;
       displayList[7].page = 0;
-#elseif (RATIO_CLIMBRATE == 2)
+#elseif (RATIO_CLIMB_RATE == 2)
       displayList[6].page = 0;
       displayList[7].page = 1;
 #else
@@ -1036,4 +1040,3 @@ recordIndicator.setActifRECORD();
 //  CalculTrend.Enable();
 #endif //HAVE_SCREEN_JPG63
 }
-
