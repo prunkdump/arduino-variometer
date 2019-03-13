@@ -289,8 +289,8 @@ bool TWScheduler::haveMag(void) {
   return bisset(HAVE_MAG);
 }
 
-static void TWScheduler::getNorthVector(double* vertVector, double* northVector) {
-
+static void TWScheduler::getRawMag(int16_t* rawMag) {
+  
   /*************/
   /* check mag */
   /*************/
@@ -309,18 +309,25 @@ static void TWScheduler::getNorthVector(double* vertVector, double* northVector)
     interrupts();
 
     /* parse mag data */
-    int16_t rawMag[3];
 #ifdef VERTACCEL_USE_MAG_SENS_ADJ    
     if( fastMPUParseMag(magData, rawMag) >= 0 ) {
 #else
     if( fastMPUParseRawMag(magData, rawMag) >= 0 ) {
 #endif
-      /* compute north vector */
-      vertaccel.computeNorthVector(vertVector, rawMag, northVector);
     }
   }
 }
-  
+
+static void TWScheduler::getNorthVector(double* vertVector, double* northVector) {
+
+  /* get raw mag */
+  int16_t rawMag[3];
+  getRawMag(rawMag);
+
+  /* compute north vector */
+  vertaccel.computeNorthVector(vertVector, rawMag, northVector);
+}
+
 #endif //AK89xx_SECONDARY
 #endif //HAVE_ACCELEROMETER
 

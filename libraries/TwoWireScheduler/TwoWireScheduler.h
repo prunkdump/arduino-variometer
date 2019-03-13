@@ -61,7 +61,8 @@ class TWScheduler {
   static void getRawAccel(int16_t* rawAccel, int32_t* quat);
   static double getAccel(double* vertVector); //vertVector = NULL if not needed
 #ifdef AK89xx_SECONDARY
-  static bool haveMag(void); 
+  static bool haveMag(void);
+  static void getRawMag(int16_t* rawMag);
   static void getNorthVector(double* vertVector, double* northVector); //give the vertVector obtained previously
 #endif //AK89xx_SECONDARY
 #endif //HAVE_ACCELEROMETER
