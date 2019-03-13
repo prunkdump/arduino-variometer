@@ -8,7 +8,7 @@
 #endif
 
 #include <InvenSense_defines.h>
-#include <I2Cdev.h>
+#include <IntTW.h>
 
 #define MAX_INIT_RESET_RETRY 20
 
@@ -390,13 +390,13 @@ int createCompressedFirmware(void) {
   mpu_set_dmp_state(1);
 
   /* read LPF config (depend on sample rate) */
-  I2Cdev::readBytes(INV_HW_ADDR, INV_REG_LPF, 1, &data);
+  intTW.readBytes(INV_HW_ADDR, INV_REG_LPF, 1, &data);
   Serial.print("#define COMPRESSED_DMP_LPF_CFG (0x");
   Serial.print(data, HEX);
   Serial.print(")\n");
 
   /* read sample rate (depend on DMP firmware) */
-  I2Cdev::readBytes(INV_HW_ADDR, INV_REG_RATE_DIV, 1, &data);
+  intTW.readBytes(INV_HW_ADDR, INV_REG_RATE_DIV, 1, &data);
   Serial.print("#define COMPRESSED_DMP_RATE_DIV_CFG (0x");
   Serial.print(data, HEX);
   Serial.print(")\n");
@@ -482,7 +482,7 @@ uint8_t decodeCompressedFirmware(void) {
   return 0x00;
 }
   
-int fastMpuWriteMem(uint16_t memAddr, uint16_t length, const uint8_t *data);
+int fastMPUWriteMem(uint16_t memAddr, uint16_t length, const uint8_t *data);
 
 int loadCompressedFirmware(void) {
   
@@ -495,7 +495,7 @@ int loadCompressedFirmware(void) {
     }
 
     /* write chunk */
-    if( fastMpuWriteMem(writePos, DMP_CHUNK_SIZE, dmpChunk) < 0 ) 
+    if( fastMPUWriteMem(writePos, DMP_CHUNK_SIZE, dmpChunk) < 0 ) 
       return -1;
 
     /* next */
@@ -513,33 +513,33 @@ int loadCompressedFirmware(void) {
 /*                                  */
 /*----------------------------------*/
 
-int fastMpuWriteMem(uint16_t memAddr, uint16_t length, const uint8_t *data) {
+int fastMPUWriteMem(uint16_t memAddr, uint16_t length, const uint8_t *data) {
 
   uint8_t com[2];
 
   /* set bank */
   com[0] = (uint8_t)(memAddr >> 8);
   com[1] = (uint8_t)(memAddr & 0xFF);
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_BANK_SEL, 2, com);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_BANK_SEL, 2, com);
 
   /* write data */
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_MEM_R_W, length, data);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_MEM_R_W, length, data);
   
   return 0;
 }
 
 
-int fastMpuReadMem(uint16_t memAddr, uint16_t length, uint8_t *data) {
+int fastMPUReadMem(uint16_t memAddr, uint16_t length, uint8_t *data) {
 
   uint8_t com[2];
 
   /* set bank */
   com[0] = (uint8_t)(memAddr >> 8);
   com[1] = (uint8_t)(memAddr & 0xFF);
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_BANK_SEL, 2, com);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_BANK_SEL, 2, com);
 
   /* write data */
-  I2Cdev::readBytes(INV_HW_ADDR, INV_REG_MEM_R_W, length, data);
+  intTW.readBytes(INV_HW_ADDR, INV_REG_MEM_R_W, length, data);
   
   return 0;
 }
@@ -550,13 +550,13 @@ void disableDMP(void) {
 
   /* clear */
   data = 0;
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_INT_ENABLE, 1, &data);
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_FIFO_EN, 1, &data);
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_USER_CTRL, 1, &data);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_INT_ENABLE, 1, &data);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_FIFO_EN, 1, &data);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_USER_CTRL, 1, &data);
   
   /* reset DMP FIFO */
   data = BIT_FIFO_RST | BIT_DMP_RST;
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_USER_CTRL, 1, &data);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_USER_CTRL, 1, &data);
   delay(50);
 }
 
@@ -570,12 +570,12 @@ void enableDMP(void) {
     BIT_AUX_IF_EN |
 #endif
     BIT_FIFO_EN;
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_USER_CTRL, 1, &data);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_USER_CTRL, 1, &data);
   
   /* reset STD FIFO */
   data = 0;
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_INT_ENABLE, 1, &data);
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_FIFO_EN, 1, &data);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_INT_ENABLE, 1, &data);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_FIFO_EN, 1, &data);
 }
 
 int fastFIFOReset(void) {
@@ -602,23 +602,23 @@ void readMagSensAdj(void) {
 
   /* bypass */
   tmp[0] = BIT_BYPASS_EN;
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_INT_PIN_CFG, 1, tmp); 
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_INT_PIN_CFG, 1, tmp); 
 
   /* get fuse access */
   tmp[0] = AKM_POWER_DOWN;
-  I2Cdev::writeBytes(LIGHT_INVENSENSE_COMPASS_ADDR, AKM_REG_CNTL, 1, tmp);
+  intTW.writeBytes(LIGHT_INVENSENSE_COMPASS_ADDR, AKM_REG_CNTL, 1, tmp);
   delay(1);
 
   tmp[0] = AKM_FUSE_ROM_ACCESS;
-  I2Cdev::writeBytes(LIGHT_INVENSENSE_COMPASS_ADDR, AKM_REG_CNTL, 1, tmp);
+  intTW.writeBytes(LIGHT_INVENSENSE_COMPASS_ADDR, AKM_REG_CNTL, 1, tmp);
   delay(1);
   
   /* read values */
-  I2Cdev::readBytes(LIGHT_INVENSENSE_COMPASS_ADDR, AKM_REG_ASAX, 3, magSensAdj);
+  intTW.readBytes(LIGHT_INVENSENSE_COMPASS_ADDR, AKM_REG_ASAX, 3, magSensAdj);
   
   /* stop bypass */
   tmp[0] = 0;
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_INT_PIN_CFG, 1, tmp);   
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_INT_PIN_CFG, 1, tmp);   
 
   /* enable DMP */
   enableDMP();
@@ -653,7 +653,7 @@ void computeGyroBias(int32_t bias, uint8_t* data) {
 int fastMPUSetGyroBias(const uint8_t* bias) {
 
   /* write to DMP memory */
-  fastMpuWriteMem(INV_D_EXT_GYRO_BIAS, 12, bias);
+  fastMPUWriteMem(INV_D_EXT_GYRO_BIAS, 12, bias);
 
   return 0;
 }
@@ -661,7 +661,7 @@ int fastMPUSetGyroBias(const uint8_t* bias) {
 int fastMPUReadGyroBias(uint8_t* bias) {
 
   /* read from DMP memory */
-  fastMpuReadMem(INV_D_EXT_GYRO_BIAS, 12, bias);
+  fastMPUReadMem(INV_D_EXT_GYRO_BIAS, 12, bias);
 
   return 0;
 }
@@ -707,7 +707,7 @@ int fastMPUSetGyroBiasQ16(const int32_t* bias) {
 int fastMPUSetAccelBias(const uint8_t* bias) {
 
   /* write to DMP memory */
-  fastMpuWriteMem(INV_D_ACCEL_BIAS, 12, bias);
+  fastMPUWriteMem(INV_D_ACCEL_BIAS, 12, bias);
 
   return 0;
 }
@@ -715,7 +715,7 @@ int fastMPUSetAccelBias(const uint8_t* bias) {
 int fastMPUReadAccelBias(uint8_t* bias) {
 
   /* read from DMP memory */
-  fastMpuReadMem(INV_D_ACCEL_BIAS, 12, bias);
+  fastMPUReadMem(INV_D_ACCEL_BIAS, 12, bias);
 
   return 0;
 }
@@ -777,14 +777,14 @@ int fastMPUInit(bool startMPU) {
 
     /* send reset command */
     data[0] = BIT_RESET;
-    if( !I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_PWR_MGMT_1, 1, data) ) {
+    if( !intTW.writeBytes(INV_HW_ADDR, INV_REG_PWR_MGMT_1, 1, data) ) {
       resettingError = true;
     }      
     delay(100);
 
     /* read reset result */
     if( !resettingError ) {
-      if( I2Cdev::readBytes(INV_HW_ADDR, INV_REG_PWR_MGMT_1, 1, data) != 1 )
+      if( intTW.readBytes(INV_HW_ADDR, INV_REG_PWR_MGMT_1, 1, data) != 1 )
 	resettingError = true;
     }
 
@@ -809,14 +809,14 @@ int fastMPUInit(bool startMPU) {
   
   /* Wake up chip. */
   data[0] = 0x00;
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_PWR_MGMT_1, 1, data);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_PWR_MGMT_1, 1, data);
 
 #ifdef MPU6500
   /* MPU6500 shares 4kB of memory between the DMP and the FIFO. Since the
    * first 3kB are needed by the DMP, we'll use the last 1kB for the FIFO.
    */
   data[0] = BIT_FIFO_SIZE_1024;
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_ACCEL_CFG2, 1, data);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_ACCEL_CFG2, 1, data);
 #endif
 
   /****************/
@@ -825,19 +825,19 @@ int fastMPUInit(bool startMPU) {
 
   /* set gyro fsr */
   data[0] = LIGHT_INVENSENSE_GYRO_FSR << 3;
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_GYRO_CFG, 1, data);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_GYRO_CFG, 1, data);
 
   /* set accel fsr */
   data[0] = LIGHT_INVENSENSE_ACCEL_FSR << 3;
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_ACCEL_CFG, 1, data);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_ACCEL_CFG, 1, data);
 
   /* set low pass filter */
   data[0] = COMPRESSED_DMP_LPF_CFG;
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_LPF, 1, data);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_LPF, 1, data);
 
 #ifdef MPU6500 //MPU6500 accel/gyro dlpf separately
   data[0] = BIT_FIFO_SIZE_1024 | data[0];
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_ACCEL_CFG2, 1, data);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_ACCEL_CFG2, 1, data);
 #endif
 
   /********************/
@@ -846,7 +846,7 @@ int fastMPUInit(bool startMPU) {
 
   /* power on gyro and accel */
   data[0] = 0; //all power on
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_PWR_MGMT_2, 1, data);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_PWR_MGMT_2, 1, data);
   delay(50);
   
   /****************/
@@ -859,7 +859,7 @@ int fastMPUInit(bool startMPU) {
   /* set start address */
   data[0] = INV_DMP_START_ADDRESS >> 8;
   data[1] = INV_DMP_START_ADDRESS & 0xFF;
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_PRGM_START_H, 2, data);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_PRGM_START_H, 2, data);
 
 #ifdef AK89xx_SECONDARY
   /*****************/
@@ -868,47 +868,47 @@ int fastMPUInit(bool startMPU) {
 
   /* slave 0 : read mag value */
   data[0] = BIT_I2C_READ | LIGHT_INVENSENSE_COMPASS_ADDR;
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_S0_ADDR, 1, data);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_S0_ADDR, 1, data);
   data[0] = AKM_REG_ST1;
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_S0_REG, 1, data);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_S0_REG, 1, data);
   data[0] = BIT_SLAVE_EN | 8;
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_S0_CTRL, 1, data);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_S0_CTRL, 1, data);
   
 
   /* slave 1 : launch single measurement */
   /*
   data[0] = LIGHT_INVENSENSE_COMPASS_ADDR;
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_S1_ADDR, 1, data);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_S1_ADDR, 1, data);
   data[0] = AKM_REG_CNTL;
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_S1_REG, 1, data);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_S1_REG, 1, data);
   data[0] = BIT_SLAVE_EN | 1;
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_S1_CTRL, 1, data);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_S1_CTRL, 1, data);
   data[0] = AKM_SINGLE_MEASUREMENT;
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_S1_DO, 1, data);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_S1_DO, 1, data);
   */
 
   /* slave 4 :  launch single measurement */
   data[0] = LIGHT_INVENSENSE_COMPASS_ADDR;
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_S4_ADDR, 1, data);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_S4_ADDR, 1, data);
   data[0] = AKM_REG_CNTL;
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_S4_REG, 1, data);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_S4_REG, 1, data);
   //TODO check rate 
   data[0] = BIT_SLAVE_EN | ((1000/(1+COMPRESSED_DMP_RATE_DIV_CFG)) / LIGHT_INVENSENSE_COMPASS_SAMPLE_RATE - 1);
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_S4_CTRL, 1, data);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_S4_CTRL, 1, data);
   data[0] = AKM_SINGLE_MEASUREMENT;
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_S4_DO, 1, data);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_S4_DO, 1, data);
 
   /* active slaves and set sample rate */
   //data[0] = 0x03;
   data[0] = 0x11;
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_I2C_DELAY_CTRL, 1, data);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_I2C_DELAY_CTRL, 1, data);
 #ifdef MPU9150
   data[0] = BIT_I2C_MST_VDDIO;
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_YG_OFFS_TC, 1, data);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_YG_OFFS_TC, 1, data);
 #endif //MPU9150
   /*
   data[0] = (1000/(1+COMPRESSED_DMP_RATE_DIV_CFG)) / LIGHT_INVENSENSE_COMPASS_SAMPLE_RATE - 1;
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_S4_CTRL, 1, data);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_S4_CTRL, 1, data);
   */
 #endif  
   
@@ -918,7 +918,7 @@ int fastMPUInit(bool startMPU) {
 
   /* set sample rate */
   data[0] = COMPRESSED_DMP_RATE_DIV_CFG; 
-  I2Cdev::writeBytes(INV_HW_ADDR, INV_REG_RATE_DIV, 1, data);
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_RATE_DIV, 1, data);
 
   /**************/
   /* reset fifo */
@@ -949,38 +949,42 @@ void fastMPUSetTapCallback(void (*callback)(uint8_t, uint8_t)) {
   tapCallBack = callback;
 }
 
-
-
-int fastMPUReadFIFO(int16_t *gyro, int16_t *accel, int32_t *quat) {
-
-  uint8_t data[2];
-
-  /*******************/
-  /* read one paquet */
-  /*******************/
-  uint8_t dmpPaquet[COMPRESSED_DMP_PAQUET_LENGTH];
+void fastMPUCheckTap(uint8_t tap) {
   
-  /* read fifo count for one paquet */
-  uint16_t fifoCount;
+#ifdef COMPRESSED_DMP_PAQUET_GESTURE
+#ifdef COMPRESSED_DMP_PAQUET_TAP
+  if( tap ) {
+    uint8_t direction = tap >> 3;
+    uint8_t count = (tap % 8) + 1;
+    tapCallBack(direction, count);
+  }  
+#endif //COMPRESSED_DMP_PAQUET_TAP
+#endif //COMPRESSED_DMP_PAQUET_GESTURE
+}
 
-  I2Cdev::readBytes(INV_HW_ADDR, INV_REG_FIFO_COUNT_H, 2, data);
-  fifoCount = (data[0] << 8) | data[1];
 
+/* fifo */
+uint8_t fastMPUGetFIFOPaquetLength(void) {
+
+  return COMPRESSED_DMP_PAQUET_LENGTH;
+}
+
+int8_t fastMPUHaveFIFOPaquet(uint16_t fifoCount) {
+  
   if( fifoCount < COMPRESSED_DMP_PAQUET_LENGTH )
-    return -1;
+    return 0;
 
   /* if fifo is at least 50%, check overflow */
   if( fifoCount > (INV_HW_MAX_FIFO >> 1) ) {
-    I2Cdev::readBytes(INV_HW_ADDR, INV_REG_INT_STATUS, 1, data);
-    if( data[0] & BIT_FIFO_OVERFLOW ) {
-      fastFIFOReset();
-      return -1;
-    }
+    return -1;
   }
 
-  /* read paquet */
-  I2Cdev::readBytes(INV_HW_ADDR, INV_REG_FIFO_R_W, COMPRESSED_DMP_PAQUET_LENGTH, dmpPaquet);
+  return 1;
+}
 
+
+void fastMPUParseFIFO(uint8_t* dmpPaquet, int16_t *gyro, int16_t *accel, int32_t *quat, uint8_t& tap) {
+  
   /********************/
   /* parse DMP paquet */
   /********************/
@@ -995,7 +999,7 @@ int fastMPUReadFIFO(int16_t *gyro, int16_t *accel, int32_t *quat) {
       dmpPaquetP++;
     }
   }
-
+  
   /* 
   quat[0] = ((int32_t)fifo_data[0] << 24) | ((int32_t)fifo_data[1] << 16) | ((int32_t)fifo_data[2] << 8) | fifo_data[3];
   quat[1] = ((int32_t)fifo_data[4] << 24) | ((int32_t)fifo_data[5] << 16) | ((int32_t)fifo_data[6] << 8) | fifo_data[7];
@@ -1034,11 +1038,57 @@ int fastMPUReadFIFO(int16_t *gyro, int16_t *accel, int32_t *quat) {
 #ifdef COMPRESSED_DMP_PAQUET_GESTURE
 #ifdef COMPRESSED_DMP_PAQUET_TAP
   if( (dmpPaquetP[1] & INT_SRC_TAP) && tapCallBack ) {
-    uint8_t tap = 0x3F & dmpPaquetP[3];
-    uint8_t direction = tap >> 3;
-    uint8_t count = (tap % 8) + 1;
-    tapCallBack(direction, count);
+    tap = 0x3F & dmpPaquetP[3];
+  } else {
+    tap = 0;
   }
+#endif //COMPRESSED_DMP_PAQUET_TAP
+#else
+  tap = 0;
+#endif //COMPRESSED_DMP_PAQUET_GESTURE 
+}
+
+
+int fastMPUReadFIFO(int16_t *gyro, int16_t *accel, int32_t *quat) {
+
+  uint8_t data[2];
+
+  /*******************/
+  /* read one paquet */
+  /*******************/
+  uint8_t dmpPaquet[COMPRESSED_DMP_PAQUET_LENGTH];
+  
+  /* read fifo count for one paquet */
+  uint16_t fifoCount;
+
+  intTW.readBytes(INV_HW_ADDR, INV_REG_FIFO_COUNT_H, 2, data);
+  fifoCount = (data[0] << 8) | data[1];
+
+  int8_t fifoState = fastMPUHaveFIFOPaquet(fifoCount);
+
+  if( fifoState == 0 )
+    return -1;
+
+  /* if fifo is at least 50%, check overflow */
+  if( fifoState < 0 ) {
+    intTW.readBytes(INV_HW_ADDR, INV_REG_INT_STATUS, 1, data);
+    if( data[0] & BIT_FIFO_OVERFLOW ) {
+      fastFIFOReset();
+      return -1;
+    }
+  }
+
+  /* read paquet */
+  intTW.readBytes(INV_HW_ADDR, INV_REG_FIFO_R_W, COMPRESSED_DMP_PAQUET_LENGTH, dmpPaquet);
+
+  /* parse paquet */
+  uint8_t tap;
+  fastMPUParseFIFO(dmpPaquet, gyro, accel, quat, tap);
+
+  /* check tap */
+#ifdef COMPRESSED_DMP_PAQUET_GESTURE
+#ifdef COMPRESSED_DMP_PAQUET_TAP
+  fastMPUCheckTap(tap); 
 #endif //COMPRESSED_DMP_PAQUET_TAP
 #endif //COMPRESSED_DMP_PAQUET_GESTURE
 
@@ -1049,28 +1099,24 @@ int fastMPUReadFIFO(int16_t *gyro, int16_t *accel, int32_t *quat) {
 bool fastMPUMagReady(void) {
 
   uint8_t data;
-  I2Cdev::readBytes(INV_HW_ADDR, INV_REG_I2C_MST_STATUS, 1, &data);
+  intTW.readBytes(INV_HW_ADDR, INV_REG_I2C_MST_STATUS, 1, &data);
   return (data & 0x40); //I2C_SLV4_DONE
 }
 
-int fastMPUReadRawMag(int16_t* mag) {
-
-  /* read raw data */
-  uint8_t tmp[9];
-  I2Cdev::readBytes(INV_HW_ADDR, INV_REG_RAW_COMPASS, 8, tmp);
-
+int fastMPUParseRawMag(uint8_t* magData, int16_t* mag) {
+  
   /* check for errors */
 #if defined AK8975_SECONDARY
   /* AK8975 doesn't have the overrun error bit. */
-  if (!(tmp[0] & AKM_DATA_READY))
+  if (!(magData[0] & AKM_DATA_READY))
     return -2;
-  if ((tmp[7] & AKM_OVERFLOW) || (tmp[7] & AKM_DATA_ERROR))
+  if ((magData[7] & AKM_OVERFLOW) || (magData[7] & AKM_DATA_ERROR))
     return -3;
 #elif defined AK8963_SECONDARY
   /* AK8963 doesn't have the data read error bit. */
-  if (!(tmp[0] & AKM_DATA_READY) || (tmp[0] & AKM_DATA_OVERRUN))
+  if (!(magData[0] & AKM_DATA_READY) || (magData[0] & AKM_DATA_OVERRUN))
     return -2;
-  if (tmp[7] & AKM_OVERFLOW)
+  if (magData[7] & AKM_OVERFLOW)
     return -3;
 #endif
 
@@ -1079,38 +1125,50 @@ int fastMPUReadRawMag(int16_t* mag) {
   /* mag x -> y */
   /* mag y -> x */
   /* mag z -> -z */
-  
-  mag[1] = (tmp[2] << 8) | tmp[1];
-  mag[0] = (tmp[4] << 8) | tmp[3];
-  mag[2] = -((int16_t)(tmp[6] << 8) | tmp[5]);
+  mag[1] = (magData[2] << 8) | magData[1];
+  mag[0] = (magData[4] << 8) | magData[3];
+  mag[2] = -((int16_t)(magData[6] << 8) | magData[5]);
 
   return 0;
 }
+  
+
+int fastMPUReadRawMag(int16_t* mag) {
+
+  /* read raw data */
+  uint8_t magData[8];
+  intTW.readBytes(INV_HW_ADDR, INV_REG_RAW_COMPASS, 8, magData);
+
+  /* parse data */
+  return fastMPUParseRawMag(magData, mag);
+}
+
 
 uint8_t* fastMPUGetMagSensAdj(void) {
 
   return magSensAdj;
 }
 
-int fastMPUReadMag(int16_t* mag) {
-
-  fastMPUReadRawMag(mag);
-  /* mag x -> y */
-  /* mag y -> x */
-  /* mag z -> -z */
+void fastMPUAdjMag(int16_t* mag) {
   mag[0] = ( (int32_t)mag[0] * ((int32_t)magSensAdj[1] + 128)  ) >> 8;
   mag[1] = ( (int32_t)mag[1] * ((int32_t)magSensAdj[0] + 128)  ) >> 8;
   mag[2] = ( (int32_t)mag[2] * ((int32_t)magSensAdj[2] + 128)  ) >> 8;
+}
+  
+int fastMPUParseMag(uint8_t* magData, int16_t* mag) {
 
-  return 0;
+  int state = fastMPUParseRawMag(magData, mag);
+  fastMPUAdjMag(mag);
+
+  return state;
+}
+
+int fastMPUReadMag(int16_t* mag) {
+
+  int state = fastMPUReadRawMag(mag);
+  fastMPUAdjMag(mag);
+
+  return state;
 }
   
 #endif
-
-  
-  
-
-  
-
-
-
