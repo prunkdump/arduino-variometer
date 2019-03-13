@@ -119,26 +119,29 @@
 #define HAVE_BLUETOOTH
 #define HAVE_VOLTAGE_DIVISOR
 
+/* ms5611 parameters */
+/* You can set the calibration coefficients if known */
+#define MS5611_STATIC_ADDRESS 0x77
+//#define MS5611_STATIC_CALIBRATION {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}}
+
 /* If you embed an accelerometer set the model here. */
 /* Possible values are :                             */
 /*   MPU6050, MPU6500, MPU9150, MPU9250              */
 #define MPU9250
 
 /* calibration method */
-// by EEPROM
-//#define IMU_CALIBRATION_IN_EEPROM
-// or by static value
-#define IMU_GYRO_CAL_BIAS {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
-#define IMU_ACCEL_CAL_BIAS {0, 0, 0}
-#define IMU_ACCEL_CAL_SCALE 0
-#define IMU_MAG_CAL_BIAS {0, 0, 0}
-#define IMU_MAG_CAL_PROJ_SCALE -16689
-
+// comment this following line to use EEPROM instead of static values
+#define VERTACCEL_STATIC_CALIBRATION
+#define VERTACCEL_GYRO_CAL_BIAS {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
+#define VERTACCEL_ACCEL_CAL_BIAS {0, 0, 0}
+#define VERTACCEL_ACCEL_CAL_SCALE 0
+#define VERTACCEL_MAG_CAL_BIAS {0, 0, 0}
+#define VERTACCEL_MAG_CAL_PROJ_SCALE -16689
 
 /* Set the pins used for Screen and SD card modules */
-#define VARIOSCREEN_DC_PIN 4
-#define VARIOSCREEN_CS_PIN 3
-#define VARIOSCREEN_RST_PIN 2
+#define VARIOSCREEN_DC_PIN 6
+#define VARIOSCREEN_CS_PIN 7
+#define VARIOSCREEN_RST_PIN 8
 #define SDCARD_CS_PIN 14
 #define VOLTAGE_DIVISOR_PIN 16
 
@@ -160,9 +163,12 @@
 /* use the gps-time-analysis sketch to determine it */
 #define GPS_PERIOD 1000
 
-/* I2C speed                                   */
-/* You can try 800 on <8mhz microcontrollers   */ 
-/* (Not always work)                           */
-#define FASTWIRE_SPEED 400
+/*********************/
+/* TWO WIRE settings */
+/*********************/
+
+/* Set the freq */
+#define VARIO_TW_FREQ 400000UL
+
 
 #endif
