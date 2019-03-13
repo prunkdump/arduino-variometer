@@ -2,31 +2,45 @@
 #define VERTACCEL_H
 
 #include <Arduino.h>
-#include <LightInvensense.h>
+#include <VarioSettings.h>
 
-/* use mag sensitivity adjustement */
-#define VERTACCEL_USE_MAG_SENS_ADJ
+//to know about the magnetometer 
+#include <LightInvensense.h>
 
 /* G to ms convertion */
 #define VERTACCEL_G_TO_MS 9.80665
 
+/* use mag sensitivity adjustement */
+#define VERTACCEL_USE_MAG_SENS_ADJ
+
 /* enable EEPROM functionnalities */
 #define VERTACCEL_ENABLE_EEPROM
 
+/*############################################*/
+/* You can compile vertaccel with static      */
+/* calibration coefficients.                  */
+/* For this define  :                         */
+/*                                            */
+/* #define VERTACCEL_STATIC_CALIBRATION       */
+/*                                            */
+/* And set the values with :                  */
+/*                                            */
+/* #define VERTACCEL_GYRO_CAL_BIAS            */
+/* #define VERTACCEL_ACCEL_CAL_BIAS           */
+/* #define VERTACCEL_ACCEL_CAL_SCALE          */
+/* #define VERTACCEL_MAG_CAL_BIAS             */
+/* #define VERTACCEL_MAG_CAL_PROJ_SCALE       */
+/*                                            */
+/*############################################*/
 
-/************************/
-/* calibration settings */
-/************************/
-
-/* Bias is multiplied by 2^multiplier                 */
-/* maximum bias correction value is 2^(15-multiplier) */
-#define VERTACCEL_ACCEL_CAL_BIAS_MULTIPLIER 6
-#define VERTACCEL_MAG_CAL_BIAS_MULTIPLIER 4
-
-/* Measure is scaled by (1 + scale/2^multiplier) */
-/* minimum scale is 1 - 2^(15-mutiplier) and maximum scale 1 + 2^(15-mutiplier) */
-/* !! A default scale is applied before (see LightInvensense.h) !! */ 
-#define VERTACCEL_CAL_SCALE_MULTIPLIER 16
+#if defined(VERTACCEL_STATIC_CALIBRATION) && \
+  ( !defined(VERTACCEL_GYRO_CAL_BIAS) || \
+    !defined(VERTACCEL_ACCEL_CAL_BIAS) || \
+    !defined(VERTACCEL_ACCEL_CAL_SCALE) || \
+    (defined(AK89xx_SECONDARY) && !defined(VERTACCEL_MAG_CAL_BIAS)) || \
+    (defined(AK89xx_SECONDARY) && !defined(VERTACCEL_MAG_CAL_PROJ_SCALE)) )
+#error Static calibration is enabled but static values not given !
+#endif
 
 /* base struct */
 struct VertaccelCalibration {
@@ -47,18 +61,56 @@ struct VertaccelSettings {
 #define VERTACCEL_DEFAULT_MAG_PROJ_COEFF 0.745346
 #define VERTACCEL_DEFAULT_MAG_CAL_PROJ_SCALE -16689
 
-const VertaccelSettings defaultVertaccelSettings = {
+/* enable static or default settings */
+#ifdef VERTACCEL_STATIC_CALIBRATION
+
+constexpr VertaccelSettings vertaccelSettings = {
+  VERTACCEL_GYRO_CAL_BIAS
+  ,{VERTACCEL_ACCEL_CAL_BIAS, VERTACCEL_ACCEL_CAL_SCALE}
+#ifdef AK89xx_SECONDARY
+  ,{VERTACCEL_MAG_CAL_BIAS, VERTACCEL_MAG_CAL_PROJ_SCALE}
+#endif //AK89xx_SECONDARY
+};
+
+#else
+  
+constexpr VertaccelSettings defaultVertaccelSettings = {
   {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
   ,{ {0, 0, 0}, 0 }
 #ifdef AK89xx_SECONDARY
   ,{ {0, 0, 0}, VERTACCEL_DEFAULT_MAG_CAL_PROJ_SCALE}
-#endif
+#endif //AK89xx_SECONDARY
 };
+
+#endif //VERTACCEL_STATIC_CALIBRATION
+
+
+/************************/
+/* calibration settings */
+/************************/
+
+/* this is default values, it can be overwrited */
+
+/* Bias is multiplied by 2^multiplier                 */
+/* maximum bias correction value is 2^(15-multiplier) */
+#ifndef VERTACCEL_ACCEL_CAL_BIAS_MULTIPLIER
+#define VERTACCEL_ACCEL_CAL_BIAS_MULTIPLIER 6
+#endif
+
+#ifndef VERTACCEL_MAG_CAL_BIAS_MULTIPLIER
+#define VERTACCEL_MAG_CAL_BIAS_MULTIPLIER 4
+#endif
+
+/* Measure is scaled by (1 + scale/2^multiplier) */
+/* minimum scale is 1 - 2^(15-mutiplier) and maximum scale 1 + 2^(15-mutiplier) */
+/* !! A default scale is applied before (see LightInvensense.h) !! */
+#ifndef VERTACCEL_CAL_SCALE_MULTIPLIER
+#define VERTACCEL_CAL_SCALE_MULTIPLIER 16
+#endif
 
 #ifdef VERTACCEL_ENABLE_EEPROM
 /* read settings from EEPROM */
 // see  Vertaccel::readEEPROMSettings()
-
 #define VERTACCEL_GYRO_CAL_EEPROM_ADDR 0x00
 #define VERTACCEL_GYRO_CAL_EEPROM_TAG 0xf4e2
 #define VERTACCEL_ACCEL_CAL_EEPROM_ADDR 0x0C
@@ -70,39 +122,34 @@ const VertaccelSettings defaultVertaccelSettings = {
 #endif //VERTACCEL_ENABLE_EEPROM
 
 
-/******************/
-/* the main class */
-/******************/
-
-/* flags returned by all the ready/read functions */
-#define VERTACCEL_HAVE_ACCEL 1
-#define VERTACCEL_HAVE_MAG 2
-
+/*************************/
+/*                       */
+/*    The main class     */
+/*                       */
+/*************************/
 class Vertaccel{
   
  public:
- Vertaccel(const VertaccelSettings& settings = defaultVertaccelSettings) : settings(settings) { }
-
+#ifndef VERTACCEL_STATIC_CALIBRATION
+ Vertaccel(VertaccelSettings baseSettings = defaultVertaccelSettings) : settings(baseSettings) { }
+#endif
+  
   /* init device */
   void init(void);
 
-  /* !!! WARNING : run as often as possible to check the FIFO stack !!! */
-  uint8_t dataReady(void);
-  uint8_t dataFullReady(double* accel, double* quat, double* v, double* n);
-
-  /* when ready get data */
-  double getValue(void);
-#ifdef AK89xx_SECONDARY
-  double* getNorthVector(void);
-#endif //AK89xx_SECONDARY
-
-  /* direct access to sensors */
+  /* access to sensors */
   static uint8_t readRawAccel(int16_t* accel, int32_t* quat);
 #ifdef AK89xx_SECONDARY
   static uint8_t readRawMag(int16_t* mag);
 #endif //AK89xx_SECONDARY
 
-  /* calibration methods */
+  /* compute measures */
+  void compute(int16_t *imuAccel, int32_t *imuQuat, double* vertVector, double& vertAccel);
+#ifdef AK89xx_SECONDARY
+  void computeNorthVector(double* vertVector, int16_t* mag, double* northVector);
+#endif
+  
+  /* calibration class methods */
   static void readCurrentDMPGyroCalibration(unsigned char* gyroCal);
 
 #ifdef VERTACCEL_ENABLE_EEPROM
@@ -120,11 +167,15 @@ class Vertaccel{
  
   
  private:
-  const VertaccelSettings& settings;
-  double vertAccel;
-#ifdef AK89xx_SECONDARY
-  double northVector[2];
-#endif //AK89xx_SECONDARY
+#ifdef VERTACCEL_STATIC_CALIBRATION
+  static constexpr VertaccelSettings settings = vertaccelSettings;
+  static constexpr uint8_t gyroCalArray[12] = VERTACCEL_GYRO_CAL_BIAS; //need to be passed as pointer
+  static constexpr int32_t accelCalArray[3] = { (int32_t)vertaccelSettings.accelCal.bias[0] << (15 - VERTACCEL_ACCEL_CAL_BIAS_MULTIPLIER),
+						(int32_t)vertaccelSettings.accelCal.bias[1] << (15 - VERTACCEL_ACCEL_CAL_BIAS_MULTIPLIER),
+						(int32_t)vertaccelSettings.accelCal.bias[1] << (15 - VERTACCEL_ACCEL_CAL_BIAS_MULTIPLIER) }; //passed as pointer
+#else
+  VertaccelSettings settings;
+#endif 
 };
 
 
