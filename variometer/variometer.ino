@@ -1,11 +1,12 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <VarioSettings.h>
-#include <I2Cdev.h>
+#include <IntTW.h>
 #include <ms5611.h>
 #include <vertaccel.h>
 #include <EEPROM.h>
 #include <LightInvensense.h>
+#include <TwoWireScheduler.h>
 #include <kalmanvert.h>
 #include <beeper.h>
 #include <toneAC.h>
@@ -46,21 +47,10 @@ uint8_t variometerState = VARIOMETER_STATE_CALIBRATED;
 /***************/
 /* IMU objects */
 /***************/
+Ms5611 TWScheduler::ms5611;
 #ifdef HAVE_ACCELEROMETER
-#ifdef IMU_CALIBRATION_IN_EEPROM
-VertaccelSettings vertaccelSettings = Vertaccel::readEEPROMSettings();
-#else //!IMU_CALIBRATION_IN_EEPROM
-const VertaccelSettings vertaccelSettings = {
-  IMU_GYRO_CAL_BIAS
-  ,{ IMU_ACCEL_CAL_BIAS, IMU_ACCEL_CAL_SCALE }
-#ifdef AK89xx_SECONDARY
-  ,{ IMU_MAG_CAL_BIAS, IMU_MAG_CAL_PROJ_SCALE }
-#endif //AK89xx_SECONDARY
-};
-#endif //!IMU_CALIBRATION_IN_EEPROM
-
-Vertaccel vertaccel(vertaccelSettings);
-#endif //HAVE_ACCELEROMETER
+Vertaccel TWScheduler::vertaccel;
+#endif
 
 
 /*****************/
@@ -264,12 +254,12 @@ void setup() {
   /*****************************/
   delay(VARIOMETER_POWER_ON_DELAY);
 
-  /**********************/
-  /* init accelerometer */
-  /**********************/
-  Fastwire::setup(FASTWIRE_SPEED, 0);
+  /**************************/
+  /* init Two Wires devices */
+  /**************************/
+  intTW.begin();
+  twScheduler.init();
 #ifdef HAVE_ACCELEROMETER
-  vertaccel.init();
   if( firmwareUpdateCond() ) {
    firmwareUpdate();
   }
@@ -305,11 +295,6 @@ void setup() {
   screen.begin(VARIOSCREEN_CONTRAST);
 #endif //HAVE_SCREEN
   
-  /******************/
-  /* init barometer */
-  /******************/
-  ms5611_init();
-  
   /**************************/
   /* init gps and bluetooth */
   /**************************/
@@ -325,31 +310,20 @@ void setup() {
   /* get first data */
   /******************/
   
-  /* wait for first alti and acceleration */
-  while( ! (ms5611_dataReady()
-#ifdef HAVE_ACCELEROMETER
-            && vertaccel.dataReady()
-#endif //HAVE_ACCELEROMETER
-            ) ) {
-  }
+  /* wait for first alti */
+  while( ! twScheduler.havePressure() ) { }
   
-  /* get first data */
-  ms5611_updateData();
-
-  /* init kalman filter */
-  kalmanvert.init(ms5611_getAltitude(),
-#ifdef HAVE_ACCELEROMETER
-                  vertaccel.getValue(),
-#else
+  /* init kalman filter with 0.0 accel */
+  double firstAlti = twScheduler.getAlti();
+  kalmanvert.init(firstAlti,
                   0.0,
-#endif
                   POSITION_MEASURE_STANDARD_DEVIATION,
                   ACCELERATION_MEASURE_STANDARD_DEVIATION,
                   millis());
                   
   /* init history */
 #if defined(HAVE_GPS) || defined(VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE)
-  history.init(ms5611_getAltitude(), millis());
+  history.init(firstAlti, millis());
 #endif //defined(HAVE_GPS) || defined(VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE)
 }
 
@@ -367,17 +341,13 @@ void loop() {
   /* compute vertical velocity */
   /*****************************/
 #ifdef HAVE_ACCELEROMETER
-  if( ms5611_dataReady() && vertaccel.dataReady() ) {
-    ms5611_updateData();
-
-    kalmanvert.update( ms5611_getAltitude(),
-                       vertaccel.getValue(),
+  if( twScheduler.havePressure() && twScheduler.haveAccel() ) {
+    kalmanvert.update( twScheduler.getAlti(),
+                       twScheduler.getAccel(NULL),
                        millis() );
 #else
-  if( ms5611_dataReady() ) {
-    ms5611_updateData();
-
-    kalmanvert.update( ms5611_getAltitude(),
+  if( twScheduler.havePressure() ) {
+    kalmanvert.update( twScheduler.getAlti(),
                        0.0,
                        millis() );
 #endif //HAVE_ACCELEROMETER
