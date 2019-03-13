@@ -4,8 +4,46 @@
 #include <toneAC.h>
 
 #include <TwoWireScheduler.h>
+#include <LightInvensense.h>
 
+inline bool firmwareUpdateCheckCond(int16_t* iaccel) {
+
+  /* compute z accel */
+  double zaccel = ((double)iaccel[2])/LIGHT_INVENSENSE_ACCEL_SCALE;
+
+  /* check orientation (we suppove no mouvements ) */
+  if( zaccel <= FIRMWARE_UPDATER_ZACCEL_THRESHOLD ) {
+    return true;
+  }
+
+  return false;
+}
+
+
+/* vert accel version */
 boolean firmwareUpdateCond(void) {
+
+  /* read raw accel */
+  int16_t iaccel[3];
+  int32_t iquat[4];
+ 
+  int state = -1;
+  unsigned long startTime = millis();
+  
+  while( state != 0  && (millis() - startTime) <= FIRMWARE_UPDATER_MPU_TIMEOUT ) {
+    state = fastMPUReadFIFO(NULL,iaccel,iquat);
+  }
+
+  if( state != 0 ) {
+    return false;
+  }
+  
+  return firmwareUpdateCheckCond(iaccel);
+}
+
+
+/* Two Wire Scheduler version */
+boolean firmwareUpdateCondTWS(void) {
 
   /* wait for accel */
   unsigned long startTime = millis();
@@ -20,16 +58,12 @@ boolean firmwareUpdateCond(void) {
   int32_t iquat[4];
   twScheduler.getRawAccel(iaccel, iquat);
   
-  /* compute z accel */
-  double zaccel = ((double)iaccel[2])/LIGHT_INVENSENSE_ACCEL_SCALE;
-
-  /* check orientation (we suppove no mouvements ) */
-  if( zaccel <= FIRMWARE_UPDATER_ZACCEL_THRESHOLD ) {
-    return true;
-  }
-
-  return false;
+  return firmwareUpdateCheckCond(iaccel);
 }
+
+
+
+  
 
 void firmwareUpdate(void) {
 

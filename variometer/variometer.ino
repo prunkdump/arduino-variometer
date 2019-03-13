@@ -260,7 +260,7 @@ void setup() {
   intTW.begin();
   twScheduler.init();
 #ifdef HAVE_ACCELEROMETER
-  if( firmwareUpdateCond() ) {
+  if( firmwareUpdateCondTWS() ) {
    firmwareUpdate();
   }
   fastMPUSetTapCallback(beeperTapCallback);

@@ -1,6 +1,5 @@
 #include <Arduino.h>
-#include <I2Cdev.h>
-#include <ms5611.h>
+#include <IntTW.h>
 #include <vertaccel.h>
 #include <EEPROM.h>
 #include <LightInvensense.h>
@@ -114,7 +113,7 @@ void setup() {
   /*************************************/
   /* init accelerometer and calibrator */
   /*************************************/
-  Fastwire::setup(400,0);
+  intTW.begin();
   calibrator.init();
   
   /***************/
@@ -259,4 +258,3 @@ void loop() {
     }
   }
 }
-

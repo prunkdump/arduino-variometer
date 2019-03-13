@@ -1,6 +1,5 @@
 #include <Arduino.h>
-#include <I2Cdev.h>
-#include <ms5611.h>
+#include <IntTW.h>
 #include <vertaccel.h>
 #include <EEPROM.h>
 #include <LightInvensense.h>
@@ -39,7 +38,7 @@ void setup() {
   
   /* init calibrator */
   delay(VARIOMETER_POWER_ON_DELAY);
-  Fastwire::setup(FASTWIRE_SPEED, 0);
+  intTW.begin();
   calibrator.init();
   
   /* launch firmware update if needed */

@@ -1,8 +1,7 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <VarioSettings.h>
-#include <I2Cdev.h>
-#include <ms5611.h>
+#include <IntTW.h>
 #include <vertaccel.h>
 #include <EEPROM.h>
 #include <LightInvensense.h>
@@ -37,21 +36,7 @@
 /***************/
 /* IMU objects */
 /***************/
-#ifdef HAVE_ACCELEROMETER
-#ifdef IMU_CALIBRATION_IN_EEPROM
-VertaccelSettings vertaccelSettings = Vertaccel::readEEPROMSettings();
-#else //!IMU_CALIBRATION_IN_EEPROM
-const VertaccelSettings vertaccelSettings = {
-  IMU_GYRO_CAL_BIAS
-  ,{ IMU_ACCEL_CAL_BIAS, IMU_ACCEL_CAL_SCALE }
-#ifdef AK89xx_SECONDARY
-  ,{ IMU_MAG_CAL_BIAS, IMU_MAG_CAL_PROJ_SCALE }
-#endif //AK89xx_SECONDARY
-};
-#endif //!IMU_CALIBRATION_IN_EEPROM
-
-Vertaccel vertaccel(vertaccelSettings);
-#endif //HAVE_ACCELEROMETER
+Vertaccel vertaccel;
 
 
 /*****************/
@@ -240,7 +225,7 @@ void setup() {
   /**********************/
   /* init accelerometer */
   /**********************/
-  Fastwire::setup(FASTWIRE_SPEED, 0);
+  intTW.begin();
 #ifdef HAVE_ACCELEROMETER
   vertaccel.init();
   if( firmwareUpdateCond() ) {

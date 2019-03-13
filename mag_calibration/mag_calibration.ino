@@ -1,7 +1,6 @@
 #include <Arduino.h>
 #include <VarioSettings.h>
-#include <I2Cdev.h>
-#include <ms5611.h>
+#include <IntTW.h>
 #include <vertaccel.h>
 #include <EEPROM.h>
 #include <LightInvensense.h>
@@ -30,7 +29,7 @@ void setup() {
 
   /* start devices */
   delay(VARIOMETER_POWER_ON_DELAY);
-  Fastwire::setup(FASTWIRE_SPEED, 0);
+  intTW.begin();
   vertaccel.init();
   if( firmwareUpdateCond() ) {
    firmwareUpdate();
@@ -230,4 +229,3 @@ void loop() {
   }
 }
   
-

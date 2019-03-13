@@ -13,8 +13,9 @@
 #define FIRMWARE_UPDATER_ZACCEL_THRESHOLD -0.95
 
 /* update condition based on accelerometer */
-/* !! you need to init vertaccel first !! */
+/* !! you need to init vertaccel or TwoWireScheduler first !! */
 boolean firmwareUpdateCond(void);
+boolean firmwareUpdateCondTWS(void); //Two Wire scheduler version
 
 /* jump to bootloader to update firmware */
 void firmwareUpdate(void);
