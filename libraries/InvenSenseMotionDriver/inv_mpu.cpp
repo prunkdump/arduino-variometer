@@ -39,9 +39,9 @@
 #if defined MOTION_DRIVER_TARGET_ARDUINO
 /*------------------------------*/
 /* Arduino/I2Cdev implementation */
-#include <I2Cdev.h>
-#define i2c_write !I2Cdev::writeBytes
-#define i2c_read(slave_addr, reg_addr, length, data) (I2Cdev::readBytes(slave_addr, reg_addr, length, data)<=0)
+#include <IntTW.h>
+#define i2c_write !intTW.writeBytes
+#define i2c_read !intTW.readBytes
 #define delay_ms delay
 #define get_ms millis
 static inline void get_ms(unsigned long* count) {
