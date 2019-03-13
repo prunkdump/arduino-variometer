@@ -99,4 +99,6 @@ class TWScheduler {
 #endif //HAVE_ACCELEROMETER
 };
 
+extern TWScheduler twScheduler;
+
 #endif //TWO_WIRE_SCHEDULER_H
