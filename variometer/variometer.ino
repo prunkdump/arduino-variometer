@@ -177,32 +177,43 @@ beeper beeper(VARIOMETER_SINKING_THRESHOLD, VARIOMETER_CLIMBING_THRESHOLD, VARIO
 #ifdef HAVE_GPS
 #ifdef VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE
 /* unsure period divide GPS_PERIOD */
-const double historyGPSPeriodCountF = (double)(VARIOMETER_INTEGRATION_DISPLAY_FREQ)*(double)(GPS_PERIOD)/(1000.0);
-const int8_t historyGPSPeriodCount = (int8_t)(0.5 + historyGPSPeriodCountF);
+constexpr double historyGPSPeriodCountF = (double)(VARIOMETER_INTEGRATED_CLIMB_RATE_DISPLAY_FREQ)*(double)(GPS_PERIOD)/(1000.0);
+constexpr int8_t historyGPSPeriodCount = (int8_t)(0.5 + historyGPSPeriodCountF);
 
-const double historyPeriodF = (double)(GPS_PERIOD)/(double)(historyGPSPeriodCount);
-const unsigned historyPeriod = (unsigned)(0.5 + historyPeriodF);
+constexpr double historyPeriodF = (double)(GPS_PERIOD)/(double)(historyGPSPeriodCount);
+constexpr unsigned historyPeriod = (unsigned)(0.5 + historyPeriodF);
 #else
 /* GPS give the period */
-const int8_t historyGPSPeriodCount = 1;
-const unsigned historyPeriod = GPS_PERIOD;
+constexpr int8_t historyGPSPeriodCount = 1;
+constexpr unsigned historyPeriod = GPS_PERIOD;
 #endif //VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE
 
-const double historyCountF = (double)(VARIOMETER_INTEGRATION_TIME)/(double)historyPeriod;
-const int8_t historyCount = (int8_t)(0.5 + historyCountF);
-#else
-const double historyCountF = (double)(VARIOMETER_INTEGRATION_DISPLAY_FREQ)*(double)(VARIOMETER_INTEGRATION_TIME)/(1000.0);
-const int8_t historyCount = (int8_t)(0.5 + historyCountF);
+constexpr double historyCountF = (double)(VARIOMETER_GLIDE_RATIO_INTEGRATION_TIME)/(double)historyPeriod;
+constexpr int8_t historyCount = (int8_t)(0.5 + historyCountF);
+#else //!HAVE_GPS
+constexpr double historyCountF = (double)(VARIOMETER_INTEGRATED_CLIMB_RATE_DISPLAY_FREQ)*(double)(VARIOMETER_CLIMB_RATE_INTEGRATION_TIME)/(1000.0);
+constexpr int8_t historyCount = (int8_t)(0.5 + historyCountF);
 
-const double historyPeriodF = (double)(VARIOMETER_INTEGRATION_TIME)/(double)historyCount;
-const unsigned historyPeriod = (unsigned)(0.5 + historyPeriodF);
+constexpr double historyPeriodF = (double)(VARIOMETER_CLIMB_RATE_INTEGRATION_TIME)/(double)historyCount;
+constexpr unsigned historyPeriod = (unsigned)(0.5 + historyPeriodF);
 #endif //HAVE_GPS
 
 /* create history */
 #ifdef HAVE_GPS
 SpeedFlightHistory<historyPeriod, historyCount, historyGPSPeriodCount> history;
 #else
+#ifdef VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE
 FlightHistory<historyPeriod, historyCount> history;
+#endif //VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE
+#endif //HAVE_GPS
+
+/* compute climb rate period count when differ from glide ratio period count */
+#if defined(HAVE_GPS) && defined(VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE)
+#if VARIOMETER_CLIMB_RATE_INTEGRATION_TIME > VARIOMETER_GLIDE_RATIO_INTEGRATION_TIME
+#error VARIOMETER_CLIMB_RATE_INTEGRATION_TIME must be less or equal than VARIOMETER_GLIDE_RATIO_INTEGRATION_TIME
+#endif
+constexpr double historyClimbRatePeriodCountF = (double)(VARIOMETER_CLIMB_RATE_INTEGRATION_TIME)/(double)historyPeriod;
+constexpr int8_t historyClimbRatePeriodCount = (int8_t)historyClimbRatePeriodCountF;
 #endif
 
 #endif //defined(HAVE_GPS) || defined(VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE)
@@ -387,9 +398,13 @@ void loop() {
     altiDigit.setValue(kalmanvert.getCalibratedPosition());
 #ifdef VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE
     if( history.haveNewClimbRate() ) {
+#ifdef HAVE_GPS
+      varioDigit.setValue(history.getClimbRate(historyClimbRatePeriodCount)); //climb rate period can differ from glide ratio period
+#else //!HAVE_GPS
       varioDigit.setValue(history.getClimbRate());
+#endif //HAVE_GPS
     }
-#else
+#else //!VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE
     varioDigit.setValue(kalmanvert.getVelocity());
 #endif //VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE
 #endif //HAVE_SCREEN

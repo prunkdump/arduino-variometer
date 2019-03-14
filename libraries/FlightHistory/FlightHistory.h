@@ -29,18 +29,18 @@ template<unsigned period, int8_t count>
 class FlightHistory {
 
  public:
- FlightHistory(void) : altiValuesSize(count + 1), altiValuesPos(0), haveClimbRate(false) { }
+ FlightHistory(void) : altiValuesPos(0), haveClimbRate(false) { }
     
   void init(double firstAlti, unsigned long timestamp);
   void setAlti(double alti, unsigned long timestamp);
   bool haveNewClimbRate(void);
-  double getClimbRate(void);
+  double getClimbRate(int8_t periodCount = count);
 
  protected:
   void saveAlti(double alti);
-  double computeClimbDelta(void);
+  double computeClimbDelta(int8_t periodCount = count);
   
-  const int8_t altiValuesSize;
+  static constexpr int8_t altiValuesSize = count + 1;
   int8_t altiValuesPos;
   double altiValues[count + 1];
   double lastAlti;
@@ -113,23 +113,28 @@ bool FlightHistory<period, count>::haveNewClimbRate(void) {
 
 
 template<unsigned period, int8_t count>
-double FlightHistory<period, count>::computeClimbDelta(void) {
+double FlightHistory<period, count>::computeClimbDelta(int8_t periodCount) {
 
   /* get last alti position  */
-  int8_t previousPos = altiValuesPos - 1;
-  if( previousPos < 0 )
-    previousPos = altiValuesSize - 1;
+  int8_t lastAltiPos = altiValuesPos - 1;
+  if( lastAltiPos < 0 )
+    lastAltiPos = altiValuesSize - 1;
+
+  /* get base alti position */
+  int8_t baseAltiPos = lastAltiPos - periodCount;
+  if( baseAltiPos < 0 )
+    baseAltiPos += altiValuesSize;
 
   /* compute climb delta */
-  return altiValues[previousPos] - altiValues[altiValuesPos];
+  return altiValues[lastAltiPos] - altiValues[baseAltiPos];
 }
 
  
 template<unsigned period, int8_t count>
-double FlightHistory<period, count>::getClimbRate(void) {
+double FlightHistory<period, count>::getClimbRate(int8_t periodCount) {
 
   haveClimbRate = false;
-  return computeClimbDelta()*1000.0/(double)(count * period);
+  return computeClimbDelta(periodCount)*1000.0/(double)((unsigned)periodCount * period); //max 65 seconds (unsigned max) 
 }
 
 
@@ -145,11 +150,11 @@ class SpeedFlightHistory : public FlightHistory<period, count> {
   using FlightHistory<period, count>::saveAlti;
 
  public:
- SpeedFlightHistory(void) : speedValuesSize( (count + speedPeriodCount - 1)/speedPeriodCount ), speedValuesPos(0) { }
+ SpeedFlightHistory(void) : speedValuesPos(0) { }
   double getGlideRatio(double speed, unsigned long timestamp);
 
  private:
-  const int8_t speedValuesSize;
+  static constexpr int8_t speedValuesSize = (count + speedPeriodCount - 1)/speedPeriodCount;
   int8_t speedValuesPos;
   double speedValues[ (count + speedPeriodCount - 1)/speedPeriodCount  ];
 };

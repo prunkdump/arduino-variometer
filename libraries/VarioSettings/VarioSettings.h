@@ -89,14 +89,17 @@
 #define FLIGHT_START_VARIO_HIGH_THRESHOLD 0.5
 #define FLIGHT_START_MIN_SPEED 10.0
 
-/* Display integrated climb rate or instantaneous values */
+/* Display integrated climb rate or instantaneous values if disabled     */
+/* If enabled set the integration time in ms.                            */
+/* ! Climb rate integration time must not be more than glide ratio one ! */
 //#define VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE
+#define VARIOMETER_CLIMB_RATE_INTEGRATION_TIME 2000
+#define VARIOMETER_INTEGRATED_CLIMB_RATE_DISPLAY_FREQ 2.0
 
-/* Integration parameters  (in ms)                  */
-/* !     also used for computing glide ratio      ! */
-/* ! even if you don't use integrated climb rate  ! */
-#define VARIOMETER_INTEGRATION_TIME 5000
-#define VARIOMETER_INTEGRATION_DISPLAY_FREQ 2.0
+/* Glide ratio display parameters  */
+/* Integration time in ms.         */
+#define VARIOMETER_GLIDE_RATIO_INTEGRATION_TIME 15000
+
 
 /* Set the GPS precision needed to use the GPS altitude value  */
 /* to calibrate the barometric altitude.                       */
