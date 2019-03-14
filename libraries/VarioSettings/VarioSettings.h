@@ -10,9 +10,16 @@
 /* Set your personnal info here and launch */
 /* the SetVarioParameters Sketch to store  */
 /* them in EEPROM.                         */
+
+/* ------ !!! Run SetVarioParameters.ino !!! ---------*/
+/*        !!! Only when you change one   !!!          */
+/*        !!! of these 3 settings.       !!!          */
 #define VARIOMETER_MODEL "GNUVario"
 #define VARIOMETER_PILOT_NAME "Prunk Dump"
 #define VARIOMETER_GLIDER_NAME "ITV Dolpo 2"
+/*        !!! For the others compilation !!!          */
+/*------- !!! is sufficient.             !!! ---------*/
+
 
 /* time zone relative to UTC */
 #define VARIOMETER_TIME_ZONE (+2) 
