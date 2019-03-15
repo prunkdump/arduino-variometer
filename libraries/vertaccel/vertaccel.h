@@ -190,9 +190,9 @@ class Vertaccel{
 #ifdef VERTACCEL_STATIC_CALIBRATION
   static constexpr VertaccelSettings settings = vertaccelSettings;
   static constexpr uint8_t gyroCalArray[12] = VERTACCEL_GYRO_CAL_BIAS; //need to be passed as pointer
-  static constexpr int32_t accelCalArray[3] = { (int32_t)vertaccelSettings.accelCal.bias[0] << (15 - VERTACCEL_ACCEL_CAL_BIAS_MULTIPLIER),
-						(int32_t)vertaccelSettings.accelCal.bias[1] << (15 - VERTACCEL_ACCEL_CAL_BIAS_MULTIPLIER),
-						(int32_t)vertaccelSettings.accelCal.bias[1] << (15 - VERTACCEL_ACCEL_CAL_BIAS_MULTIPLIER) }; //passed as pointer
+  static constexpr int32_t accelCalArray[3] = { (int32_t)vertaccelSettings.accelCal.bias[0] * ((int32_t)1 << (15 - VERTACCEL_ACCEL_CAL_BIAS_MULTIPLIER)),
+						(int32_t)vertaccelSettings.accelCal.bias[1] * ((int32_t)1 << (15 - VERTACCEL_ACCEL_CAL_BIAS_MULTIPLIER)),
+						(int32_t)vertaccelSettings.accelCal.bias[2] * ((int32_t)1 << (15 - VERTACCEL_ACCEL_CAL_BIAS_MULTIPLIER)) }; //passed as pointer
 #else
   VertaccelSettings settings;
 #endif 
