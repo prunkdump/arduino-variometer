@@ -2,6 +2,10 @@
 // Created by Tim Eckel - teckel@leethost.com
 // Copyright 2013 License: GNU GPL v3 http://www.gnu.org/licenses/gpl-3.0.html
 //
+// Rewrited by Baptiste PELLEGRIN
+// Copyright 2016-2019 License: GNU GPL v3
+// Added low-power consumption capability 
+//
 // See "toneAC.h" for purpose, syntax, version history, links, and more.
 // ---------------------------------------------------------------------------
 

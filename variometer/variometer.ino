@@ -1,11 +1,32 @@
+/* variometer -- The GNUVario embedded code
+ *
+ * Copyright 2016-2019 Baptiste PELLEGRIN
+ * 
+ * This file is part of GNUVario.
+ *
+ * GNUVario is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * GNUVario is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+ 
 #include <Arduino.h>
 #include <SPI.h>
 #include <VarioSettings.h>
-#include <I2Cdev.h>
+#include <IntTW.h>
 #include <ms5611.h>
 #include <vertaccel.h>
 #include <EEPROM.h>
 #include <LightInvensense.h>
+#include <TwoWireScheduler.h>
 #include <kalmanvert.h>
 #include <beeper.h>
 #include "toneHAL.h"
@@ -35,7 +56,7 @@
 /*******************/
 
 #define VERSION 63
-#define SUB_VERSION 8
+#define SUB_VERSION 9
 
 /*******************/
 /*    Historique   */
@@ -93,6 +114,12 @@
  *            Maj ToneHAL
  *            Correction RATIO_CLIMB_RATE
  *            
+ *  v 63.9    13/03/2019
+ *            Added : New interrupt driven Two Wires library
+ *            InvenSenseMotionDriver : switched to IntTW
+ *            TwoWireScheduler : added raw mag access
+ *            Ms5611 : switched to IntTW library and added static vars optimization
+ *
  *******************
  * Compilation :
  * 
@@ -120,20 +147,9 @@ uint8_t variometerState = VARIOMETER_STATE_CALIBRATED;
 /***************/
 /* IMU objects */
 /***************/
+Ms5611 TWScheduler::ms5611;
 #ifdef HAVE_ACCELEROMETER
-#ifdef IMU_CALIBRATION_IN_EEPROM
-VertaccelSettings vertaccelSettings = Vertaccel::readEEPROMSettings();
-#else //!IMU_CALIBRATION_IN_EEPROM
-const VertaccelSettings vertaccelSettings = {
-  IMU_GYRO_CAL_BIAS
-  ,{ IMU_ACCEL_CAL_BIAS, IMU_ACCEL_CAL_SCALE }
-#ifdef AK89xx_SECONDARY
-  ,{ IMU_MAG_CAL_BIAS, IMU_MAG_CAL_PROJ_SCALE }
-#endif //AK89xx_SECONDARY
-};
-#endif //!IMU_CALIBRATION_IN_EEPROM
-
-Vertaccel vertaccel(vertaccelSettings);
+Vertaccel TWScheduler::vertaccel;
 #endif //HAVE_ACCELEROMETER
 
 /*****************/
@@ -284,32 +300,43 @@ beeper beeper(VARIOMETER_SINKING_THRESHOLD, VARIOMETER_CLIMBING_THRESHOLD, VARIO
 #ifdef HAVE_GPS
 #if defined(VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE) || (RATIO_CLIMB_RATE > 1)
 /* unsure period divide GPS_PERIOD */
-const double historyGPSPeriodCountF = (double)(VARIOMETER_INTEGRATION_DISPLAY_FREQ)*(double)(GPS_PERIOD)/(1000.0);
-const int8_t historyGPSPeriodCount = (int8_t)(0.5 + historyGPSPeriodCountF);
+constexpr double historyGPSPeriodCountF = (double)(VARIOMETER_INTEGRATED_CLIMB_RATE_DISPLAY_FREQ)*(double)(GPS_PERIOD)/(1000.0);
+constexpr int8_t historyGPSPeriodCount = (int8_t)(0.5 + historyGPSPeriodCountF);
 
-const double historyPeriodF = (double)(GPS_PERIOD)/(double)(historyGPSPeriodCount);
-const unsigned historyPeriod = (unsigned)(0.5 + historyPeriodF);
+constexpr double historyPeriodF = (double)(GPS_PERIOD)/(double)(historyGPSPeriodCount);
+constexpr unsigned historyPeriod = (unsigned)(0.5 + historyPeriodF);
 #else
 /* GPS give the period */
-const int8_t historyGPSPeriodCount = 1;
-const unsigned historyPeriod = GPS_PERIOD;
+constexpr int8_t historyGPSPeriodCount = 1;
+constexpr unsigned historyPeriod = GPS_PERIOD;
 #endif //VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE || (RATIO_CLIMB_RATE > 1)
 
-const double historyCountF = (double)(VARIOMETER_INTEGRATION_TIME)/(double)historyPeriod;
-const int8_t historyCount = (int8_t)(0.5 + historyCountF);
+constexpr double historyCountF = (double)(VARIOMETER_GLIDE_RATIO_INTEGRATION_TIME)/(double)historyPeriod;
+constexpr int8_t historyCount = (int8_t)(0.5 + historyCountF);
 #else
-const double historyCountF = (double)(VARIOMETER_INTEGRATION_DISPLAY_FREQ)*(double)(VARIOMETER_INTEGRATION_TIME)/(1000.0);
-const int8_t historyCount = (int8_t)(0.5 + historyCountF);
+constexpr double historyCountF = (double)(VARIOMETER_INTEGRATED_CLIMB_RATE_DISPLAY_FREQ)*(double)(VARIOMETER_CLIMB_RATE_INTEGRATION_TIME)/(1000.0);
+constexpr int8_t historyCount = (int8_t)(0.5 + historyCountF);
 
-const double historyPeriodF = (double)(VARIOMETER_INTEGRATION_TIME)/(double)historyCount;
-const unsigned historyPeriod = (unsigned)(0.5 + historyPeriodF);
+constexpr double historyPeriodF = (double)(VARIOMETER_CLIMB_RATE_INTEGRATION_TIME)/(double)historyCount;
+constexpr unsigned historyPeriod = (unsigned)(0.5 + historyPeriodF);
 #endif //HAVE_GPS
 
 /* create history */
 #ifdef HAVE_GPS
 SpeedFlightHistory<historyPeriod, historyCount, historyGPSPeriodCount> history;
 #else
+#ifdef VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE
 FlightHistory<historyPeriod, historyCount> history;
+#endif //VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE
+#endif //HAVE_GPS
+
+/* compute climb rate period count when differ from glide ratio period count */
+#if defined(HAVE_GPS) && defined(VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE)
+#if VARIOMETER_CLIMB_RATE_INTEGRATION_TIME > VARIOMETER_GLIDE_RATIO_INTEGRATION_TIME
+#error VARIOMETER_CLIMB_RATE_INTEGRATION_TIME must be less or equal than VARIOMETER_GLIDE_RATIO_INTEGRATION_TIME
+#endif
+constexpr double historyClimbRatePeriodCountF = (double)(VARIOMETER_CLIMB_RATE_INTEGRATION_TIME)/(double)historyPeriod;
+constexpr int8_t historyClimbRatePeriodCount = (int8_t)historyClimbRatePeriodCountF;
 #endif
 
 #endif //defined(HAVE_GPS) || defined(VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE) || (RATIO_CLIMB_RATE > 1)
@@ -386,12 +413,12 @@ void setup() {
   delay(VARIOMETER_POWER_ON_DELAY);
 
   /**********************/
-  /* init accelerometer */
+  /* init Two Wires devices */
   /**********************/
-  Fastwire::setup(FASTWIRE_SPEED, 0);
+  intTW.begin();
+  twScheduler.init();
 #ifdef HAVE_ACCELEROMETER
-  vertaccel.init();
-  if( firmwareUpdateCond() ) {
+  if( firmwareUpdateCondTWS() ) {
    firmwareUpdate();
   }
 #ifdef HAVE_MUTE  
@@ -475,12 +502,7 @@ void setup() {
 
  #endif HAVE_SCREEN_JPG63
  #endif //HAVE_SCREEN
-  
-  /******************/
-  /* init barometer */
-  /******************/
-   ms5611_init();
-  
+    
   /**************************/
   /* init gps and bluetooth */
   /**************************/
@@ -497,30 +519,25 @@ void setup() {
   /******************/
   
   /* wait for first alti and acceleration */
-  while( ! (ms5611_dataReady()
-#ifdef HAVE_ACCELEROMETER
-            && vertaccel.dataReady()
-#endif //HAVE_ACCELEROMETER
-            ) ) {
-  }
-  
-  /* get first data */
-  ms5611_updateData();
-  
-  /* init kalman filter */
-  kalmanvert.init(ms5611_getAltitude(),
-#ifdef HAVE_ACCELEROMETER
-                  vertaccel.getValue(),
-#else
+  while( ! twScheduler.havePressure() ) { }
+
+  /* init kalman filter with 0.0 accel*/
+  double firstAlti = twScheduler.getAlti();
+  kalmanvert.init(firstAlti,
+
+
+
+
+
                   0.0,
-#endif
+
                   POSITION_MEASURE_STANDARD_DEVIATION,
                   ACCELERATION_MEASURE_STANDARD_DEVIATION,
                   millis());
 
   /* init history */
 #if defined(HAVE_GPS) || defined(VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE) || (RATIO_CLIMB_RATE > 1)
-  history.init(ms5611_getAltitude(), millis());
+  history.init(firstAlti, millis());
 #endif //defined(HAVE_GPS) || defined(VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE) || (RATIO_CLIMB_RATE > 1)
 
  #ifdef HAVE_SCREEN_JPG63
@@ -557,17 +574,17 @@ void loop() {
   /* compute vertical velocity */
   /*****************************/
 #ifdef HAVE_ACCELEROMETER
-  if( ms5611_dataReady() && vertaccel.dataReady() ) {
-    ms5611_updateData();
-    
-    kalmanvert.update( ms5611_getAltitude(),
-                       vertaccel.getValue(),
+  if( twScheduler.havePressure() && twScheduler.haveAccel() ) {
+    kalmanvert.update( twScheduler.getAlti(),
+                       twScheduler.getAccel(NULL),
+
+
                        millis() );
 #else
-  if( ms5611_dataReady() ) {
-    ms5611_updateData();
+  if( twScheduler.havePressure() ) {
+    kalmanvert.update( twScheduler.getAlti(),
 
-    kalmanvert.update( ms5611_getAltitude(),
+
                        0.0,
                        millis() );
 #endif //HAVE_ACCELEROMETER
@@ -940,10 +957,7 @@ if (maxVoltage < tmpVoltage) {maxVoltage = tmpVoltage;}
 #endif //HAVE_SCREEN
 
   flystat.Handle(); 
-
 }
-
-
 
 #if defined(HAVE_SDCARD) && defined(HAVE_GPS)
 void createSDCardTrackFile(void) {

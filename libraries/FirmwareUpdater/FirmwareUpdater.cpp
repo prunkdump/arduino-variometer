@@ -1,10 +1,46 @@
+/* FirmwareUpdater -- launch bootloader on reversed position startup
+ *
+ * Copyright 2016-2019 Baptiste PELLEGRIN
+ * 
+ * This file is part of GNUVario.
+ *
+ * GNUVario is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * GNUVario is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <FirmwareUpdater.h>
 
 #include <Arduino.h>
 #include <toneAC.h>
 
+#include <TwoWireScheduler.h>
 #include <LightInvensense.h>
 
+inline bool firmwareUpdateCheckCond(int16_t* iaccel) {
+
+  /* compute z accel */
+  double zaccel = ((double)iaccel[2])/LIGHT_INVENSENSE_ACCEL_SCALE;
+
+  /* check orientation (we suppove no mouvements ) */
+  if( zaccel <= FIRMWARE_UPDATER_ZACCEL_THRESHOLD ) {
+    return true;
+  }
+
+  return false;
+}
+
+
+/* vert accel version */
 boolean firmwareUpdateCond(void) {
 
   /* read raw accel */
@@ -21,17 +57,33 @@ boolean firmwareUpdateCond(void) {
   if( state != 0 ) {
     return false;
   }
+  
+  return firmwareUpdateCheckCond(iaccel);
+}
 
-  /* compute z accel */
-  double zaccel = ((double)iaccel[2])/LIGHT_INVENSENSE_ACCEL_SCALE;
 
-  /* check orientation (we suppove no mouvements ) */
-  if( zaccel <= FIRMWARE_UPDATER_ZACCEL_THRESHOLD ) {
-    return true;
+/* Two Wire Scheduler version */
+boolean firmwareUpdateCondTWS(void) {
+
+  /* wait for accel */
+  unsigned long startTime = millis();
+  
+  while( (! twScheduler.haveAccel()) && ( (millis() - startTime) <= FIRMWARE_UPDATER_MPU_TIMEOUT )) { }
+  if( ! twScheduler.haveAccel() ) {
+    return false; //timeout
   }
 
-  return false;
+  /* read raw accel */
+  int16_t iaccel[3];
+  int32_t iquat[4];
+  twScheduler.getRawAccel(iaccel, iquat);
+  
+  return firmwareUpdateCheckCond(iaccel);
 }
+
+
+
+  
 
 void firmwareUpdate(void) {
 

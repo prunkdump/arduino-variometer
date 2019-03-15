@@ -1,3 +1,23 @@
+/* FlightHistory -- compute averaged climb rate and glide ratio 
+ *
+ * Copyright 2016-2019 Baptiste PELLEGRIN
+ * 
+ * This file is part of GNUVario.
+ *
+ * GNUVario is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * GNUVario is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #ifndef FLIGHT_HISTORY_H
 #define FLIGHT_HISTORY_H
 
@@ -9,18 +29,18 @@ template<unsigned period, int8_t count>
 class FlightHistory {
 
  public:
- FlightHistory(void) : altiValuesSize(count + 1), altiValuesPos(0), haveClimbRate(false) { }
+ FlightHistory(void) : altiValuesPos(0), haveClimbRate(false) { }
     
   void init(double firstAlti, unsigned long timestamp);
   void setAlti(double alti, unsigned long timestamp);
   bool haveNewClimbRate(void);
-  double getClimbRate(void);
+  double getClimbRate(int8_t periodCount = count);
 
  protected:
   void saveAlti(double alti);
-  double computeClimbDelta(void);
+  double computeClimbDelta(int8_t periodCount = count);
   
-  const int8_t altiValuesSize;
+  static constexpr int8_t altiValuesSize = count + 1;
   int8_t altiValuesPos;
   double altiValues[count + 1];
   double lastAlti;
@@ -93,23 +113,28 @@ bool FlightHistory<period, count>::haveNewClimbRate(void) {
 
 
 template<unsigned period, int8_t count>
-double FlightHistory<period, count>::computeClimbDelta(void) {
+double FlightHistory<period, count>::computeClimbDelta(int8_t periodCount) {
 
   /* get last alti position  */
-  int8_t previousPos = altiValuesPos - 1;
-  if( previousPos < 0 )
-    previousPos = altiValuesSize - 1;
+  int8_t lastAltiPos = altiValuesPos - 1;
+  if( lastAltiPos < 0 )
+    lastAltiPos = altiValuesSize - 1;
+
+  /* get base alti position */
+  int8_t baseAltiPos = lastAltiPos - periodCount;
+  if( baseAltiPos < 0 )
+    baseAltiPos += altiValuesSize;
 
   /* compute climb delta */
-  return altiValues[previousPos] - altiValues[altiValuesPos];
+  return altiValues[lastAltiPos] - altiValues[baseAltiPos];
 }
 
  
 template<unsigned period, int8_t count>
-double FlightHistory<period, count>::getClimbRate(void) {
+double FlightHistory<period, count>::getClimbRate(int8_t periodCount) {
 
   haveClimbRate = false;
-  return computeClimbDelta()*1000.0/(double)(count * period);
+  return computeClimbDelta(periodCount)*1000.0/(double)((unsigned)periodCount * period); //max 65 seconds (unsigned max) 
 }
 
 
@@ -125,11 +150,11 @@ class SpeedFlightHistory : public FlightHistory<period, count> {
   using FlightHistory<period, count>::saveAlti;
 
  public:
- SpeedFlightHistory(void) : speedValuesSize( (count + speedPeriodCount - 1)/speedPeriodCount ), speedValuesPos(0) { }
+ SpeedFlightHistory(void) : speedValuesPos(0) { }
   double getGlideRatio(double speed, unsigned long timestamp);
 
  private:
-  const int8_t speedValuesSize;
+  static constexpr int8_t speedValuesSize = (count + speedPeriodCount - 1)/speedPeriodCount;
   int8_t speedValuesPos;
   double speedValues[ (count + speedPeriodCount - 1)/speedPeriodCount  ];
 };

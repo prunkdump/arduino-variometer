@@ -1,6 +1,16 @@
-############################
-# Arduino based variometer #
-############################
+#############################
+#                           #
+#         GNUVario          #
+#                           #
+# The open source and open  #
+# hardware variometer       #
+#############################
+
+For complete documentation and help see the GNUVario website :
+https://prunkdump.github.io/GNUVario
+
+Or you can contact me at :
+prunkdump@gmail.com
 
 Features :
 ---------
@@ -13,164 +23,25 @@ Features :
 - Battery level (optionnal)
 
 
-How to build :
---------------
-Pre-build kits can be found here :
+Where to start :
+----------------
 
-https://github.com/prunkdump/variometer-kits
+If you are new on the Arduino community. Buy :
+- a breadboard
+- an Arduino Board (Arduino Nano is good to start)
+- a ms5611 + mpu9250 module
+- a buzzer (with a 120 Ohms resistor)
 
-Contact me for more informations at prunkdump@gmail.com
+And learn to compile the code :
+https://prunkdump.github.io/GNUVario/code.html
 
-
-Variometer Wiring :
--------------------
-
-See schematic.pdf for full diagram.
-
-ms5611/mpu9250 board :
-SDA -> Arduino A4
-SCL -> Arduino A5
-VCC -> Battery RAW +
-GND -> GND
-
-Speaker (simple) :
-Speaker + -> 120 Ohms resistor -> Arduino D9
-Speaker - -> Arduino D10
-
-Speaker (amplified with L9110) :
-L9110 IA -> Arduino D9
-L9110 IB -> Arduino D10
-L9110 OA -> Speaker +
-L9110 OB -> Speaker -
-L9110 VCC -> Battery RAW +
-L9110 GND -> GND
-
-Nokia 5110 board :
-SCLK -> Arduino D13
-DIN/MOSI -> Arduino D11
-DC -> any Arduino pin (default D4)
-CS -> any Arduino pin (default D3)
-RST -> any Arduino pin (default D2)
-VCC -> regulated 3.3V !
-GND -> GND
-
-GPS board :
-GPS TX pin -> Arduino RX pin
-GPS RX pin -> any Arduino pin (only used for GPS configuration)
-GPS VCC -> Battery RAW +
-GPS GND -> GND
-
-SD card reader :
-CS -> any Arduino pin (default A0)
-MOSI -> Arduino D11
-SCLK -> Arduino D13
-MISO -> Arduino D12
-5V -> Battery RAW +
-GND -> GND
-
-Bluetooth module :
-Bluetooth RX pin -> Arduino TX pin
-Bluetooth TX pin -> arduino pin with interrupt capatibility (default D8, used only for Bluetooth configuration)
-Bluetooth VCC -> Battery RAW +
-Bluetooth GND -> GND
-
-Battery level unit (voltage divisor) :
-Arduino Analog pin (default A2) -> 270 kOhms resistor -> Battery RAW +
-Arduino Analog pin (default A2) -> 1 MOhms resitor -> GND
+And to build the variometer on the breadboard :
+https://prunkdump.github.io/GNUVario/assets/schematic.pdf
+https://prunkdump.github.io/GNUVario/schematics.html
 
 
-Code configuration :
---------------------
+If you are more experienced :
+-----------------------------
 
-!!! Don't skip this step !!!
-Open ./libraries/VarioSettings/VarioSettings.h and check all the parameters.
-To "comment" a line put a "//" at the beginning.
-
-
-If you embed an SD card reader :
---------------------------------
-
-Compile and upload "SetVarioParameters" sketch and run it. This store
-the "pilot" parameters in EEPROM. This must be done just one time.
-
-
-!!! Don't skip this step !!!
-Make a less than 2Go partition (typically 1,5Go) on the SD card. And
-format it in FAT16.
-
-
-If you embed an InvenSense accelerometer :
-------------------------------------------
-
-Don't forget to set the model in "VarioSettings.h". Next compile and
-upload "calibration_nointeractive" sketch. And follow this procedure :
-
-https://www.youtube.com/watch?v=fc0vIsZJvsw
-
-This must be done just one time.
-
----------------------------------
-YOU CAN NOW TRY YOUR VARIOMETER !
----------------------------------
-
-
-Version JPG63
---------------
-
-/*******************/
-/*    Historical   */
-/*******************/
-/* v 63.0     add version number
- *            alternative mono-screen add
- *            smoothing the measurement of the battery
- *            
- * v 63.1     Vario trend added on 6sec
- *            Improved vario sound 
- *            
- * v 63.2     BT improvement            
- * 
- * v 63.3     Hardware version 3
- *            BT correction
- *
- * v 63.4     Added 3 levels mode in ToneAC
- *            Modifying SPI Management  
- *
- * v 63.5     Accelerometer library optimization - LightInvensense
- *            Adding Mute sound 
- *            Fixed SD card problem
- *            adding HAVE_MUTE to enable or disable the mute option
- *            limitation of the speed display to 99
- *
- * v 63.5.1   adding Neo-8m support
- *
- * v 63.6     change library MPU - Accelerometer and Magnetometer
- *            Modification VarioSettings.h file for the V3 Kit
- *            
- *            Difference with the Prunkdump version
- *            
- *            Gps fix indicator (triangle)
- *            Recording indicator (square)
- *            Trend indicator on 10sec (arrow)
- *            No sound alarm of the SD card
- *            Beep of gps fix
- *            Start recording beep 
- *    
- *  v 63.6.1  Adding the stat screen of the last flight
- *  
- *  v 63.7.0  01/10/2018
- *            Added average trend display on 5 sec dual display with fineness indicator
- *            Added possibility to have the integrated vario on N seconds on the main display
- *            
- *  v 63.7.1  02/11/2018
- *            Adding the sound of disgusting variable     
- *
- *  v 63.8    01/02/2019
- *            Adding toneHAL librarie 
- * 
- *******************
- * Compilation :
- * 
- *            Arduino Pro or Pro Mini
- *            ATemega328P (3.3V, 8Mhz)
- *            
- *******************/
+Check curefully all the pages of the website :
+https://prunkdump.github.io/GNUVario 

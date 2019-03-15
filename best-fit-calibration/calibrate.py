@@ -1,3 +1,25 @@
+##########################################################################
+# calibrate -- Accelerometer/magnetometer calibration based on data      #
+#              recorded by calibration_recorder                          #
+#                                                                        #
+# Copyright 2016-2019 Baptiste PELLEGRIN                                 #
+#                                                                        #
+# This file is part of GNUVario.                                         #
+#                                                                        #
+# GNUVario is free software: you can redistribute it and/or modify       #
+# it under the terms of the GNU General Public License as published by   #
+# the Free Software Foundation, either version 3 of the License, or      #
+# (at your option) any later version.                                    #
+#                                                                        #
+# GNUVario is distributed in the hope that it will be useful,            #
+# but WITHOUT ANY WARRANTY; without even the implied warranty of         #
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          #
+# GNU General Public License for more details.                           #
+#                                                                        #
+# You should have received a copy of the GNU General Public License      #
+# along with this program.  If not, see <https://www.gnu.org/licenses/>. #
+##########################################################################
+
 import sys
 from bestfit import *
 import csv
@@ -141,7 +163,7 @@ print(" ")
 
 
 # gyro calibration #
-sys.stdout.write("#define IMU_GYRO_CAL_BIAS {")
+sys.stdout.write("#define VERTACCEL_GYRO_CAL_BIAS {")
 for i in range(12):
     sys.stdout.write( format(gyroCal[i], '#04x') )
     if( i != 11 ):
@@ -149,7 +171,7 @@ for i in range(12):
 print("}")
 
 # accel bias #
-sys.stdout.write("#define IMU_ACCEL_CAL_BIAS {")
+sys.stdout.write("#define VERTACCEL_ACCEL_CAL_BIAS {")
 for i in range(3):
     sys.stdout.write(str(int(np.rint(  accelGSphere[i]*float(2**VERTACCEL_ACCEL_CAL_BIAS_MULTIPLIER)  ))))
     if( i != 2 ):
@@ -157,10 +179,10 @@ for i in range(3):
 print("}")
 
 # accel scale #
-print "#define IMU_ACCEL_CAL_SCALE", int(np.rint(  float(2**(ACCEL_BASE_SCALE+VERTACCEL_CAL_SCALE_MULTIPLIER))/accelGSphere[3] - float(2**VERTACCEL_CAL_SCALE_MULTIPLIER) ))
+print "#define VERTACCEL_ACCEL_CAL_SCALE", int(np.rint(  float(2**(ACCEL_BASE_SCALE+VERTACCEL_CAL_SCALE_MULTIPLIER))/accelGSphere[3] - float(2**VERTACCEL_CAL_SCALE_MULTIPLIER) ))
 
 # mag bias #
-sys.stdout.write("#define IMU_MAG_CAL_BIAS {")
+sys.stdout.write("#define VERTACCEL_MAG_CAL_BIAS {")
 for i in range(3):
     sys.stdout.write(str(int(np.rint(  magGSphere[i]*float(2**VERTACCEL_MAG_CAL_BIAS_MULTIPLIER)  ))))
     if( i != 2 ):
@@ -168,5 +190,5 @@ for i in range(3):
 print("}")
 
 # mag proj scale #
-print "#define IMU_MAG_CAL_PROJ_SCALE", int(np.rint(  float(2**(MAG_BASE_PROJ_SCALE+VERTACCEL_CAL_SCALE_MULTIPLIER))/(projCoeff[1]*magGSphere[3]) - float(2**VERTACCEL_CAL_SCALE_MULTIPLIER)  ))
+print "#define VERTACCEL_MAG_CAL_PROJ_SCALE", int(np.rint(  float(2**(MAG_BASE_PROJ_SCALE+VERTACCEL_CAL_SCALE_MULTIPLIER))/(projCoeff[1]*magGSphere[3]) - float(2**VERTACCEL_CAL_SCALE_MULTIPLIER)  ))
 

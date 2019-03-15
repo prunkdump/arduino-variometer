@@ -1,8 +1,27 @@
+/* gps_time_analysis -- GPS freq determination
+ *
+ * Copyright 2016-2019 Baptiste PELLEGRIN
+ * 
+ * This file is part of GNUVario.
+ *
+ * GNUVario is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * GNUVario is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <Arduino.h>
 #include <SPI.h>
 #include <VarioSettings.h>
-#include <I2Cdev.h>
-#include <ms5611.h>
+#include <IntTW.h>
 #include <vertaccel.h>
 #include <EEPROM.h>
 #include <LightInvensense.h>
@@ -37,21 +56,7 @@
 /***************/
 /* IMU objects */
 /***************/
-#ifdef HAVE_ACCELEROMETER
-#ifdef IMU_CALIBRATION_IN_EEPROM
-VertaccelSettings vertaccelSettings = Vertaccel::readEEPROMSettings();
-#else //!IMU_CALIBRATION_IN_EEPROM
-const VertaccelSettings vertaccelSettings = {
-  IMU_GYRO_CAL_BIAS
-  ,{ IMU_ACCEL_CAL_BIAS, IMU_ACCEL_CAL_SCALE }
-#ifdef AK89xx_SECONDARY
-  ,{ IMU_MAG_CAL_BIAS, IMU_MAG_CAL_PROJ_SCALE }
-#endif //AK89xx_SECONDARY
-};
-#endif //!IMU_CALIBRATION_IN_EEPROM
-
-Vertaccel vertaccel(vertaccelSettings);
-#endif //HAVE_ACCELEROMETER
+Vertaccel vertaccel;
 
 
 /*****************/
@@ -240,7 +245,7 @@ void setup() {
   /**********************/
   /* init accelerometer */
   /**********************/
-  Fastwire::setup(FASTWIRE_SPEED, 0);
+  intTW.begin();
 #ifdef HAVE_ACCELEROMETER
   vertaccel.init();
   if( firmwareUpdateCond() ) {

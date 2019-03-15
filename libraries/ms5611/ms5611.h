@@ -1,34 +1,56 @@
+/* ms5611 -- ms5611 interrupt safe library 
+ *
+ * Copyright 2016-2019 Baptiste PELLEGRIN
+ * 
+ * This file is part of GNUVario.
+ *
+ * GNUVario is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * GNUVario is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #ifndef MS5611_H
 #define MS5611_H
 
 #include <Arduino.h>
-#include <I2Cdev.h>
+#include <VarioSettings.h>
 
-/*###############################################################*/
-/*                     !!!!!!!!!!!!!!!                           */
-/*                     !!! WARNING !!!                           */
-/*                     !!!!!!!!!!!!!!!                           */
-/* The ms5611 altimeter is very sensitive to measure frequency.  */
-/* So this library use TIMER2 interrupts to make I2C requests    */
-/* at very stable frequency.                                     */
-/* Therefore :                                                   */
-/* 1) you can't use timer2 while using this library              */
-/* 2) To use I2C with other device you need to link to a special */
-/*    I2CDev library provided as I2CDev_ms5611. Try to make the  */
-/*    I2C request as short as possible.                          */
-/* 3) To get the higtest precision, init fastwire at 400Htz with */
-/*    Fastwire::setup(400,0) before initializing the device.     */
-/* From your point of view, you DON'T need to get the ms5611     */
-/* data at stable frequency. The timer's interrupts update the   */
-/* global variables for you. You can get the values when you     */ 
-/* want.                                                         */ 
-/*###############################################################*/
-
-/* the pressure normalized sea level pressure */  
+/* the normalized sea level pressure */  
 #define MS5611_BASE_SEA_PRESSURE 1013.25
 
 
-#define MS5611_ADDRESS (0x77)
+/*############################################*/
+/* You can compile ms5611 with static address */
+/* or static calibration coefficients.        */
+/* For this define the values with :          */
+/*                                            */
+/* #define MS5611_STATIC_ADDRESS              */
+/* or                                         */
+/* #define MS5611_STATIC_CALIBRATION          */
+/*                                            */
+/*############################################*/
+
+static constexpr uint16_t ms5611DefaultAdress = 0x77;
+
+struct Ms5611Calibration {
+
+  uint16_t coeffs[6];
+};
+
+
+/*####################################*/
+/* Here the ms5611 hardware constants */
+/*####################################*/
+
 #define MS5611_CMD_RESET (0x1E)
 #define MS5611_CMD_READ_PROM (0xA2)
 #define MS5611_CMD_CONV_D1 (0x46)
@@ -38,47 +60,36 @@
 #define MS5611_RESET_DELAY 3
 #define MS5611_CONV_DELAY 9
 
-#define MS5611_STEP_READ_TEMP 0
-#define MS5611_STEP_READ_PRESSURE 1
 
-/* the measure period need to be greater than 8.22 ms */
-/* the library use a 1024 prescale so the time unit is 1024/F_CPU */
-/* the INTERRUPT_COMPARE can't be greater than 255 */
-/* but a greater value give less code interrupts */
-/* the final period is 1024/F_CPU * INTERRUPT_COMPARE */
-/* in seconds */
-#if F_CPU >= 16000000L
-//#define MS5611_INTERRUPT_COMPARE 130
-#define MS5611_INTERRUPT_COMPARE 154
+/*-----------------------*/
+/*                       */
+/*     The main class    */
+/*                       */
+/*-----------------------*/
+class Ms5611 {
+
+ public:
+#ifndef MS5611_STATIC_ADDRESS
+  Ms5611(uint16_t twAddress = ms5611DefaultAdress) : address(twAddress) { } //Address set with constructor
+#endif
+  void init(void);
+  void computeMeasures(uint8_t* d1Buff, uint8_t* d2Buff, double& temperature, double& pressure);
+  static double computeAltitude(double pressure);
+  void readHardwareCalibration(uint16_t* cal);
+
+ private:
+#ifdef MS5611_STATIC_ADDRESS
+  static constexpr uint16_t address = MS5611_STATIC_ADDRESS;
 #else
-//#define MS5611_INTERRUPT_COMPARE 66
-#define MS5611_INTERRUPT_COMPARE 78
+  const uint16_t address;
 #endif
-#define MS5611_INTERRUPT_START_DELAY 3
 
-/* ################################ */
-
-/* first init the altimeter */
-void ms5611_init();
-
-/* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
-/* once the variometer is initialized */
-/* you can't use i2c anymore without  */
-/* locking the variometer             */
-/* !! USE THE MS5611 i2cdev LIBRARY!! */
-/* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
-void ms5611_lock();
-void ms5611_release();
-
-/* check if you have new data */
-boolean ms5611_dataReady(void);
-
-/* then compute compensated temperature, pressure and alti values */
-void ms5611_updateData(void);
-
-/* and finally get computed values */
-double ms5611_getTemperature();
-double ms5611_getPressure();
-double ms5611_getAltitude();
-
+#ifdef MS5611_STATIC_CALIBRATION
+  static constexpr Ms5611Calibration calibration = MS5611_STATIC_CALIBRATION;
+#else
+  Ms5611Calibration calibration;
 #endif
+};
+
+
+#endif //MS5611_H
