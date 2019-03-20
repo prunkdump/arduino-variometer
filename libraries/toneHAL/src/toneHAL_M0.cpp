@@ -1,3 +1,23 @@
+/* toneHAL -- derived class for MKZERO
+ *
+ * Copyright 2019 Jean-philippe GOI
+ * 
+ * This file is part of ToneHAL.
+ *
+ * GNUVario is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * GNUVario is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+ 
 #include "toneHAL.h"
 #include "toneHAL_M0.h"
 
@@ -142,43 +162,43 @@ uint32_t ToneHalDAC_Zero::remaining() {
 }
 
 #endif //TONEDAC_EXTENDED
-#elif defined(TONEPWM)
+#elif defined(TONEAC)
 /****************************************/
 /*            P  W  M					*/
 /****************************************/
 
 /***********************************/
-void ToneHalPWM_Zero::init(void) {
+void ToneHalAC_Zero::init(void) {
 /***********************************/
-	privateTonePWMZero.init();
+	privateToneACZero.init();
 }
 
 /***********************************/
-void ToneHalPWM_Zero::init(uint32_t pin) {
+void ToneHalAC_Zero::init(uint32_t pin) {
 /***********************************/
-	privateTonePWMZero.init();
+	privateToneACZero.init();
 }
 
 /***********************************/
-void ToneHalPWM_Zero::init(uint32_t pin1, uint32_t pin2) {
+void ToneHalAC_Zero::init(uint32_t pin1, uint32_t pin2) {
 /***********************************/
-	privateTonePWMZero.init();
+	privateToneACZero.init();
 }
 
 /***********************************/
-void ToneHalPWM_Zero::tone(unsigned long frequency)
+void ToneHalAC_Zero::tone(unsigned long frequency)
 /***********************************/           
 {
 #if defined (TONEHAL_EXTENDED_VOLUME)
 	if (_toneMuted) return;
-  privateTonePWMZero.tone(frequency,_volume);	
+  privateToneACZero.tone(frequency,_volume);	
 #else
-  privateTonePWMZero.tone(frequency, 10);	
+  privateToneACZero.tone(frequency, 10);	
 #endif
 }
 
 /***********************************/
-void ToneHalPWM_Zero::tone(unsigned long frequency , uint8_t volume)
+void ToneHalAC_Zero::tone(unsigned long frequency , uint8_t volume)
 /***********************************/           
 {
 #if defined (TONEHAL_EXTENDED_VOLUME)	
@@ -187,14 +207,14 @@ void ToneHalPWM_Zero::tone(unsigned long frequency , uint8_t volume)
 	_volume = volume;
 #endif
 #ifdef TONEAC_VOLUME
-	privateTonePWMZero.tone(frequency, volume);
+	privateToneACZero.tone(frequency, volume);
 #else
-	privateTonePWMZero.tone(frequency);
+	privateToneACZero.tone(frequency);
 #endif		
 }
 
 /***********************************/
-void ToneHalPWM_Zero::tone(unsigned long frequency , uint8_t volume, unsigned long length)
+void ToneHalAC_Zero::tone(unsigned long frequency , uint8_t volume, unsigned long length)
 /***********************************/           
 {
 #if defined (TONEHAL_EXTENDED_VOLUME)	
@@ -205,19 +225,19 @@ void ToneHalPWM_Zero::tone(unsigned long frequency , uint8_t volume, unsigned lo
 #endif
 	
 #ifdef TONEAC_LENGTH
-		  privateTonePWMZero.tone(frequency, volume, length);
+		  privateToneACZero.tone(frequency, volume, length);
 #else
 #ifdef TONEAC_VOLUME
-	privateTonePWMZero.tone(frequency, volume);
+	privateToneACZero.tone(frequency, volume);
 #else
-	privateTonePWMZero.tone(frequency);
+	privateToneACZero.tone(frequency);
 #endif	
 #endif
 
 }
 
 /***********************************/
-void ToneHalPWM_Zero::tone(unsigned long frequency , uint8_t volume, unsigned long length, uint8_t background)
+void ToneHalAC_Zero::tone(unsigned long frequency , uint8_t volume, unsigned long length, uint8_t background)
 /***********************************/           
 {
 #if defined (TONEHAL_EXTENDED_VOLUME)	
@@ -227,21 +247,21 @@ void ToneHalPWM_Zero::tone(unsigned long frequency , uint8_t volume, unsigned lo
 	if (length > 1024) length = 1024;
 #endif
 #ifdef TONEAC_LENGTH
-		  privateTonePWMZero.tone(frequency, volume, length, background);
+		  privateToneACZero.tone(frequency, volume, length, background);
 #else
 #ifdef TONEAC_VOLUME
-	privateTonePWMZero.tone(frequency, volume);
+	privateToneACZero.tone(frequency, volume);
 #else
-	privateTonePWMZero.tone(frequency);
+	privateToneACZero.tone(frequency);
 #endif	
 #endif	
 }
 
 /***********************************/
-void ToneHalPWM_Zero::noTone(void)
+void ToneHalAC_Zero::noTone(void)
 /***********************************/           
 {
-	privateTonePWMZero.noTone();
+	privateToneACZero.noTone();
 }
 
 

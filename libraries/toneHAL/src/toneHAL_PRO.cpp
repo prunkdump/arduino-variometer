@@ -1,3 +1,23 @@
+/* toneHAL -- derived class for ProMini
+ *
+ * Copyright 2019 Jean-philippe GOI
+ * 
+ * This file is part of ToneHAL.
+ *
+ * GNUVario is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * GNUVario is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+ 
 #include "toneHAL.h"
 #include "toneHAL_PRO.h"
 
@@ -13,31 +33,31 @@
 
 //DAC not available
 
-#elif defined(TONEPWM)
+#elif defined(TONEAC)
 
 /****************************************/
-/*            P  W  M					*/
+/*            P  W  M	 Push-Pull				*/
 /****************************************/
 
 // ToneAC use 2 pin for PWM -3.3V to +3.3V
 
 /***********************************/
-void ToneHalPWM_promini::init(void) {
+void ToneHalAC_promini::init(void) {
 /***********************************/
 }
 
 /***********************************/
-void ToneHalPWM_promini::init(uint32_t pin) {
+void ToneHalAC_promini::init(uint32_t pin) {
 /***********************************/
 }
 
 /***********************************/
-void ToneHalPWM_promini::init(uint32_t pin1, uint32_t pin2) {
+void ToneHalAC_promini::init(uint32_t pin1, uint32_t pin2) {
 /***********************************/
 }
 
 /***********************************/
-void ToneHalPWM_promini::tone(unsigned long frequency)
+void ToneHalAC_promini::tone(unsigned long frequency)
 /***********************************/           
 {
 #if defined (TONEHAL_EXTENDED_VOLUME)	
@@ -55,7 +75,7 @@ void ToneHalPWM_promini::tone(unsigned long frequency)
 }
 
 /***********************************/
-void ToneHalPWM_promini::tone(unsigned long frequency , uint8_t volume)
+void ToneHalAC_promini::tone(unsigned long frequency , uint8_t volume)
 /***********************************/           
 {
 #if defined (TONEHAL_EXTENDED_VOLUME)	
@@ -71,7 +91,7 @@ void ToneHalPWM_promini::tone(unsigned long frequency , uint8_t volume)
 }
 
 /***********************************/
-void ToneHalPWM_promini::tone(unsigned long frequency , uint8_t volume, unsigned long length)
+void ToneHalAC_promini::tone(unsigned long frequency , uint8_t volume, unsigned long length)
 /***********************************/           
 {
 #if defined (TONEHAL_EXTENDED_VOLUME)	
@@ -91,7 +111,7 @@ void ToneHalPWM_promini::tone(unsigned long frequency , uint8_t volume, unsigned
 }
 
 /***********************************/
-void ToneHalPWM_promini::tone(unsigned long frequency , uint8_t volume, unsigned long length, uint8_t background)
+void ToneHalAC_promini::tone(unsigned long frequency , uint8_t volume, unsigned long length, uint8_t background)
 /***********************************/           
 {
 #if defined (TONEHAL_EXTENDED_VOLUME)	
@@ -110,7 +130,7 @@ void ToneHalPWM_promini::tone(unsigned long frequency , uint8_t volume, unsigned
 }
 
 /***********************************/
-void ToneHalPWM_promini::noTone(void)
+void ToneHalAC_promini::noTone(void)
 /***********************************/           
 {
 	noToneAC();
@@ -118,7 +138,7 @@ void ToneHalPWM_promini::noTone(void)
 
 #elif defined(TONE)
 /****************************************/
-/*   Standard Library     T O N E   	*/
+/*                P W M               	*/
 /****************************************/
 
 #elif defined(TONEI2S)

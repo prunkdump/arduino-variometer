@@ -1,14 +1,19 @@
+#include <arduino.h>
+
+#include "Debug.h"
+#include "Param.h"
+
 #include <toneHAL.h>
 #if defined(ESP8266) 
 #elif defined(ESP32)
+#include "toneHAL_ESP32.h"
 #elif defined(ARDUINO_AVR_PRO)
 #include "toneHAL_PRO.h"
 #elif defined(ARDUINO_ARCH_SAMD)
 #include "toneHAL_M0.h"
 #endif
 
-#include "Debug.h"
-#include "param.h"
+#define SerialPort Serial
 
 #if defined(TONEDAC_EXTENDED)
 #include <SPI.h>
@@ -24,7 +29,7 @@ const char *filename = "music.wav";
 
 ToneHAL toneHAL;
 
-#define volumeDefault 5
+#define volumeDefault 10
 
 //indicate sample rate here (use audacity to convert your wav)
 const unsigned int sampleRateWav = 22050;
@@ -64,7 +69,7 @@ void setup() {
   }
 #endif //TONEDAC_EXTENDED
     
-  toneHAL.init();
+  toneHAL.init(25);
 
   SerialPort.print("Tone Sin volume = ");
   SerialPort.println(volumeDefault);
@@ -72,15 +77,19 @@ void setup() {
   SerialPort.println("Tone Sin");
   for(int i=1; i<=10; i++) {
     toneHAL.tone(1000*i,volumeDefault);
-    delay(100);
+    SerialPort.print("Tone frequence : ");
+    SerialPort.println(1000*i);
+    delay(2000);
   }
   toneHAL.noTone();
   delay(2000);
   
   SerialPort.println("Tone volume");
   for(int i=0; i<=10; i++) {
-    toneHAL.tone(8000,i);
-    delay(100);
+    toneHAL.tone(5000,i);
+    SerialPort.print("Tone volume : ");
+    SerialPort.println(i);
+    delay(1000);
   }
   toneHAL.noTone();
   delay(2000);
@@ -91,7 +100,7 @@ void setup() {
   toneHAL.setWaveForm(WAVEFORM_SQUARE);
   for(int i=1; i<=10; i++) {
     toneHAL.tone(1000*i,volumeDefault);
-    delay(100);
+    delay(1000);
   }
   toneHAL.noTone();
   delay(2000);
@@ -100,14 +109,21 @@ void setup() {
   toneHAL.setWaveForm(WAVEFORM_TRIANGLE);
   for(int i=1; i<=10; i++) {
     toneHAL.tone(1000*i,volumeDefault);
-    delay(100);
+    delay(1000);
   }
   toneHAL.noTone();
   delay(2000); 
 
+  SerialPort.println("loop");
+
+//  toneHAL.setWaveForm(WAVEFORM_SINUS);
+  toneHAL.tone(1000,10);
+  delay(2000);
+//  toneHAL.noTone();
+
 //  toneHAL.beginPlayWav(sampleRateWav);
 //  toneHAL.playWav(filename);
-//  SerialPort.println("Playing file.....");
+  SerialPort.println("Playing file.....");
 #endif //TONEDAC
 }
 
@@ -119,13 +135,21 @@ void loop() {
   delay(200);
   if (SerialPort.available()) {
     char c = SerialPort.read();
-    if (c = 'p') {
+    if (c == 'p') {
       for(int i=1; i<=10; i++) {
         toneHAL.tone(1000*i,volumeDefault);
-        delay(100);
+        delay(200);
       }
       toneHAL.noTone();    
     }
+
+    if (c == 'q') {
+      for(int i=1; i<=10; i++) {
+        toneHAL.tone(3000,i);
+        delay(200);
+      }
+      toneHAL.noTone();    
+    }    
   }
 }
 

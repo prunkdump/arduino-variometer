@@ -2,14 +2,14 @@
  *
  * Copyright 2019 Jean-philippe GOI
  * 
- * This file is part of GNUVario.
+ * This file is part of toneHAL.
  *
- * GNUVario is free software: you can redistribute it and/or modify
+ * ToneHAL is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * GNUVario is distributed in the hope that it will be useful,
+ * ToneHAL is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
@@ -27,9 +27,10 @@
 /*    1.1    24/01/19   Réecriture des classes                                   */
 /*                      répartition en plusieurs fichiers                        */
 /*    1.2    26/01/19   Modifications mineures                                   */
-/*    1.3    09/02/19   Ajout TONEHAL_EXTENDED_VOLUME							 */
+/*    1.3    09/02/19   Ajout TONEHAL_EXTENDED_VOLUME							               */
 /*    1.4    02/03/19   Ajout ESP32                                              */
-/*    1.4.1  12/03/19   Modifications mineures								     */
+/*    1.4.1  12/03/19   Modifications mineures								                   */
+/*    1.4.2  16/03/19   Ajout description et licence en début de fichier         */
 /*                                                                               */
 /*********************************************************************************/
 

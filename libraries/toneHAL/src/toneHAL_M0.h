@@ -1,3 +1,23 @@
+/* toneHAL -- derived class for MKZERO - SAMD21
+ *
+ * Copyright 2019 Jean-philippe GOI
+ * 
+ * This file is part of ToneHAL.
+ *
+ * tonehal is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * tonehal is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+ 
 #ifndef toneHAL_M0_h
 #define toneHAL_M0_h
 
@@ -39,10 +59,10 @@ class ToneHalDAC_Zero : public ToneHal {
 	
 #define ToneHAL ToneHalDAC_Zero	
 	
-#elif defined(TONEPWM)
+#elif defined(TONEAC)
 #include <toneAC_zero.h>
 
-class ToneHalPWM_Zero : public ToneHal {
+class ToneHalAC_Zero : public ToneHal {
 	public:
 
 		void init(void);
@@ -56,10 +76,10 @@ class ToneHalPWM_Zero : public ToneHal {
 		void noTone();
 
 	private:
-		ToneAcZero	privateTonePWMZero;
+		ToneAcZero	privateToneACZero;
 };	
 
-#define ToneHAL ToneHalPWM_Zero	
+#define ToneHAL ToneHalAC_Zero	
 
 #elif defined(TONE)
 #include <tone_zero.h>

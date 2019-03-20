@@ -1,10 +1,30 @@
+/* toneHAL -- derived class for ESP32
+ *
+ * Copyright 2019 Jean-philippe GOI
+ * 
+ * This file is part of ToneHAL.
+ *
+ * toneHAL is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * toneHAL is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+ 
 #include "toneHAL.h"
 #include "toneHAL_ESP32.h"
 
 #if defined(ESP32)
 #include <Arduino.h>
-#include "Debug.h"
-//#include "utility\Debug.h"
+//#include "Debug.h"
+#include "utility\Debug.h"
 
 #define TONEDAC_VOLUME  //set to have volume control
 //#define TONEDAC_LENGTH  //set to have length control
@@ -142,43 +162,49 @@ uint32_t ToneHalDAC_Esp32::remaining() {
 }
 
 #endif //TONEDAC_EXTENDED
-#elif defined(TONEPWM)
+#elif defined(TONEAC)
 /****************************************/
-/*            P  W  M					*/
+/*         P  W  M  - Push-Pull      		*/
 /****************************************/
 
+#elif defined(TONE)
+
+//****************************************
+//*          P W M    - 1 pin           	*
+//****************************************
+
 /***********************************/
-void ToneHalPWM_Esp32::init(void) {
+void ToneHal_Esp32::init(void) {
 /***********************************/
-	privateTonePWMEsp32.init();
+	privateToneEsp32.init();
 }
 
 /***********************************/
-void ToneHalPWM_Esp32::init(uint32_t pin) {
+void ToneHal_Esp32::init(uint32_t pin) {
 /***********************************/
-	privateTonePWMEsp32.init();
+	privateToneEsp32.init(pin);
 }
 
 /***********************************/
-void ToneHalPWM_Esp32::init(uint32_t pin1, uint32_t pin2) {
+void ToneHal_Esp32::init(uint32_t pin1, uint32_t pin2) {
 /***********************************/
-	privateTonePWMEsp32.init();
+	privateToneEsp32.init(pin1);
 }
 
 /***********************************/
-void ToneHalPWM_Esp32::tone(unsigned long frequency)
+void ToneHal_Esp32::tone(unsigned long frequency)
 /***********************************/           
 {
 #if defined (TONEHAL_EXTENDED_VOLUME)
 	if (_toneMuted) return;
-  privateTonePWMEsp32.tone(frequency,_volume);	
+  privateToneEsp32.tone(frequency,_volume);	
 #else
-  privateTonePWMEsp32.tone(frequency, 10);	
+  privateToneEsp32.tone(frequency, 5);	
 #endif
 }
 
 /***********************************/
-void ToneHalPWM_Esp32::tone(unsigned long frequency , uint8_t volume)
+void ToneHal_Esp32::tone(unsigned long frequency , uint8_t volume)
 /***********************************/           
 {
 #if defined (TONEHAL_EXTENDED_VOLUME)	
@@ -187,14 +213,14 @@ void ToneHalPWM_Esp32::tone(unsigned long frequency , uint8_t volume)
 	_volume = volume;
 #endif
 #ifdef TONEAC_VOLUME
-	privateTonePWMEsp32.tone(frequency, volume);
+	privateToneEsp32.tone(frequency, volume);
 #else
-	privateTonePWMEsp32.tone(frequency);
+	privateToneEsp32.tone(frequency);
 #endif		
 }
 
 /***********************************/
-void ToneHalPWM_Esp32::tone(unsigned long frequency , uint8_t volume, unsigned long length)
+void ToneHal_Esp32::tone(unsigned long frequency , uint8_t volume, unsigned long length)
 /***********************************/           
 {
 #if defined (TONEHAL_EXTENDED_VOLUME)	
@@ -205,19 +231,19 @@ void ToneHalPWM_Esp32::tone(unsigned long frequency , uint8_t volume, unsigned l
 #endif
 	
 #ifdef TONEAC_LENGTH
-		  privateTonePWMEsp32.tone(frequency, volume, length);
+		  privateToneEsp32.tone(frequency, volume, length);
 #else
 #ifdef TONEAC_VOLUME
-	privateTonePWMEsp32.tone(frequency, volume);
+	privateToneEsp32.tone(frequency, volume);
 #else
-	privateTonePWMEsp32.tone(frequency);
+	privateToneEsp32.tone(frequency);
 #endif	
 #endif
 
 }
 
 /***********************************/
-void ToneHalPWM_Esp32::tone(unsigned long frequency , uint8_t volume, unsigned long length, uint8_t background)
+void ToneHal_Esp32::tone(unsigned long frequency , uint8_t volume, unsigned long length, uint8_t background)
 /***********************************/           
 {
 #if defined (TONEHAL_EXTENDED_VOLUME)	
@@ -227,58 +253,58 @@ void ToneHalPWM_Esp32::tone(unsigned long frequency , uint8_t volume, unsigned l
 	if (length > 1024) length = 1024;
 #endif
 #ifdef TONEAC_LENGTH
-		  privateTonePWMEsp32.tone(frequency, volume, length, background);
+		  privateToneEsp32.tone(frequency, volume, length, background);
 #else
 #ifdef TONEAC_VOLUME
-	privateTonePWMEsp32.tone(frequency, volume);
+	privateToneEsp32.tone(frequency, volume);
 #else
-	privateTonePWMEsp32.tone(frequency);
+	privateToneEsp32.tone(frequency);
 #endif	
 #endif	
 }
 
 /***********************************/
-void ToneHalPWM_Esp32::noTone(void)
+void ToneHal_Esp32::noTone(void)
 /***********************************/           
 {
-	privateTonePWMEsp32.noTone();
+	privateToneEsp32.noTone();
 }
 
-
+/*
 #elif defined(TONE)
-/****************************************/
-/*   Standard Library     T O N E   	*/
-/****************************************/
+//****************************************
+//*          P W M    - 1 pin           	*
+//****************************************
 
-/***********************************/
+//***********************************
 void ToneHal_Esp32::init(void) {
-/***********************************/
+//***********************************
   _pin = 2;
 }
 
-/***********************************/
+//***********************************
 void ToneHal_Esp32::init(uint32_t pin) {
-/***********************************/
+//***********************************
   _pin = pin;
 }
 
-/***********************************/
+//***********************************
 void ToneHal_Esp32::init(uint32_t pin1, uint32_t pin2) {
-/***********************************/
+//***********************************
   _pin = pin1;
 }
 
-/***********************************/
+//***********************************
 void ToneHal_Esp32::tone(unsigned long frequency)
-/***********************************/           
+//***********************************           
 {
 	if (_toneMuted) return;
   privateToneEsp32.tone(_pin,frequency,512);	
 }
 
-/***********************************/
+//***********************************
 void ToneHal_Esp32::tone(unsigned long frequency , uint8_t volume)
-/***********************************/           
+//***********************************           
 {
 	if (_toneMuted) return;
 	if (volume > 10) volume = 10;
@@ -286,9 +312,9 @@ void ToneHal_Esp32::tone(unsigned long frequency , uint8_t volume)
   privateToneEsp32.tone(_pin,frequency,512);
 }
 
-/***********************************/
+//***********************************
 void ToneHal_Esp32::tone(unsigned long frequency , uint8_t volume, unsigned long length)
-/***********************************/           
+//***********************************           
 {
 	if (_toneMuted) return;
 	if (volume > 10) volume = 10;
@@ -297,19 +323,20 @@ void ToneHal_Esp32::tone(unsigned long frequency , uint8_t volume, unsigned long
   privateToneEsp32.tone(_pin,frequency,length);
 }
 
-/***********************************/
+//***********************************
 void ToneHal_Esp32::tone(unsigned long frequency , uint8_t volume, unsigned long length, uint8_t background)
-/***********************************/
+//***********************************
 {
 	tone(frequency, volume, length);
 }
 
-/***********************************/
+//***********************************
 void ToneHal_Esp32::noTone(void)
-/***********************************/           
+//***********************************           
 {
 	privateToneEsp32.noTone(_pin);
 }
+*/
 
 #elif defined(TONEI2S)
 /****************************************/

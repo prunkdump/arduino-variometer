@@ -1,4 +1,24 @@
-#ifndef toneHAL_PRO_h
+/* toneHAL -- derived class for ProMini
+ *
+ * Copyright 2019 Jean-philippe GOI
+ * 
+ * This file is part of ToneHAL.
+ *
+ * toneHAL is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * toneHAL is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+ #ifndef toneHAL_PRO_h
 #define toneHAL_PRO_h
 
 #if defined(ARDUINO_AVR_PRO)
@@ -7,11 +27,11 @@
 
 #if defined(TONEDAC)
 //DAC not available
-#elif defined(TONEPWM)
+#elif defined(TONEAC)
 // ToneAC use 2 pin for PWM -3.3V to +3.3V
 #include "toneAC.h"
 
-class ToneHalPWM_promini : public ToneHal {
+class ToneHalAC_promini : public ToneHal {
 	public:
 
 		void init(void);
@@ -28,7 +48,7 @@ class ToneHalPWM_promini : public ToneHal {
 		uint32_t _pin;
 };	
 
-#define ToneHAL ToneHalPWM_promini	
+#define ToneHAL ToneHalAC_promini	
 
 #elif defined(TONE)
 

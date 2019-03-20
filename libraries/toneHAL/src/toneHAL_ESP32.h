@@ -1,3 +1,23 @@
+/* toneHAL -- derived class for ESP32
+ *
+ * Copyright 2019 Jean-philippe GOI
+ * 
+ * This file is part of ToneHAL.
+ *
+ * GNUVario is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * GNUVario is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+ 
 #ifndef toneHAL_ESP32_h
 #define toneHAL_ESP32_h
 
@@ -38,30 +58,11 @@ class ToneHalDAC_Esp32 : public ToneHal {
 	
 #define ToneHAL ToneHalDAC_Esp32	
 	
-#elif defined(TONEPWM)
-#include <toneAC_esp32.h>
-
-class ToneHalPWM_Esp32 : public ToneHal {
-	public:
-
-		void init(void);
-		void init(uint32_t pin);
-    void init(uint32_t pin1, uint32_t pin2);
-    void tone(unsigned long frequency);
-    void tone(unsigned long frequency, uint8_t volume);
-    void tone(unsigned long frequency, uint8_t volume, unsigned long length);
-    void tone(unsigned long frequency, uint8_t volume, unsigned long length, uint8_t background);
-
-		void noTone();
-
-	private:
-		ToneAcEsp32	privateTonePWMEsp32;
-};	
-
-#define ToneHAL ToneHalPWM_Esp32	
+#elif defined(TONEAC)
 
 #elif defined(TONE)
-#include <tone32.h>
+//#include <tone32.h>
+#include <tone_esp32.h>
 
 class ToneHal_Esp32 : public ToneHal {
 	public:
