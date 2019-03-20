@@ -120,6 +120,9 @@
  *            TwoWireScheduler : added raw mag access
  *            Ms5611 : switched to IntTW library and added static vars optimization
  *
+ * v 63.9.1   Correction du bug d'affichage RATIO_CLIMB_RATE
+ *            Mise à jour bibliothèque ToneHAL
+ *
  *******************
  * Compilation :
  * 
@@ -852,7 +855,7 @@ if (maxVoltage < tmpVoltage) {maxVoltage = tmpVoltage;}
 #elseif (RATIO_CLIMB_RATE == 2)
       displayList[6].page  = 0;
       displayList[7].page  = 1;
-#elseif
+#else
       displayList[6].page  = 1;
       displayList[7].page  = 0;
 #endif

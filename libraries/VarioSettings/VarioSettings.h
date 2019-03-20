@@ -25,10 +25,11 @@
 /*  1.0  13/03/2019   add ms5611 parameters                               */
 /*                    TWO WIRE settings                                   */
 /*  1.1  15/03/2019   Licence GNU                                         */
-/*              			add VARIOMETER_CLIMB_RATE_INTEGRATION_TIME          */
+/*              	  add VARIOMETER_CLIMB_RATE_INTEGRATION_TIME          */
 /*                    add VARIOMETER_INTEGRATED_CLIMB_RATE_DISPLAY_FREQ   */
-/* 										add VARIOMETER_GLIDE_RATIO_INTEGRATION_TIME 			  */
+/* 					  add VARIOMETER_GLIDE_RATIO_INTEGRATION_TIME    	  */
 /*                    rename IMU_ to VERTACCEL_                           */
+/*  1.2  20/03/2019   add MODE_DEBUG                                      */
 /*                                                                        */
 /**************************************************************************/
 
@@ -96,7 +97,7 @@
 /* The near climbing alarm : signal that you enter or exit the near climbing zone */
 /* The near climbing beep : beep when you are in near climbing zone               */
 //#define VARIOMETER_ENABLE_NEAR_CLIMBING_ALARM
-#define VARIOMETER_ENABLE_NEAR_CLIMBING_BEEP
+//#define VARIOMETER_ENABLE_NEAR_CLIMBING_BEEP
 
 
 /*******************/
@@ -136,7 +137,7 @@
 //Display Ratio      1
 //display Climb rate 2
 //display both       3
-#define RATIO_CLIMB_RATE 2
+#define RATIO_CLIMB_RATE 3
 
 /********************/
 /*      GPS         */
@@ -191,6 +192,11 @@
 /* Alarm Fly begin */
 #define ALARM_FLYBEGIN
 
+
+/**************/
+/* DEBUG      */
+/**************/
+#define MODE_DEBUG
 
 /*----------------------------*/
 /*          HARDWARE          */
