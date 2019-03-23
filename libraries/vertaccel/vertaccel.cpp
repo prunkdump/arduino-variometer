@@ -278,10 +278,10 @@ void Vertaccel::computeNorthVector(double* vertVector, int16_t* mag, double* nor
 /* direct access to sensors */
 uint8_t Vertaccel::readRawAccel(int16_t* accel, int32_t* quat) {
 
-  uint8_t haveValue = -1;
+  uint8_t haveValue = 0;
 
   while( fastMPUReadFIFO(NULL, accel, quat) >= 0 ) {
-    haveValue = 0;
+    haveValue = 1;
   }
 
   return haveValue;
@@ -291,7 +291,7 @@ uint8_t Vertaccel::readRawAccel(int16_t* accel, int32_t* quat) {
 #ifdef AK89xx_SECONDARY
 uint8_t Vertaccel::readRawMag(int16_t* mag) {
 
-  uint8_t haveValue = -1;
+  uint8_t haveValue = 0;
 
   if( fastMPUMagReady() ) {
 #ifdef VERTACCEL_USE_MAG_SENS_ADJ
@@ -299,7 +299,7 @@ uint8_t Vertaccel::readRawMag(int16_t* mag) {
 #else
     fastMPUReadRawMag(mag);
 #endif //VERTACCEL_USE_MAG_SENS_ADJ
-    haveValue = 0;
+    haveValue = 1;
   }
 
   return haveValue;
