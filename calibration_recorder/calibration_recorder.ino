@@ -22,7 +22,6 @@
 #include <SPI.h>
 #include <VarioSettings.h>
 #include <IntTW.h>
-#include <vertaccel.h>
 #include <EEPROM.h>
 #include <LightInvensense.h>
 #include <toneAC.h>
@@ -60,7 +59,6 @@
 
 
 /* global variables */
-Vertaccel vertaccel;
 
 #ifdef SDCARD_OUTPUT
 lightfat16 file(SDCARD_CS_PIN);
@@ -130,13 +128,42 @@ void startMeasure(void) {
   }
 }
 
+uint8_t readRawAccel(int16_t* accel, int32_t* quat) {
+
+  uint8_t haveValue = 0;
+
+  while( fastMPUReadFIFO(NULL, accel, quat) >= 0 ) {
+    haveValue = 1;
+  }
+
+  return haveValue;
+}
+
+#ifdef AK89xx_SECONDARY
+uint8_t readRawMag(int16_t* mag) {
+
+  uint8_t haveValue = 0;
+
+  if( fastMPUMagReady() ) {
+#ifdef VERTACCEL_USE_MAG_SENS_ADJ
+    fastMPUReadMag(mag);
+#else
+    fastMPUReadRawMag(mag);
+#endif //VERTACCEL_USE_MAG_SENS_ADJ
+    haveValue = 1;
+  }
+
+  return haveValue;
+}
+#endif //AK89xx_SECONDARY
+
 
 void makeMeasureStep(void) {
 
   /* accel */
   int16_t accel[3];
   int32_t quat[4];
-  if( vertaccel.readRawAccel(accel, quat) ) {
+  if( readRawAccel(accel, quat) ) {
     accelCount++;
     for( int i = 0; i<3; i++) {
       accelMean[i] += (double)accel[i];
@@ -146,7 +173,7 @@ void makeMeasureStep(void) {
 
   /* mag */
   int16_t mag[3];
-  if( vertaccel.readRawMag(mag) ) {
+  if( readRawMag(mag) ) {
     magCount++;
     for( int i = 0; i<3; i++) {
       magMean[i] += (double)mag[i];
@@ -199,7 +226,7 @@ void setup() {
   /* start devices */
   delay(VARIOMETER_POWER_ON_DELAY);
   intTW.begin();
-  vertaccel.init();
+  fastMPUInit(true);
   if( firmwareUpdateCond() ) {
    firmwareUpdate();
   }
@@ -267,7 +294,7 @@ void loop() {
 
     /* check if gyro calibrated */
     unsigned char gyroCal[12];
-    vertaccel.readCurrentDMPGyroCalibration(gyroCal);
+    fastMPUReadGyroBias(gyroCal);
 
     bool gyroCalibrated = false;
     for(int i = 0; i<12; i++) {
