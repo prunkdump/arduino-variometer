@@ -3,8 +3,8 @@
 
 #include <Arduino.h>
 
-#define VARIO_TW_USE_WIRE
-//#define VARIO_TW_USE_INTTW
+//#define VARIO_TW_USE_WIRE
+#define VARIO_TW_USE_INTTW
 //#define VARIO_TW_USE_I2CDEV
 
 class TWVHAL {
