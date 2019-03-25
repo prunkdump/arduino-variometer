@@ -18,8 +18,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef FIRMWARE_UPDATER_H
-#define FIRMWARE_UPDATER_H
+#ifndef FIRMWARE_UPDATER_TWS_H
+#define FIRMWARE_UPDATER_TWS_H
 
 #include <Arduino.h>
 
@@ -33,8 +33,8 @@
 #define FIRMWARE_UPDATER_ZACCEL_THRESHOLD -0.95
 
 /* update condition based on accelerometer */
-/* !! you need to init vertaccel first !! */
-boolean firmwareUpdateCond(void);
+/* !! you need to init TwoWireScheduler first !! */
+boolean firmwareUpdateCondTWS(void); //Two Wire scheduler version
 
 /* jump to bootloader to update firmware */
 void firmwareUpdate(void);

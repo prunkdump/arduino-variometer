@@ -18,12 +18,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <FirmwareUpdater.h>
+#include <FirmwareUpdaterTWS.h>
 
 #include <Arduino.h>
 #include <toneAC.h>
 
-#include <LightInvensenseOld.h>
+#include <TwoWireScheduler.h>
 
 inline bool firmwareUpdateCheckCond(int16_t* iaccel) {
 
@@ -38,28 +38,26 @@ inline bool firmwareUpdateCheckCond(int16_t* iaccel) {
   return false;
 }
 
+/* Two Wire Scheduler version */
+boolean firmwareUpdateCondTWS(void) {
 
-/* vert accel version */
-boolean firmwareUpdateCond(void) {
+  /* wait for accel */
+  unsigned long startTime = millis();
+  
+  while( (! twScheduler.haveAccel()) && ( (millis() - startTime) <= FIRMWARE_UPDATER_MPU_TIMEOUT )) { }
+  if( ! twScheduler.haveAccel() ) {
+    return false; //timeout
+  }
 
   /* read raw accel */
   int16_t iaccel[3];
   int32_t iquat[4];
- 
-  int state = -1;
-  unsigned long startTime = millis();
-  
-  while( state != 0  && (millis() - startTime) <= FIRMWARE_UPDATER_MPU_TIMEOUT ) {
-    state = fastMPUReadFIFO(NULL,iaccel,iquat);
-  }
-
-  if( state != 0 ) {
-    return false;
-  }
+  twScheduler.getRawAccel(iaccel, iquat);
   
   return firmwareUpdateCheckCond(iaccel);
 }
 
+  
 
 void firmwareUpdate(void) {
 

@@ -40,7 +40,7 @@
 #include <LxnavSentence.h>
 #include <LK8Sentence.h>
 #include <IGCSentence.h>
-#include <FirmwareUpdater.h>
+#include <FirmwareUpdaterTWS.h>
 #include <FlightHistory.h>
 
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/

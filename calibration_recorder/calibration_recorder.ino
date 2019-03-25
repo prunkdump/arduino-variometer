@@ -21,9 +21,9 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <VarioSettings.h>
-#include <IntTW.h>
+#include <TWVHAL.h>
 #include <EEPROM.h>
-#include <LightInvensense.h>
+#include <LightInvensenseOld.h>
 #include <toneAC.h>
 #include <avr/pgmspace.h>
 #include <digit.h>
@@ -225,7 +225,7 @@ void setup() {
 
   /* start devices */
   delay(VARIOMETER_POWER_ON_DELAY);
-  intTW.begin();
+  VarioTW.begin();
   fastMPUInit(true);
   if( firmwareUpdateCond() ) {
    firmwareUpdate();
