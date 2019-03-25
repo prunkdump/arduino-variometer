@@ -313,6 +313,7 @@ void loop() {
       
 #ifdef SDCARD_OUTPUT
       if( sdcardFound ) {
+        file.init();
         file.begin(filename, FILENAME_SIZE);
       }
 
