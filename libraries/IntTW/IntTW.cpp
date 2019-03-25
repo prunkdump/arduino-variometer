@@ -102,12 +102,12 @@ void IntTW::start(uint8_t* commands, uint8_t commandLength, uint8_t commandFlags
     transmitByte(); //this update TWCR and expectedState
   } else {
     /* send start or rep start */ 
-    TWCR = _BV(TWSTA) | COMMON_TWCR_FLAGS;
     if( haveBus ) {
       expectedState = TW_REP_START;
     } else {
       expectedState = TW_START;
     }
+    TWCR = _BV(TWSTA) | COMMON_TWCR_FLAGS;
   }
 }
   
@@ -159,8 +159,8 @@ void IntTW::checkStopOrRestart(void) {
 
     /* send repeated start */
     parseAction();
-    TWCR = _BV(TWSTA) | COMMON_TWCR_FLAGS;
     expectedState = TW_REP_START;
+    TWCR = _BV(TWSTA) | COMMON_TWCR_FLAGS;
     
   } else {
     /**************/
@@ -270,8 +270,8 @@ void IntTW::transmitByte(void) {
 
   /* send */
   count--;
-  TWCR = COMMON_TWCR_FLAGS;
   expectedState = TW_MT_DATA_ACK;
+  TWCR = COMMON_TWCR_FLAGS;
 }
   
   
@@ -312,12 +312,12 @@ void IntTW::twiVect(void) {
     /* command is already parsed */
     /* just send the SLA+(R/W) */
     TWDR = currentAddress;
-    TWCR = COMMON_TWCR_FLAGS;
     if( currentAddress & TW_READ ) {
       expectedState = TW_MR_SLA_ACK;
     } else {
       expectedState = TW_MT_SLA_ACK;
     }
+    TWCR = COMMON_TWCR_FLAGS;
   }
   
 
@@ -400,11 +400,11 @@ void IntTW::twiVect(void) {
 
       /* set ACK/NACK */
       if( needAck ) {
+	expectedState = TW_MR_DATA_ACK;
 	TWCR = _BV(TWEA) | COMMON_TWCR_FLAGS;
-	expectedState = TW_MR_DATA_ACK;	
       } else {
-	TWCR = COMMON_TWCR_FLAGS;
 	expectedState = TW_MR_DATA_NACK;
+	TWCR = COMMON_TWCR_FLAGS;
       }
     }
 

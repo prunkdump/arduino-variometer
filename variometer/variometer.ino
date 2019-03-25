@@ -1,6 +1,7 @@
 /* variometer -- The GNUVario embedded code
  *
  * Copyright 2016-2019 Baptiste PELLEGRIN
+ * Update    2018-2019 Jean-Philippe GOI
  * 
  * This file is part of GNUVario.
  *
@@ -41,7 +42,7 @@
 #include <LxnavSentence.h>
 #include <LK8Sentence.h>
 #include <IGCSentence.h>
-#include <FirmwareUpdater.h>
+#include <FirmwareUpdaterTWS.h>
 #include <variostat.h>
 #include <FlightHistory.h>
 
@@ -56,7 +57,7 @@
 /*******************/
 
 #define VERSION 63
-#define SUB_VERSION 9
+#define SUB_VERSION 92
 
 /*******************/
 /*    Historique   */
@@ -119,9 +120,13 @@
  *            InvenSenseMotionDriver : switched to IntTW
  *            TwoWireScheduler : added raw mag access
  *            Ms5611 : switched to IntTW library and added static vars optimization
- *
- * v 63.9.1   Correction du bug d'affichage RATIO_CLIMB_RATE
- *            Mise à jour bibliothèque ToneHAL
+ *            
+ * v 63.9.1   23/03/2019            
+ *            Maj ToneHAL
+ *            
+ * v 63.9.2   25/03/2019
+ *            IntTW bug : temporarily fallback to wire
+ *            ntTW : corrected bug, TWCR must be written at end           
  *
  *******************
  * Compilation :
@@ -316,7 +321,7 @@ constexpr unsigned historyPeriod = GPS_PERIOD;
 
 constexpr double historyCountF = (double)(VARIOMETER_GLIDE_RATIO_INTEGRATION_TIME)/(double)historyPeriod;
 constexpr int8_t historyCount = (int8_t)(0.5 + historyCountF);
-#else
+#else //!HAVE_GPS
 constexpr double historyCountF = (double)(VARIOMETER_INTEGRATED_CLIMB_RATE_DISPLAY_FREQ)*(double)(VARIOMETER_CLIMB_RATE_INTEGRATION_TIME)/(1000.0);
 constexpr int8_t historyCount = (int8_t)(0.5 + historyCountF);
 
@@ -527,13 +532,7 @@ void setup() {
   /* init kalman filter with 0.0 accel*/
   double firstAlti = twScheduler.getAlti();
   kalmanvert.init(firstAlti,
-
-
-
-
-
                   0.0,
-
                   POSITION_MEASURE_STANDARD_DEVIATION,
                   ACCELERATION_MEASURE_STANDARD_DEVIATION,
                   millis());
@@ -559,6 +558,15 @@ void setup() {
   delay(3000); 
   speedDigit.setValue(0);
 
+  if (RATIO_CLIMB_RATE == 1) {  
+    displayList[6].page  = 1;
+    displayList[7].page  = 0;
+  }
+  else if (RATIO_CLIMB_RATE == 2) {
+    displayList[6].page  = 0;
+    displayList[7].page  = 1;
+  }
+
 //  CalculTrend.Init();  
 }
 #endif //HAVE_SCREEN_JPG63
@@ -580,14 +588,10 @@ void loop() {
   if( twScheduler.havePressure() && twScheduler.haveAccel() ) {
     kalmanvert.update( twScheduler.getAlti(),
                        twScheduler.getAccel(NULL),
-
-
                        millis() );
 #else
   if( twScheduler.havePressure() ) {
     kalmanvert.update( twScheduler.getAlti(),
-
-
                        0.0,
                        millis() );
 #endif //HAVE_ACCELEROMETER
@@ -849,16 +853,26 @@ if (maxVoltage < tmpVoltage) {maxVoltage = tmpVoltage;}
 
 #ifdef HAVE_SCREEN_JPG63   
 
-#if (RATIO_CLIMB_RATE == 1)   
-      displayList[6].page  = 1;
-      displayList[7].page  = 0;
-#elseif (RATIO_CLIMB_RATE == 2)
-      displayList[6].page  = 0;
-      displayList[7].page  = 1;
-#else
-      displayList[6].page  = 1;
-      displayList[7].page  = 0;
+/*      if (RATIO_CLIMB_RATE == 1) {  
+        displayList[6].page  = 1;
+        displayList[7].page  = 0;
+      }
+      else if (RATIO_CLIMB_RATE == 2) {
+        displayList[6].page  = 0;
+        displayList[7].page  = 1;
+      }
+      else {
+        displayList[6].page  = 1;
+        displayList[7].page  = 0;
+      }
+*/
+
+#if (RATIO_CLIMB_RATE > 2)
+        displayList[6].page  = 1;
+        displayList[7].page  = 0;
 #endif
+
+
 //      displayList[12].page = 1;
 
       displayList[9].page = 1;
@@ -897,13 +911,15 @@ if (maxVoltage < tmpVoltage) {maxVoltage = tmpVoltage;}
 #endif //HAVE_VOLTAGE_DIVISOR
 #ifdef HAVE_SCREEN_JPG63 
      
-#if (RATIO_CLIMB_RATE == 1)   
-      displayList[6].page = 1;
-      displayList[7].page = 0;
-#elseif (RATIO_CLIMB_RATE == 2)
+/*      if (RATIO_CLIMB_RATE == 1) {  
+        displayList[6].page = 1;
+        displayList[7].page = 0;
+      }
+      #elseif (RATIO_CLIMB_RATE == 2)
       displayList[6].page = 0;
       displayList[7].page = 1;
-#else
+#else*/
+#if (RATIO_CLIMB_RATE > 2)
       displayList[6].page = 0;
       displayList[7].page = 1;
 #endif   

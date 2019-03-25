@@ -18,20 +18,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
  
-/**************************************************************************/
-/*                                VARIOSETTINGS                           */
-/*                                                                        */
-/*  Ver  Date                                                             */
-/*  1.0  13/03/2019   add ms5611 parameters                               */
-/*                    TWO WIRE settings                                   */
-/*  1.1  15/03/2019   Licence GNU                                         */
-/*              	  add VARIOMETER_CLIMB_RATE_INTEGRATION_TIME          */
-/*                    add VARIOMETER_INTEGRATED_CLIMB_RATE_DISPLAY_FREQ   */
-/* 					  add VARIOMETER_GLIDE_RATIO_INTEGRATION_TIME    	  */
-/*                    rename IMU_ to VERTACCEL_                           */
-/*  1.2  20/03/2019   add MODE_DEBUG                                      */
-/*                                                                        */
-/**************************************************************************/
+/**************************************************************************************************/
+/*                                VARIOSETTINGS                                                   */
+/*                                                                                                */
+/*  Ver  Date                                                                                     */
+/*  1.0  13/03/2019   add ms5611 parameters                                                       */
+/*                    TWO WIRE settings                                                           */
+/*  1.1  15/03/2019   Licence GNU                                                                 */
+/*              			add VARIOMETER_CLIMB_RATE_INTEGRATION_TIME                                  */
+/*                    add VARIOMETER_INTEGRATED_CLIMB_RATE_DISPLAY_FREQ                           */
+/* 										add VARIOMETER_GLIDE_RATIO_INTEGRATION_TIME 			                          */
+/*                    rename IMU_ to VERTACCEL_                                                   */
+/*                                                                                                */
+/**************************************************************************************************/
 
 /* VarioSettings -- Main configuration file
  *
@@ -137,7 +136,7 @@
 //Display Ratio      1
 //display Climb rate 2
 //display both       3
-#define RATIO_CLIMB_RATE 3
+#define RATIO_CLIMB_RATE 2
 
 /********************/
 /*      GPS         */
@@ -241,18 +240,18 @@
 //#define VERTACCEL_MAG_CAL_PROJ_SCALE -166
 
 //Version 2
-#define VERTACCEL_GYRO_CAL_BIAS {0x00, 0x00, 0x1b, 0x92, 0x00, 0x00, 0x23, 0x4f, 0x00, 0x01, 0x1c, 0x7f}
-#define VERTACCEL_ACCEL_CAL_BIAS {3042, 7981, 1753}
-#define VERTACCEL_ACCEL_CAL_SCALE -288
-#define VERTACCEL_MAG_CAL_BIAS {9049, 7449, 6753}
-#define VERTACCEL_MAG_CAL_PROJ_SCALE -3384
+//#define VERTACCEL_GYRO_CAL_BIAS {0x00, 0x00, 0x1b, 0x92, 0x00, 0x00, 0x23, 0x4f, 0x00, 0x01, 0x1c, 0x7f}
+//#define VERTACCEL_ACCEL_CAL_BIAS {3042, 7981, 1753}
+//#define VERTACCEL_ACCEL_CAL_SCALE -288
+//#define VERTACCEL_MAG_CAL_BIAS {9049, 7449, 6753}
+//#define VERTACCEL_MAG_CAL_PROJ_SCALE -3384
 
 //Version 3
-//#define VERTACCEL_GYRO_CAL_BIAS {0x00, 0x00, 0x3f, 0xf0, 0xff, 0xff, 0xb8, 0x17, 0xff, 0xff, 0xa8, 0x2c}
-//#define VERTACCEL_ACCEL_CAL_BIAS {-1943, 4749, -15216}
-//#define VERTACCEL_ACCEL_CAL_SCALE -140
-//#define VERTACCEL_MAG_CAL_BIAS {45, 3697, 2482}
-//#define VERTACCEL_MAG_CAL_PROJ_SCALE -9714
+#define VERTACCEL_GYRO_CAL_BIAS {0x00, 0x00, 0x3f, 0xf0, 0xff, 0xff, 0xb8, 0x17, 0xff, 0xff, 0xa8, 0x2c}
+#define VERTACCEL_ACCEL_CAL_BIAS {-1943, 4749, -15216}
+#define VERTACCEL_ACCEL_CAL_SCALE -140
+#define VERTACCEL_MAG_CAL_BIAS {45, 3697, 2482}
+#define VERTACCEL_MAG_CAL_PROJ_SCALE -9714
 
 /* Set the pins used for Screen V1 */
 //#define VARIOSCREEN_DC_PIN 4
@@ -260,14 +259,14 @@
 //#define VARIOSCREEN_RST_PIN 2
 
 /* Set the pins used for Screen V2 */
-#define VARIOSCREEN_DC_PIN 2
-#define VARIOSCREEN_CS_PIN 3
-#define VARIOSCREEN_RST_PIN 4
+//#define VARIOSCREEN_DC_PIN 2
+//#define VARIOSCREEN_CS_PIN 3
+//#define VARIOSCREEN_RST_PIN 4
 
 /* Set the pins used for Screen V3 */
-//#define VARIOSCREEN_DC_PIN 6
-//#define VARIOSCREEN_CS_PIN 7
-//#define VARIOSCREEN_RST_PIN 8
+#define VARIOSCREEN_DC_PIN 6
+#define VARIOSCREEN_CS_PIN 7
+#define VARIOSCREEN_RST_PIN 8
 
 /* The screen contrast */
 #define VARIOSCREEN_CONTRAST 60
