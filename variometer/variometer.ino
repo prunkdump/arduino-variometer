@@ -57,7 +57,7 @@
 /*******************/
 
 #define VERSION 63
-#define SUB_VERSION 92
+#define SUB_VERSION 93
 
 /*******************/
 /*    Historique   */
@@ -127,6 +127,8 @@
  * v 63.9.2   25/03/2019
  *            IntTW bug : temporarily fallback to wire
  *            ntTW : corrected bug, TWCR must be written at end           
+ *            
+ * v 63.9.3   fixes the problem of update by retrouncement impossible with certain card SD
  *
  *******************
  * Compilation :
@@ -420,6 +422,25 @@ void setup() {
   /*****************************/
   delay(VARIOMETER_POWER_ON_DELAY);
 
+  /************/
+  /* init SPI */
+  /************/
+  
+  /* set all SPI CS lines before talking to devices */
+#if defined(HAVE_SDCARD) && defined(HAVE_GPS)
+  file.enableSPI();
+#endif //defined(HAVE_SDCARD) && defined(HAVE_GPS)
+
+  /****************/
+  /* init SD Card */
+  /****************/
+
+#if defined(HAVE_SDCARD) && defined(HAVE_GPS)
+  if( file.init() >= 0 ) {
+    sdcardState = SDCARD_STATE_INITIALIZED;  //useless to set error
+  }
+#endif //defined(HAVE_SDCARD) && defined(HAVE_GPS)
+
   /**********************/
   /* init Two Wires devices */
   /**********************/
@@ -434,14 +455,9 @@ void setup() {
 #endif //HAVE_MUTE
 #endif //HAVE_ACCELEROMETER
 
-  /************/
-  /* init SPI */
-  /************/
-  
-  /* set all SPI CS lines before talking to devices */
-#if defined(HAVE_SDCARD) && defined(HAVE_GPS)
-  file.enableSPI();
-#endif //defined(HAVE_SDCARD) && defined(HAVE_GPS)
+  /*******************/
+  /* init SPI SCREEN */
+  /*******************/
 
 #ifdef HAVE_SCREEN
   screen.enableSPI();
@@ -453,14 +469,10 @@ void setup() {
 
 
   /****************/
-  /* init SD Card */
+  /* Alarm SD Card */
   /****************/
-#if defined(HAVE_SDCARD) && defined(HAVE_GPS)
-  if( file.init() >= 0 ) {
-    sdcardState = SDCARD_STATE_INITIALIZED;  //useless to set error
-  }
-  else
-  {
+
+  if (sdcardState == VARIOMETER_STATE_INITIAL) {
 #if defined( HAVE_SPEAKER) && defined (ALARM_SDCARD)
    for( int i = 0; i<4; i++) {
        toneHAL.tone(900);
@@ -469,7 +481,6 @@ void setup() {
     }       
 #endif //HAVE_SPEAKER && ALARM_SDCARD
   }  
-#endif //defined(HAVE_SDCARD) && defined(HAVE_GPS)
 
 #ifdef HAVE_SCREEN_JPG63
   flystat.Display();
