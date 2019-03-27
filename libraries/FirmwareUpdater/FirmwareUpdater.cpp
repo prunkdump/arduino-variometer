@@ -23,7 +23,7 @@
 #include <Arduino.h>
 #include <toneAC.h>
 
-#include <LightInvensenseOld.h>
+#include <LightInvensense.h>
 
 inline bool firmwareUpdateCheckCond(int16_t* iaccel) {
 
