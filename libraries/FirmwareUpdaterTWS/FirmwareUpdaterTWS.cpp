@@ -22,8 +22,14 @@
 
 #include <Arduino.h>
 #include <toneAC.h>
+#include <VarioSettings.h>
+
+#ifdef HAVE_ACCELEROMETER
 
 #include <TwoWireScheduler.h>
+#include <LightInvensense.h>
+
+
 
 inline bool firmwareUpdateCheckCond(int16_t* iaccel) {
 
@@ -77,6 +83,7 @@ void firmwareUpdate(void) {
   goto *bootloader;
 
 }
-  
+
+#endif //HAVE_ACCELEROMETER
   
   
