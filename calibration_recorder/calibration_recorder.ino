@@ -23,7 +23,7 @@
 #include <VarioSettings.h>
 #include <TWVHAL.h>
 #include <EEPROM.h>
-#include <LightInvensenseOld.h>
+#include <LightInvensense.h>
 #include <toneAC.h>
 #include <avr/pgmspace.h>
 #include <digit.h>
