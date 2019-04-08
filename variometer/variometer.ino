@@ -230,7 +230,7 @@ boolean lastSentence = false;
 #endif //HAVE_BLUETOOTH
 
 #ifdef HAVE_SDCARD
-lightfat16 file(SDCARD_CS_PIN);
+lightfat16 file;
 IGCHeader header;
 IGCSentence igc;
 

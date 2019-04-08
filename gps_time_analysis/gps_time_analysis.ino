@@ -98,7 +98,7 @@ NmeaParser nmeaParser;
 char filename[] = "TIMES00";
 #define FILE_NAME_SIZE 7
 
-lightfat16 file(SDCARD_CS_PIN);
+lightfat16 file;
 
 #define SD_CARD_STATE_INITIAL 0
 #define SD_CARD_STATE_INIT 1

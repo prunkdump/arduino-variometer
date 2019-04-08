@@ -24,6 +24,15 @@
 
 #include <Arduino.h>
 #include <SdCard.h>
+#include <VarioSettings.h>
+
+/***************************************/
+/* You can compile with static CS pin. */
+/* For this define :                   */
+/*                                     */
+/* #define SDCARD_CS_PIN               */
+/***************************************/
+static constexpr uint8_t lightFat16DefaultPin = SS;
 
 #define LF16_FILE_NAME_NUMBER_SIZE 2
 #define LF16_FILE_NAME_NUMBER_LIMIT 100
@@ -39,7 +48,11 @@
 class lightfat16 {
 
  public :
- lightfat16(uint8_t sspin) : card(sspin), currentBlock(-1), blockWriteEnabled(false) { }
+#ifndef SDCARD_CS_PIN
+ lightfat16(uint8_t csPin = lightFat16DefaultPin) : card(csPin), currentBlock(-1), blockWriteEnabled(false) { }
+#else
+ lightfat16() : currentBlock(-1), blockWriteEnabled(false) { }
+#endif
   void enableSPI(void); //set just the CS line
   int init(void);       //just search for SD card
   int begin(void);      // create file
