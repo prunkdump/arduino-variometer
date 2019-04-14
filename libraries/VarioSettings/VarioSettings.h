@@ -158,6 +158,7 @@
 /* Possible values are :                             */
 /*   MPU6050, MPU6500, MPU9150, MPU9250              */
 #define MPU9250
+#define MPU_STATIC_ADDRESS 0x68
 
 /* calibration method */
 // comment this following line to use EEPROM instead of static values
