@@ -28,12 +28,23 @@
   */
 #include <Arduino.h>
 #include <SPI.h>
+#include <VarioSettings.h>
 
+/***************************************/
+/* You can compile with static CS pin. */
+/* For this define :                   */
+/*                                     */
+/* #define SDCARD_CS_PIN               */
+/***************************************/
+static constexpr uint8_t sdCardDefaultPin = SS;
+
+/* speed and init speed */
 #define SD_SPI_SETTINGS SPISettings(F_CPU, MSBFIRST, SPI_MODE0)
-#define SD_SPI_INIT_SETTINGS SPISettings(400000, MSBFIRST, SPI_MODE0)
+#define SD_SPI_INIT_SETTINGS SPISettings(250000L, MSBFIRST, SPI_MODE0)
 
 //------------------------------------------------------------------------------
 // SD operation timeouts
+uint8_t const SD_INIT_MAX_CMD0 = 10;
 /** init timeout ms */
 uint16_t const SD_INIT_TIMEOUT = 2000;
 /** erase timeout ms */
@@ -118,18 +129,27 @@ uint8_t const CARD_TYPE_SDHC = 0x03;
  */
 class SdCard  {
  public:
- SdCard(uint8_t chipSelect = SS) : chipSelectPin(chipSelect), spiStarted(false) { }
+#ifndef SDCARD_CS_PIN
+ SdCard(uint8_t chipSelect = SS) : chipSelectPin(chipSelect) { }
+#endif //SDCARD_CS_PIN
   void enableSPI(void);
   bool begin(void);
   bool readBlock(uint32_t block, uint8_t* dst);
   bool writeBlock(uint32_t block, const uint8_t* src);
  private:
+#ifndef SDCARD_CS_PIN
   const uint8_t chipSelectPin;
+#else
+  static constexpr uint8_t chipSelectPin = SDCARD_CS_PIN;
+#endif //SDCARD_CS_PIN
   uint8_t cardType;
   uint8_t cardAcmd(uint8_t cmd, uint32_t arg);
   uint8_t cardCommand(uint8_t cmd, uint32_t arg);
-  boolean spiStarted;
   void startSPI(void);
   void stopSPI(void);
+  bool waitNotBusy(void);
+  uint8_t spiReceive(void) {
+    return SPI.transfer(0xff);
+  }
 };
 #endif  // SdCard_h

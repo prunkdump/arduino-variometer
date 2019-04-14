@@ -1,66 +1,14 @@
-/* VarioSettings -- Main configuration file
- *
- * Copyright 2016-2019 Baptiste PELLEGRIN
- * 
- * This file is part of GNUVario.
- *
- * GNUVario is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * GNUVario is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
- 
-/**************************************************************************************************/
-/*                                VARIOSETTINGS                                                   */
-/*                                                                                                */
-/*  Ver   Date                                                                                     */
-/*  1.0   13/03/2019   add ms5611 parameters                                                       */
-/*                     TWO WIRE settings                                                           */
-/*  1.1   15/03/2019   Licence GNU                                                                 */
-/*              			 add VARIOMETER_CLIMB_RATE_INTEGRATION_TIME                                  */
-/*                     add VARIOMETER_INTEGRATED_CLIMB_RATE_DISPLAY_FREQ                           */
-/* 										 add VARIOMETER_GLIDE_RATIO_INTEGRATION_TIME 			                           */
-/*                     rename IMU_ to VERTACCEL_                                                   */
-/*                                                                                                 */
-/*  1.1.1 07/04/2019   Ajout VARIO_Vx  pour facilité l'utilisation du fichier VarioSetting.h       */
-/*                     pour les différentes version du Gnuvario                                    */
-/***************************************************************************************************/
-
-/* VarioSettings -- Main configuration file
- *
- * Copyright 2016-2019 Baptiste PELLEGRIN
- * 
- * This file is part of GNUVario.
- *
- * GNUVario is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * GNUVario is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
+/**********************************************/
+/*               VARIOSETTINGS                */
+/*                                            */
+/*  Ver  Date                                 */
+/*  1.0  13/03/2019   add ms5611 parameters   */
+/*                    TWO WIRE settings       */
+/*                                            */
+/**********************************************/
 
 #ifndef VARIO_SETTINGS_H
 #define VARIO_SETTINGS_H
-
-
-//#define VARIO_V1
-#define VARIO_V2
-//#define VARIO_V3
 
 /*----------------------------*/
 /*          SOFTWARE          */
@@ -71,14 +19,9 @@
 /* Set your personnal info here and launch */
 /* the SetVarioParameters Sketch to store  */
 /* them in EEPROM.                         */
-/* ------ !!! Run SetVarioParameters.ino !!! ---------*/
-/*        !!! Only when you change one   !!!          */
-/*        !!! of these 3 settings.       !!!          */
 #define VARIOMETER_MODEL "GNUVario"
 #define VARIOMETER_PILOT_NAME "Magali"
 #define VARIOMETER_GLIDER_NAME "MAC-PARA Muse 3"
-/*        !!! For the others compilation !!!          */
-/*------- !!! is sufficient.             !!! ---------*/
 
 /* time zone relative to UTC */
 #define VARIOMETER_TIME_ZONE (+1) 
@@ -103,7 +46,7 @@
 /* The near climbing alarm : signal that you enter or exit the near climbing zone */
 /* The near climbing beep : beep when you are in near climbing zone               */
 //#define VARIOMETER_ENABLE_NEAR_CLIMBING_ALARM
-//#define VARIOMETER_ENABLE_NEAR_CLIMBING_BEEP
+#define VARIOMETER_ENABLE_NEAR_CLIMBING_BEEP
 
 
 /*******************/
@@ -129,15 +72,13 @@
 #define FLIGHT_START_MIN_SPEED 8.0
 
 /* Display integrated climb rate or instantaneous values */
-/* If enabled set the integration time in ms.                            */
-/* ! Climb rate integration time must not be more than glide ratio one ! */
 //#define VARIOMETER_DISPLAY_INTEGRATED_CLIMB_RATE
-#define VARIOMETER_CLIMB_RATE_INTEGRATION_TIME 2000
-#define VARIOMETER_INTEGRATED_CLIMB_RATE_DISPLAY_FREQ 2.0
 
-/* Glide ratio display parameters  */
-/* Integration time in ms.         */
-#define VARIOMETER_GLIDE_RATIO_INTEGRATION_TIME 15000
+/* Integration parameters  (in ms)                  */
+/* !     also used for computing glide ratio      ! */
+/* ! even if you don't use integrated climb rate  ! */
+#define VARIOMETER_INTEGRATION_TIME 5000
+#define VARIOMETER_INTEGRATION_DISPLAY_FREQ 2.0
 
 // secondary display
 //Display Ratio      1
@@ -179,30 +120,6 @@
 /* set the delay between sendings in milliseconds.             */ 
 #define VARIOMETER_SENTENCE_DELAY 2000
 
-/* Mute */
-//#define HAVE_MUTE
-
-/* Speed filtering :                                               */
-/* Greater values give smoother speed. The base unit is 2 seconds  */
-/* so size = 5 use the last 10 seconds to average speed.           */
-#define VARIOMETER_SPEED_FILTER_SIZE 5
-
-/*********/
-/* Alarm */
-/*********/
-
-/* Alarm SDCARD not insert */
-#define ALARM_SDCARD
-/* Alarm GPS Fix */
-#define ALARM_GPSFIX
-/* Alarm Fly begin */
-#define ALARM_FLYBEGIN
-
-
-/**************/
-/* DEBUG      */
-/**************/
-#define MODE_DEBUG
 
 /*----------------------------*/
 /*          HARDWARE          */
@@ -239,54 +156,41 @@
 
 #define VERTACCEL_STATIC_CALIBRATION
 
-
-#if defined(VARIO_V1)
 /* Parametre par defaut */
-/* Parametre MPU        */
+/*#define IMU_GYRO_CAL_BIAS {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
+#define IMU_ACCEL_CAL_BIAS {0, 0, 0}
+#define IMU_ACCEL_CAL_SCALE 0
+#define IMU_MAG_CAL_BIAS {0, 0, 0}
+#define IMU_MAG_CAL_PROJ_SCALE -166*/
 
-#define VERTACCEL_GYRO_CAL_BIAS {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
-#define VERTACCEL_ACCEL_CAL_BIAS {0, 0, 0}
-#define VERTACCEL_ACCEL_CAL_SCALE 0
-#define VERTACCEL_MAG_CAL_BIAS {0, 0, 0}
-#define VERTACCEL_MAG_CAL_PROJ_SCALE -166
+//Version 2
+//#define IMU_GYRO_CAL_BIAS {0x00, 0x00, 0x1b, 0x92, 0x00, 0x00, 0x23, 0x4f, 0x00, 0x01, 0x1c, 0x7f}
+//#define IMU_ACCEL_CAL_BIAS {3042, 7981, 1753}
+//#define IMU_ACCEL_CAL_SCALE -288
+//#define IMU_MAG_CAL_BIAS {9049, 7449, 6753}
+//#define IMU_MAG_CAL_PROJ_SCALE -3384
+
+//Version 3
+#define IMU_GYRO_CAL_BIAS {0x00, 0x00, 0x3f, 0xf0, 0xff, 0xff, 0xb8, 0x17, 0xff, 0xff, 0xa8, 0x2c}
+#define IMU_ACCEL_CAL_BIAS {-1943, 4749, -15216}
+#define IMU_ACCEL_CAL_SCALE -140
+#define IMU_MAG_CAL_BIAS {45, 3697, 2482}
+#define IMU_MAG_CAL_PROJ_SCALE -9714
 
 /* Set the pins used for Screen V1 */
-#define VARIOSCREEN_DC_PIN 4
-#define VARIOSCREEN_CS_PIN 3
-#define VARIOSCREEN_RST_PIN 2
-
-#elif defined(VARIO_V2)
-//Version 2
-/* Parametre MPU        */
-
-#define VERTACCEL_GYRO_CAL_BIAS {0x00, 0x00, 0x1b, 0x92, 0x00, 0x00, 0x23, 0x4f, 0x00, 0x01, 0x1c, 0x7f}
-#define VERTACCEL_ACCEL_CAL_BIAS {3042, 7981, 1753}
-#define VERTACCEL_ACCEL_CAL_SCALE -288
-#define VERTACCEL_MAG_CAL_BIAS {9049, 7449, 6753}
-#define VERTACCEL_MAG_CAL_PROJ_SCALE -3384
+//#define VARIOSCREEN_DC_PIN 4
+//#define VARIOSCREEN_CS_PIN 3
+//#define VARIOSCREEN_RST_PIN 2
 
 /* Set the pins used for Screen V2 */
-#define VARIOSCREEN_DC_PIN 2
-#define VARIOSCREEN_CS_PIN 3
-#define VARIOSCREEN_RST_PIN 4
-
-#elif defined(VARIO_V3)
-//Version 3
-/* Parametre MPU        */
-
-#define VERTACCEL_GYRO_CAL_BIAS {0x00, 0x00, 0x3f, 0xf0, 0xff, 0xff, 0xb8, 0x17, 0xff, 0xff, 0xa8, 0x2c}
-#define VERTACCEL_ACCEL_CAL_BIAS {-1943, 4749, -15216}
-#define VERTACCEL_ACCEL_CAL_SCALE -140
-#define VERTACCEL_MAG_CAL_BIAS {45, 3697, 2482}
-#define VERTACCEL_MAG_CAL_PROJ_SCALE -9714
+//#define VARIOSCREEN_DC_PIN 2
+//#define VARIOSCREEN_CS_PIN 3
+//#define VARIOSCREEN_RST_PIN 4
 
 /* Set the pins used for Screen V3 */
 #define VARIOSCREEN_DC_PIN 6
 #define VARIOSCREEN_CS_PIN 7
 #define VARIOSCREEN_RST_PIN 8
-
-#endif
-
 
 /* The screen contrast */
 #define VARIOSCREEN_CONTRAST 60
@@ -295,6 +199,11 @@
 #define SDCARD_CS_PIN 14
 
 /* time needed to power on all the devices */
+/* Version 1 et 2                          */
+//#define VARIOMETER_POWER_ON_DELAY 2000
+
+/* time needed to power on all the devices */
+/* Version 3                               */
 #define VARIOMETER_POWER_ON_DELAY 3000
 
 /****************/
@@ -326,5 +235,24 @@
 
 /* Set the freq */
 #define VARIO_TW_FREQ 400000UL
+
+/*********/
+/* Alarm */
+/*********/
+
+/* Alarm SDCARD not insert */
+#define ALARM_SDCARD
+/* Alarm GPS Fix */
+#define ALARM_GPSFIX
+/* Alarm Fly begin */
+#define ALARM_FLYBEGIN
+
+/* Mute */
+//#define HAVE_MUTE
+
+/* Speed filtering :                                               */
+/* Greater values give smoother speed. The base unit is 2 seconds  */
+/* so size = 5 use the last 10 seconds to average speed.           */
+#define VARIOMETER_SPEED_FILTER_SIZE 5
 
 #endif

@@ -57,7 +57,7 @@
 /*******************/
 
 #define VERSION 63
-#define SUB_VERSION 93
+#define SUB_VERSION 95
 
 /*******************/
 /*    Historique   */
@@ -129,6 +129,11 @@
  *            ntTW : corrected bug, TWCR must be written at end           
  *            
  * v 63.9.3   fixes the problem of update by retrouncement impossible with certain card SD
+ * 
+ * v 63.9.4   Corrected bug : FirmwareUpdaterTWS can't compile without accelerometer 
+ * 
+ * v 63.9.5   14/04/2019
+ *            Debbugger SDCARD - ligthFat16
  *
  *******************
  * Compilation :
@@ -363,7 +368,7 @@ boolean lastSentence = false;
 #endif //HAVE_BLUETOOTH
 
 #ifdef HAVE_SDCARD
-lightfat16 file(SDCARD_CS_PIN);
+lightfat16 file;
 IGCHeader header;
 IGCSentence igc;
 

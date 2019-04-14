@@ -44,22 +44,25 @@ uint8_t const DATA_RES_WRITE_ERROR = 0X0D;
 //------------------------------------------------------------------------------
 // wait for card to go not busy
 // return false if timeout
-STATIC_NOINLINE bool waitForToken(uint8_t token, uint16_t timeoutMillis) {
+bool SdCard::waitNotBusy(void) {
   uint16_t t0 = millis();
-  while (SPI.transfer(0xff) != token) {
-    if (((uint16_t)millis() - t0) > timeoutMillis) return false;
+  while (spiReceive() != 0xff) {
+    if (((uint16_t)millis() - t0) > SD_WRITE_TIMEOUT) return false;
   }
   return true;
 }
 //==============================================================================
 // SdCard member functions
 //------------------------------------------------------------------------------
+
+// you need to start SPI and put CS low manually
+// you can use startSpi()
 uint8_t SdCard::cardCommand(uint8_t cmd, uint32_t arg) {
-  // select card
-  startSPI();
-  
-  // wait if busy
-  waitForToken(0xff, SD_WRITE_TIMEOUT);
+
+  /* wait not busy */
+  if (cmd != CMD0) {
+    waitNotBusy();
+  }
 
   // send command
   SPI.transfer(cmd | 0x40);
@@ -69,22 +72,21 @@ uint8_t SdCard::cardCommand(uint8_t cmd, uint32_t arg) {
   for (int8_t i = 3; i >= 0; i--) {
     SPI.transfer(pa[i]);
   }
-  
+
   // send CRC - correct for CMD0 with arg zero or CMD8 with arg 0X1AA
   SPI.transfer(cmd == CMD0 ? 0X95 : 0X87);
 
-  // skip stuff byte for stop read
-  if (cmd == CMD12) {
-    SPI.transfer(0xff);
-  }
+  // discard first fill byte to avoid MISO pull-up problem.
+  spiReceive();
 
-  // wait for response
+  // there are 1-8 fill bytes before response.  fill bytes should be 0XFF.
   uint8_t status;
-  for (uint8_t i = 0; ((status = SPI.transfer(0xff)) & 0X80) && i != 0XFF; i++) {
+  for (uint8_t i = 0; ((status = spiReceive()) & 0X80) && i < 10; i++) {
   }
   return status;
 }
-//------------------------------------------------------------------------------
+ 
+//--------------------------------------------------------------------------
 uint8_t SdCard::cardAcmd(uint8_t cmd, uint32_t arg) {
   cardCommand(CMD55, 0);
   return cardCommand(cmd, arg);
@@ -116,20 +118,15 @@ void SdCard::enableSPI(void) {
 }
 
 void SdCard::startSPI(void) {
-  if( ! spiStarted ) {
-    SPI.beginTransaction(SD_SPI_SETTINGS);
-    digitalWrite(chipSelectPin, LOW);
-    spiStarted = true;
-  }
+  SPI.beginTransaction(SD_SPI_SETTINGS);
+  digitalWrite(chipSelectPin, LOW);
 }
 
+
 void SdCard::stopSPI(void) {
-  if( spiStarted ) {
-    digitalWrite(chipSelectPin, HIGH);
-    SPI.transfer(0xff);
-    SPI.endTransaction();
-    spiStarted = false;
-  }
+  digitalWrite(chipSelectPin, HIGH);
+  spiReceive();
+  SPI.endTransaction();
 }
 
 
@@ -149,38 +146,37 @@ bool SdCard::begin(void) {
   digitalWrite(chipSelectPin, LOW);
   
   // must supply min of 74 clock cycles with CS high.
+  digitalWrite(chipSelectPin, HIGH);
   for (uint8_t i = 0; i < 10; i++) {
-    SPI.transfer(0xff);
+    spiReceive();
   }
+  
   // command to go idle in SPI mode
+  digitalWrite(chipSelectPin, LOW);
+  uint8_t cmd0Count = 0;
   while (cardCommand(CMD0, 0) != R1_IDLE_STATE) {
-    if (((unsigned)millis() - t0) > SD_INIT_TIMEOUT) {
+    if( cmd0Count >= SD_INIT_MAX_CMD0 ) {
       goto fail;
     }
+    cmd0Count++;
   }
 
   // check SD version
-  while (1) {
-    if (cardCommand(CMD8, 0x1AA) == (R1_ILLEGAL_COMMAND | R1_IDLE_STATE)) {
-      cardType = CARD_TYPE_SDV1;
-      break;
-    }
+  if (cardCommand(CMD8, 0x1AA) == (R1_ILLEGAL_COMMAND | R1_IDLE_STATE)) {
+    cardType = CARD_TYPE_SDV1;
+  } else {
     for (uint8_t i = 0; i < 4; i++) {
-      status = SPI.transfer(0xff);
+      status = spiReceive();
     }
     if (status == 0XAA) {
       cardType = CARD_TYPE_SDV2;
-      break;
-    }
-    if (((unsigned)millis() - t0) > SD_INIT_TIMEOUT) {
+    } else {
       goto fail;
     }
   }
 
-    
   // initialize card and send host supports SDHC if SD2
   arg = cardType == CARD_TYPE_SDV2 ? 0X40000000 : 0;
-    
   while (cardAcmd(ACMD41, arg) != R1_READY_STATE) {
     // check for timeout
     if (((unsigned)millis() - t0) > SD_INIT_TIMEOUT) {
@@ -193,12 +189,12 @@ bool SdCard::begin(void) {
     if (cardCommand(CMD58, 0)) {
       goto fail;
     }
-    if ((SPI.transfer(0xff) & 0XC0) == 0XC0) {
+    if ((spiReceive() & 0XC0) == 0XC0) {
       cardType = CARD_TYPE_SDHC;
     }
     // Discard rest of ocr - contains allowed voltage range.
     for (uint8_t i = 0; i < 3; i++) {
-      SPI.transfer(0xff);
+      spiReceive();
     }
   }
 
@@ -224,6 +220,9 @@ bool SdCard::readBlock(uint32_t blockNumber, uint8_t* dst) {
 
   uint8_t status;
   unsigned t0;
+
+  /* start SPI */
+  startSPI();
   
   /* get block number */
   if (cardType != CARD_TYPE_SDHC) {
@@ -238,7 +237,7 @@ bool SdCard::readBlock(uint32_t blockNumber, uint8_t* dst) {
   /********/
   // wait for start block token
   t0 = millis();
-  while ((status = SPI.transfer(0xff)) == 0XFF) {
+  while ((status = spiReceive()) == 0XFF) {
     if (((unsigned)millis() - t0) > SD_READ_TIMEOUT) {
       goto fail;
     }
@@ -248,12 +247,12 @@ bool SdCard::readBlock(uint32_t blockNumber, uint8_t* dst) {
   }
   // transfer data
   for (size_t i = 0; i < 512; i++) {
-    dst[i] = SPI.transfer(0XFF);
+    dst[i] = spiReceive();
   }
   
   // discard crc
-  SPI.transfer(0XFF);
-  SPI.transfer(0XFF);
+  spiReceive();
+  spiReceive();
 
   // ok
   stopSPI();
@@ -273,7 +272,11 @@ fail:
  * the value zero, false, is returned for failure.
  */
 bool SdCard::writeBlock(uint32_t blockNumber, const uint8_t* src) {
+
   uint8_t status;
+
+  /* start SPI */
+  startSPI();
   
   /* set block number */
   if (cardType != CARD_TYPE_SDHC) {
@@ -286,18 +289,27 @@ bool SdCard::writeBlock(uint32_t blockNumber, const uint8_t* src) {
   /*********/
   /* write */
   /*********/
-  SPI.transfer(0xff);
-  SPI.transfer(0xff);
-  
   SPI.transfer(DATA_START_BLOCK);
   for (size_t i = 0; i < 512; i++) {
     SPI.transfer(src[i]);
   }
-  SPI.transfer(0xff);
-  SPI.transfer(0xff);
+  spiReceive();
+  spiReceive();
   
-  status = SPI.transfer(0xff);
+  status = spiReceive();
   if ((status & DATA_RES_MASK) != DATA_RES_ACCEPTED) {
+    goto fail;
+  }
+
+  /**********************/
+  /* flush cache buffer */
+  /**********************/
+  if ( !waitNotBusy() ) {
+    goto fail;
+  }
+  
+  // response is r2 so get and check two bytes for nonzero
+  if (cardCommand(CMD13, 0) || spiReceive()) {
     goto fail;
   }
 
