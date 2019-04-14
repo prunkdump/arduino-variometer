@@ -125,7 +125,7 @@ void SdCard::startSPI(void) {
 
 void SdCard::stopSPI(void) {
   digitalWrite(chipSelectPin, HIGH);
-  SPI.transfer(0xff);
+  spiReceive();
   SPI.endTransaction();
 }
 
@@ -245,7 +245,7 @@ bool SdCard::readBlock(uint32_t blockNumber, uint8_t* dst) {
   }
   // transfer data
   for (size_t i = 0; i < 512; i++) {
-    dst[i] = SPI.transfer(0XFF);
+    dst[i] = spiReceive();
   }
   
   // discard crc
@@ -291,8 +291,8 @@ bool SdCard::writeBlock(uint32_t blockNumber, const uint8_t* src) {
   for (size_t i = 0; i < 512; i++) {
     SPI.transfer(src[i]);
   }
-  SPI.transfer(0xff);
-  SPI.transfer(0xff);
+  spiReceive();
+  spiReceive();
   
   status = spiReceive();
   if ((status & DATA_RES_MASK) != DATA_RES_ACCEPTED) {
