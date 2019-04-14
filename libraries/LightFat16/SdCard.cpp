@@ -153,10 +153,12 @@ bool SdCard::begin(void) {
   
   // command to go idle in SPI mode
   digitalWrite(chipSelectPin, LOW);
+  uint8_t cmd0Count = 0;
   while (cardCommand(CMD0, 0) != R1_IDLE_STATE) {
-    if (((unsigned)millis() - t0) > SD_INIT_TIMEOUT) {
+    if( cmd0Count >= SD_INIT_MAX_CMD0 ) {
       goto fail;
     }
+    cmd0Count++;
   }
 
   // check SD version

@@ -44,6 +44,7 @@ static constexpr uint8_t sdCardDefaultPin = SS;
 
 //------------------------------------------------------------------------------
 // SD operation timeouts
+uint8_t const SD_INIT_MAX_CMD0 = 10;
 /** init timeout ms */
 uint16_t const SD_INIT_TIMEOUT = 2000;
 /** erase timeout ms */
