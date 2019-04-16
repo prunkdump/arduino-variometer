@@ -28,8 +28,6 @@ from math import *
 
 
 DEFAULT_RECORD_FILE = "RECORD00.IGC"
-VERTACCEL_ACCEL_CAL_BIAS_MULTIPLIER = 6    # bias = value/2^multiplier
-VERTACCEL_MAG_CAL_BIAS_MULTIPLIER = 4
 VERTACCEL_CAL_SCALE_MULTIPLIER = 16        # scale = 1 + value/2^multiplier
 ACCEL_BASE_SCALE = 13                      # scaled by 2^x
 MAG_BASE_PROJ_SCALE = 7                    # scaled by 2^x 
@@ -149,7 +147,31 @@ print "Mag projection coefficients =", projCoeff
 print "Projection error =", projErr
 print " "
 
+##########################
+# search best multiplier #
+##########################
 
+# accel multiplier #
+bestAccelMultiplier = -1;
+for i in range(3):
+    accelMultiplier = int(floor( log( float(2**15 - 1)/abs(accelGSphere[i]), 2 ) ));
+    if (bestAccelMultiplier < 0) or (accelMultiplier < bestAccelMultiplier) :
+        bestAccelMultiplier = accelMultiplier 
+
+if( bestAccelMultiplier > 30 ) :
+    bestAccelMultiplier = 30
+
+# mag multiplier #
+bestMagMultiplier = -1;
+for i in range(3):
+    magMultiplier = int(floor( log( float(2**15 - 1)/abs(magGSphere[i]), 2 ) ));
+    if (bestMagMultiplier < 0) or (magMultiplier < bestMagMultiplier) :
+        bestMagMultiplier = magMultiplier 
+
+if( bestMagMultiplier > 30 ) :
+    bestMagMultiplier = 30
+
+    
 #############################
 # output calibration values #
 #############################
@@ -158,6 +180,13 @@ print("############")
 print("#  Result  #")
 print("############")
 print(" ")
+
+# signal big drift #
+if( bestAccelMultiplier < 5 ) :
+    print("!!! Warning : you have high drift on your accel measures !!!")
+    print("!!! Maybe something disturb your accelerometer.          !!!")
+    print(" ")
+
 print("Please copy and paste there settings in VarioSettings.h")
 print(" ")
 
@@ -173,7 +202,7 @@ print("}")
 # accel bias #
 sys.stdout.write("#define VERTACCEL_ACCEL_CAL_BIAS {")
 for i in range(3):
-    sys.stdout.write(str(int(np.rint(  accelGSphere[i]*float(2**VERTACCEL_ACCEL_CAL_BIAS_MULTIPLIER)  ))))
+    sys.stdout.write(str(int(np.rint(  accelGSphere[i]*float(2**bestAccelMultiplier)  ))))
     if( i != 2 ):
         sys.stdout.write(", ")
 print("}")
@@ -184,7 +213,7 @@ print "#define VERTACCEL_ACCEL_CAL_SCALE", int(np.rint(  float(2**(ACCEL_BASE_SC
 # mag bias #
 sys.stdout.write("#define VERTACCEL_MAG_CAL_BIAS {")
 for i in range(3):
-    sys.stdout.write(str(int(np.rint(  magGSphere[i]*float(2**VERTACCEL_MAG_CAL_BIAS_MULTIPLIER)  ))))
+    sys.stdout.write(str(int(np.rint(  magGSphere[i]*float(2**bestMagMultiplier)  ))))
     if( i != 2 ):
         sys.stdout.write(", ")
 print("}")
@@ -192,3 +221,8 @@ print("}")
 # mag proj scale #
 print "#define VERTACCEL_MAG_CAL_PROJ_SCALE", int(np.rint(  float(2**(MAG_BASE_PROJ_SCALE+VERTACCEL_CAL_SCALE_MULTIPLIER))/(projCoeff[1]*magGSphere[3]) - float(2**VERTACCEL_CAL_SCALE_MULTIPLIER)  ))
 
+# accel multiplier #
+print "#define VERTACCEL_ACCEL_CAL_BIAS_MULTIPLIER", bestAccelMultiplier
+
+# mag multiplier #
+print "#define VERTACCEL_MAG_CAL_BIAS_MULTIPLIER", bestMagMultiplier
