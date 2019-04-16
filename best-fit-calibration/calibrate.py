@@ -20,6 +20,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>. #
 ##########################################################################
 
+from __future__ import print_function
+from __future__ import division
 import sys
 from bestfit import *
 import csv
@@ -54,11 +56,11 @@ else:
     recordFile = DEFAULT_RECORD_FILE
 
 
-with open(recordFile, 'rb') as csvfile:
+with open(recordFile, 'rt') as csvfile:
     reader = csv.reader(csvfile)
 
     # the first line is the gyro calibration data #
-    gyroVect = reader.next();
+    gyroVect = next(reader);
     gyroCal = np.array(gyroVect, dtype=int)
 
     # next lines are accel/mag data #
@@ -143,9 +145,9 @@ def leastSquaresProjectionCoefficient(normalizedAccel, normalizedMag):
 
 
 projCoeff, projErr = leastSquaresProjectionCoefficient(accel, mag)
-print "Mag projection coefficients =", projCoeff
-print "Projection error =", projErr
-print " "
+print("Mag projection coefficients =", projCoeff)
+print("Projection error =", projErr)
+print(" ")
 
 ##########################
 # search best multiplier #
@@ -208,7 +210,7 @@ for i in range(3):
 print("}")
 
 # accel scale #
-print "#define VERTACCEL_ACCEL_CAL_SCALE", int(np.rint(  float(2**(ACCEL_BASE_SCALE+VERTACCEL_CAL_SCALE_MULTIPLIER))/accelGSphere[3] - float(2**VERTACCEL_CAL_SCALE_MULTIPLIER) ))
+print("#define VERTACCEL_ACCEL_CAL_SCALE", int(np.rint(  float(2**(ACCEL_BASE_SCALE+VERTACCEL_CAL_SCALE_MULTIPLIER))/accelGSphere[3] - float(2**VERTACCEL_CAL_SCALE_MULTIPLIER) )) )
 
 # mag bias #
 sys.stdout.write("#define VERTACCEL_MAG_CAL_BIAS {")
@@ -219,10 +221,10 @@ for i in range(3):
 print("}")
 
 # mag proj scale #
-print "#define VERTACCEL_MAG_CAL_PROJ_SCALE", int(np.rint(  float(2**(MAG_BASE_PROJ_SCALE+VERTACCEL_CAL_SCALE_MULTIPLIER))/(projCoeff[1]*magGSphere[3]) - float(2**VERTACCEL_CAL_SCALE_MULTIPLIER)  ))
+print("#define VERTACCEL_MAG_CAL_PROJ_SCALE", int(np.rint(  float(2**(MAG_BASE_PROJ_SCALE+VERTACCEL_CAL_SCALE_MULTIPLIER))/(projCoeff[1]*magGSphere[3]) - float(2**VERTACCEL_CAL_SCALE_MULTIPLIER)  )) )
 
 # accel multiplier #
-print "#define VERTACCEL_ACCEL_CAL_BIAS_MULTIPLIER", bestAccelMultiplier
+print("#define VERTACCEL_ACCEL_CAL_BIAS_MULTIPLIER", bestAccelMultiplier)
 
 # mag multiplier #
-print "#define VERTACCEL_MAG_CAL_BIAS_MULTIPLIER", bestMagMultiplier
+print("#define VERTACCEL_MAG_CAL_BIAS_MULTIPLIER", bestMagMultiplier)
