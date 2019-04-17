@@ -61,7 +61,7 @@
 /* global variables */
 
 #ifdef SDCARD_OUTPUT
-lightfat16 file(SDCARD_CS_PIN);
+lightfat16 file;
 boolean sdcardFound = false;
 char filename[] = "RECORD00";
 #define FILENAME_SIZE 8

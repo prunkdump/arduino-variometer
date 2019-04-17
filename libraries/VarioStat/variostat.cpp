@@ -1,7 +1,7 @@
 #include <variostat.h>
 #include <Arduino.h>
 #include <EEPROM.h>
-#include <ToneAc.h>
+#include <ToneAC.h>
 
 
 // Write any data structure or variable to EEPROM
