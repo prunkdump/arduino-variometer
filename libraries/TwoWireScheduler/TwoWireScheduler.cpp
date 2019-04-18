@@ -32,12 +32,13 @@
 #include <vertaccel.h>
 #endif
 
-#define PRESSURE_RELEASED 0
-#define HAVE_PRESSURE 1
-#define ACCEL_RELEASED 2
-#define HAVE_ACCEL 3
-#define MAG_RELEASED 4
-#define HAVE_MAG 5
+#define TEMP_READ 0
+#define PRESSURE_RELEASED 1
+#define HAVE_PRESSURE 2
+#define ACCEL_RELEASED 3
+#define HAVE_ACCEL 4
+#define MAG_RELEASED 5
+#define HAVE_MAG 6
 
 #define bset(bit) status |= (1 << bit)
 #define bunset(bit) status &= ~(1 << bit)
@@ -88,12 +89,18 @@ static void TWScheduler::ms5611Interrupt(void) {
 
   if( ms5611Step == 0 ) {
 
+    bunset(TEMP_READ);
     intTW.setRxBuffer(ms5611Output);
-    intTW.start(ms5611Step1, sizeof(ms5611Step1), INTTW_USE_PROGMEM);
+    intTW.start(ms5611Step1, sizeof(ms5611Step1), INTTW_USE_PROGMEM, ms5611TempCallback);
     ms5611Step = 1;
   }
 
   else {
+
+    /* if can't get temp, don't go further */
+    if( ! bisset(TEMP_READ) ) {
+      return;
+    }
 
     /* copy the first value to get it at any time from main loop */
     for(int i = 0; i<3; i++) {
@@ -109,6 +116,10 @@ static void TWScheduler::ms5611Interrupt(void) {
   }
 }
 
+static void TWScheduler::ms5611TempCallback(void) {
+
+  bset(TEMP_READ);
+}
 
 static void TWScheduler::ms5611OutputCallback(void) {
 

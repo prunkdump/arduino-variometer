@@ -107,6 +107,7 @@ class TWScheduler {
   
   /* private interrupt methods */
   static void ms5611Interrupt(void);
+  static void ms5611TempCallback(void);
   static void ms5611OutputCallback(void);
 #ifdef HAVE_ACCELEROMETER
   static void imuInterrupt(void);
