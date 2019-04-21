@@ -67,7 +67,11 @@ uint8_t variometerState = VARIOMETER_STATE_CALIBRATED;
 /***************/
 /* IMU objects */
 /***************/
+#ifdef HAVE_BMP280
+Bmp280 TWScheduler::bmp280;
+#else
 Ms5611 TWScheduler::ms5611;
+#endif
 #ifdef HAVE_ACCELEROMETER
 Vertaccel TWScheduler::vertaccel;
 #endif

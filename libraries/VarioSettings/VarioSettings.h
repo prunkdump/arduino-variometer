@@ -154,6 +154,12 @@
 #define MS5611_STATIC_ADDRESS 0x77
 //#define MS5611_STATIC_CALIBRATION {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}}
 
+/* We advice using the ms5611 barometer */
+/* but if you want to use the BMP280 you can enable it here */
+//#define HAVE_BMP280
+#define BMP280_STATIC_ADDRESS 0x76
+//#define BMP280_STATIC_CALIBRATION {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}}
+
 /* If you embed an accelerometer set the model here. */
 /* Possible values are :                             */
 /*   MPU6050, MPU6500, MPU9150, MPU9250              */

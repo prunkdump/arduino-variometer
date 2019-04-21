@@ -24,7 +24,13 @@
 
 #include <IntTW.h>
 #include <avr/pgmspace.h>
+
+#ifdef HAVE_BMP280
+#include <bmp280.h>
+#else
 #include <ms5611.h>
+#endif
+
 #include <VarioSettings.h>
 
 #ifdef HAVE_ACCELEROMETER
@@ -50,9 +56,14 @@ TWScheduler twScheduler;
 /* static class data */
 /*********************/
 uint8_t volatile TWScheduler::status = 0;   //no problem to not release at start as there is no values
+#ifdef HAVE_BMP280 
+uint8_t volatile TWScheduler::bmp280Output[2*3];  //two bmp280 output measures
+uint8_t volatile TWScheduler::bmp280Count = TWO_WIRE_SCHEDULER_BMP280_SHIFT;
+#else
 int8_t volatile TWScheduler::ms5611Step = 0; 
 uint8_t volatile TWScheduler::ms5611Output[3*3];  //three ms5611 output measures
 uint8_t volatile TWScheduler::ms5611Count = TWO_WIRE_SCHEDULER_MS5611_SHIFT;
+#endif
 #ifdef HAVE_ACCELEROMETER
 uint8_t volatile TWScheduler::checkOutput[2];
 uint8_t volatile TWScheduler::imuOutput[LIGHT_INVENSENSE_COMPRESSED_DMP_PAQUET_LENGTH]; //imu dmp fifo output
@@ -63,6 +74,71 @@ uint8_t volatile TWScheduler::magCount = TWO_WIRE_SCHEDULER_MAG_SHIFT;
 #endif //AK89xx_SECONDARY
 #endif //HAVE_ACCELEROMETER
 
+
+#ifdef HAVE_BMP280
+/***************/
+/* bmp280 part */
+/***************/
+
+static const uint8_t bmp280Step[] PROGMEM = { INTTW_ACTION(BMP280_STATIC_ADDRESS, INTTW_WRITE),
+					      INTTW_DEST(1, INTTW_IN_CMD),
+					      BMP280_PRESS_REG,
+					      INTTW_ACTION(BMP280_STATIC_ADDRESS, INTTW_READ),
+					      INTTW_DEST(6, INTTW_AT_POINTER),
+					      INTTW_ACTION(BMP280_STATIC_ADDRESS, INTTW_WRITE),
+					      INTTW_DEST(2, INTTW_IN_CMD),
+					      BMP280_CTRL_MEAS_REG,
+					      BMP280_MEASURE_CONFIG };
+
+static void TWScheduler::bmp280Interrupt(void) {
+
+  /* read previous measure and launch next */
+  /* we need to lock */
+  intTW.setRxBuffer(bmp280Output);
+  bunset(PRESSURE_RELEASED);
+  intTW.start(bmp280Step, sizeof(bmp280Step), INTTW_USE_PROGMEM, bmp280OutputCallback);
+}
+
+
+static void TWScheduler::bmp280OutputCallback(void) {
+
+  /* done ! */
+  status |= (1 << HAVE_PRESSURE) | (1 << PRESSURE_RELEASED);
+}
+
+
+static bool TWScheduler::havePressure(void) {
+
+  return bisset(HAVE_PRESSURE);
+}
+
+
+static double TWScheduler::getAlti(void) {
+
+  /* wait realease */
+  while( ! bisset(PRESSURE_RELEASED) ) { }
+
+  /* copy needed values */
+  uint8_t bmp280Values[6];
+  
+  noInterrupts();
+  for(int i = 0; i<6; i++) {
+    bmp280Values[i] =  bmp280Output[i];
+  }
+  bunset(HAVE_PRESSURE);
+  interrupts();
+
+  /* compute pressure and temp */
+  double temperature, pressure;
+  bmp280.computeMeasures(&bmp280Values[0], &bmp280Values[3], temperature, pressure);
+
+  /* get corresponding alti */
+  double alti = bmp280.computeAltitude(pressure);
+
+  return alti;
+}
+
+#else //! HAVE_BMP280
 /***************/
 /* ms5611 part */
 /***************/
@@ -156,7 +232,7 @@ static double TWScheduler::getAlti(void) {
 
   return alti;
 }
-
+#endif
 
 #ifdef HAVE_ACCELEROMETER
 /************/
@@ -370,7 +446,11 @@ static void TWScheduler::getNorthVector(double* vertVector, double* northVector)
 static void TWScheduler::init(void) {
 
   /* init the devices */
+#ifdef HAVE_BMP280
+  bmp280.init();
+#else
   ms5611.init();
+#endif
 #ifdef HAVE_ACCELEROMETER
   vertaccel.init();
 #endif
@@ -400,7 +480,11 @@ static void TWScheduler::init(void) {
 static void TWScheduler::mainInterrupt(void) {
 
   /* increase counters */
+#ifdef HAVE_BMP280
+  bmp280Count++;
+#else
   ms5611Count++;
+#endif
 #ifdef HAVE_ACCELEROMETER
   imuCount++;
 #ifdef AK89xx_SECONDARY
@@ -410,10 +494,17 @@ static void TWScheduler::mainInterrupt(void) {
 
   
   /* launch interrupts */
+#ifdef HAVE_BMP280
+  if( bmp280Count == TWO_WIRE_SCHEDULER_BMP280_PERIOD ) {
+    bmp280Interrupt();
+    bmp280Count = 0;
+  }
+#else
   if( ms5611Count == TWO_WIRE_SCHEDULER_MS5611_PERIOD ) {
     ms5611Interrupt();
     ms5611Count = 0;
   }
+#endif
 #ifdef HAVE_ACCELEROMETER
   if( imuCount == TWO_WIRE_SCHEDULER_IMU_PERIOD ) {
     imuInterrupt();
