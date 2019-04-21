@@ -19,6 +19,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>. #
 ##########################################################################
 
+from __future__ import print_function
+from __future__ import division
 import numpy as np
 from math import *
 
@@ -118,14 +120,14 @@ def algebraicLeastSquaresCircle( ep ):
 def algebraicLeastSquaresCirclePrint(ep):
 
     circle, err, gerr = algebraicLeastSquaresCircle(ep)
-    print "--------------------------------------"
-    print "Algebraic least-squares circle results :"
-    print "--------------------------------------"
-    print "( algebraic error =", err, ")"
-    print "geometric error =", gerr
-    print "center = (", sphere[0], ",", sphere[1],  ")" 
-    print "radius =", sphere[2]
-    print " "
+    print("--------------------------------------")
+    print("Algebraic least-squares circle results :")
+    print("--------------------------------------")
+    print("( algebraic error =", err, ")")
+    print("geometric error =", gerr)
+    print("center = (", sphere[0], ",", sphere[1],  ")") 
+    print("radius =", sphere[2])
+    print(" ")
     
     return circle, err, gerr
     
@@ -210,14 +212,14 @@ def NewtonGaussCircle(minNGSteps, maxNGSteps, deltaThreshold, beta, ep):
 def NewtonGaussCirclePrint(minNGSteps, maxNGSteps, deltaThreshold, beta, ep):
 
     beta, ndelta, NGSteps, err = NewtonGaussCircle(minNGSteps, maxNGSteps, deltaThreshold, beta, ep)
-    print "----------------------------------------------------------------"
-    print "Newton-Gauss least-squares geometrical distance circle results :"
-    print "----------------------------------------------------------------"
-    print "geometric error =", err
-    print "Newton-Gauss Steps =", NGSteps
-    print "center = (", beta[O], ",", beta[1], ")"
-    print "radius =", beta[2],
-    print " "
+    print("----------------------------------------------------------------")
+    print("Newton-Gauss least-squares geometrical distance circle results :")
+    print("----------------------------------------------------------------")
+    print("geometric error =", err)
+    print("Newton-Gauss Steps =", NGSteps)
+    print("center = (", beta[O], ",", beta[1], ")")
+    print("radius =", beta[2],)
+    print(" ")
 
     return beta, ndelta, NGSteps, err
 
@@ -337,14 +339,14 @@ def NewtonGaussEllipse(minNGSteps, maxNGSteps, deltaThreshold, beta, ep):
 def NewtonGaussEllipsePrint(minNGSteps, maxNGSteps, deltaThreshold, beta, ep):
     
     beta, ndelta, NGSteps, err = NewtonGaussEllipse(minNGSteps, maxNGSteps, deltaThreshold, beta, ep)
-    print "----------------------------------------------------------------"
-    print "Newton-Gauss least-squares geometrical distance Ellipse results :"
-    print "----------------------------------------------------------------"
-    print "geometric error =", err
-    print "Newton-Gauss Steps =", NGSteps
-    print "center = (", beta[-4], ",", beta[-3], ")"
-    print "coeffs = (", beta[-2], ",", beta[-1], ")"
-    print " "
+    print("----------------------------------------------------------------")
+    print("Newton-Gauss least-squares geometrical distance Ellipse results :")
+    print("----------------------------------------------------------------")
+    print("geometric error =", err)
+    print("Newton-Gauss Steps =", NGSteps)
+    print("center = (", beta[-4], ",", beta[-3], ")")
+    print("coeffs = (", beta[-2], ",", beta[-1], ")")
+    print(" ")
 
     return beta, ndelta, NGSteps, err
     
@@ -449,14 +451,14 @@ def algebraicLeastSquaresSphere( ep ):
 def algebraicLeastSquaresSpherePrint(ep):
 
     sphere, err, gerr = algebraicLeastSquaresSphere(ep)
-    print "--------------------------------------"
-    print "Algebraic least-squares sphere results :"
-    print "--------------------------------------"
-    print "( algebraic error =", err, ")"
-    print "geometric error =", gerr
-    print "center = (", sphere[0], ",", sphere[1], ",", sphere[2], ")" 
-    print "radius =", sphere[3]
-    print " "
+    print("--------------------------------------")
+    print("Algebraic least-squares sphere results :")
+    print("--------------------------------------")
+    print("( algebraic error =", err, ")")
+    print("geometric error =", gerr)
+    print("center = (", sphere[0], ",", sphere[1], ",", sphere[2], ")") 
+    print("radius =", sphere[3])
+    print(" ")
 
     return sphere, err, gerr
 
@@ -542,14 +544,14 @@ def NewtonGaussSphere(minNGSteps, maxNGSteps, deltaThreshold, beta, ep):
 def NewtonGaussSpherePrint(minNGSteps, maxNGSteps, deltaThreshold, beta, ep):
     
     beta, ndelta, NGSteps, err = NewtonGaussSphere(minNGSteps, maxNGSteps, deltaThreshold, beta, ep)
-    print "----------------------------------------------------------------"
-    print "Newton-Gauss least-squares geometrical distance Sphere results :"
-    print "----------------------------------------------------------------"
-    print "geometric error =", err
-    print "Newton-Gauss Steps =", NGSteps
-    print "center = (", beta[0], ",", beta[1], ",", beta[2], ")"
-    print "radius =", beta[3]
-    print " "
+    print("----------------------------------------------------------------")
+    print("Newton-Gauss least-squares geometrical distance Sphere results :")
+    print("----------------------------------------------------------------")
+    print("geometric error =", err)
+    print("Newton-Gauss Steps =", NGSteps)
+    print("center = (", beta[0], ",", beta[1], ",", beta[2], ")")
+    print("radius =", beta[3])
+    print(" ")
 
     return beta, ndelta, NGSteps, err
     
@@ -679,14 +681,14 @@ def NewtonGaussEllipsoid(minNGSteps, maxNGSteps, deltaThreshold, beta, ep):
 def NewtonGaussEllipsoidPrint(minNGSteps, maxNGSteps, deltaThreshold, beta, ep):
 
     beta, ndelta, NGSteps, err = NewtonGaussEllipsoid(minNGSteps, maxNGSteps, deltaThreshold, beta, ep)
-    print "------------------------------------------------------------------"
-    print "Newton-Gauss least-squares geometrical distance Ellipsoid results :"
-    print "------------------------------------------------------------------"
-    print "geometric error =", err
-    print "Newton-Gauss Steps =", NGSteps
-    print "center = (", beta[-6], ",", beta[-5], ",", beta[-4], ")"
-    print "coeffs = (", beta[-3], ",", beta[-2], ",", beta[-1], ")"
-    print " "
+    print("------------------------------------------------------------------")
+    print("Newton-Gauss least-squares geometrical distance Ellipsoid results :")
+    print("------------------------------------------------------------------")
+    print("geometric error =", err)
+    print("Newton-Gauss Steps =", NGSteps)
+    print("center = (", beta[-6], ",", beta[-5], ",", beta[-4], ")")
+    print("coeffs = (", beta[-3], ",", beta[-2], ",", beta[-1], ")")
+    print(" ")
 
     return beta, ndelta, NGSteps, err
 

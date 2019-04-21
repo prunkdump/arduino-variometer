@@ -220,8 +220,12 @@
 #define INV_REG_I2C_DELAY_CTRL (0x67)
 #endif
 
-/* HARDWARE */ 
+/* HARDWARE */
+#ifdef MPU_STATIC_ADDRESS
+#define INV_HW_ADDR MPU_STATIC_ADDRESS
+#else
 #define INV_HW_ADDR           (0x68)
+#endif //MPU_STATIC_ADDRES
 #define INV_HW_MAX_FIFO       (1024)
 #define INV_HW_NUM_REG        (118)
 #define INV_HW_TEMP_SENS      (340)
@@ -301,7 +305,11 @@
 
 
 /* HARDWARE */
+#ifdef MPU_STATIC_ADDRESS
+#define INV_HW_ADDR MPU_STATIC_ADDRESS
+#else
 #define INV_HW_ADDR           (0x68)
+#endif //MPU_STATIC_ADDRES
 #define INV_HW_MAX_FIFO       (1024)
 #define INV_HW_NUM_REG        (128)
 #define INV_HW_TEMP_SENS      (321)

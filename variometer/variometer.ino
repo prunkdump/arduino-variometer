@@ -57,7 +57,7 @@
 /*******************/
 
 #define VERSION 63
-#define SUB_VERSION 95
+#define SUB_VERSION 96
 
 /*******************/
 /*    Historique   */
@@ -135,6 +135,12 @@
  * v 63.9.5   14/04/2019
  *            Debbugger SDCARD - ligthFat16
  *
+ * v 63.9.6   21/04/2019
+ *            Maj SDCARD
+ *            Corrected #9 : added option to set the MPU address
+ *            TwoWireScheduleur : added error handling
+ *            added BMP280 barameter support           
+ * 
  *******************
  * Compilation :
  * 
@@ -162,7 +168,12 @@ uint8_t variometerState = VARIOMETER_STATE_CALIBRATED;
 /***************/
 /* IMU objects */
 /***************/
+#ifdef HAVE_BMP280
+Bmp280 TWScheduler::bmp280;
+#else
 Ms5611 TWScheduler::ms5611;
+#endif
+
 #ifdef HAVE_ACCELEROMETER
 Vertaccel TWScheduler::vertaccel;
 #endif //HAVE_ACCELEROMETER
@@ -427,6 +438,14 @@ void setup() {
   /*****************************/
   delay(VARIOMETER_POWER_ON_DELAY);
 
+  /******************/
+  /* Init Speaker   */
+  /******************/
+  
+#if defined( HAVE_SPEAKER)
+  toneHAL.init();
+#endif
+
   /************/
   /* init SPI */
   /************/
@@ -468,11 +487,6 @@ void setup() {
   screen.enableSPI();
 #endif //HAVE_SCREEN
 
-#if defined( HAVE_SPEAKER)
-  toneHAL.init();
-#endif
-
-
   /****************/
   /* Alarm SD Card */
   /****************/
@@ -505,25 +519,34 @@ void setup() {
   varioScreen.setPage(1);
   DisplayDuration = true;
   screenTime.update();
+  screenTime.display();
 
 #ifdef HAVE_VOLTAGE_DIVISOR
       /* update battery level */
       batLevel.setVoltage( analogRead(VOLTAGE_DIVISOR_PIN) );
       batLevel.update();
+      batLevel.display();
 #endif //HAVE_VOLTAGE_DIVISOR
 
   altiDigit.setValue(flystat.GetAlti());
   altiDigit.update();
+  altiDigit.display();
   varioDigit.setValue(flystat.GetVarioMin());
   varioDigit.update();
+  varioDigit.display();
   double tmpspeed = flystat.GetSpeed();
   if (tmpspeed > 99) tmpspeed = 99;
   speedDigit.setValue(tmpspeed);
   speedDigit.update();
+  speedDigit.display();
   kmhunit.update();
+  kmhunit.display();
   msunit.update();
+  msunit.display();
   munit.update();  
+  munit.display();
 
+  varioScreen.displayStep();
  #endif HAVE_SCREEN_JPG63
  #endif //HAVE_SCREEN
     

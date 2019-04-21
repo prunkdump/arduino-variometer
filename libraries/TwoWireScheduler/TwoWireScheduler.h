@@ -24,7 +24,12 @@
 #include <Arduino.h>
 #include <VarioSettings.h>
 
+#ifdef HAVE_BMP280
+#include <bmp280.h>
+#else
 #include <ms5611.h>
+#endif
+
 #ifdef HAVE_ACCELEROMETER
 #include <vertaccel.h>
 #endif
@@ -36,14 +41,22 @@
 #define TWO_WIRE_SCHEDULER_INTERRUPT_PRESCALE 0b00000101
 #else
 #define TWO_WIRE_SCHEDULER_INTERRUPT_PRESCALE 0b00000100
-#endif
+#endif //F_CPU
+
+//need to be adjusted
+#ifdef HAVE_BMP280
 #define TWO_WIRE_SCHEDULER_INTERRUPT_COMPARE 156
+#else
+#define TWO_WIRE_SCHEDULER_INTERRUPT_COMPARE 156
+#endif
 
 /* The scheduler */
 /* see how TW request are shifted    */
 /* so they don't interact each other */
 #define TWO_WIRE_SCHEDULER_MS5611_PERIOD 8
 #define TWO_WIRE_SCHEDULER_MS5611_SHIFT 0
+#define TWO_WIRE_SCHEDULER_BMP280_PERIOD 40
+#define TWO_WIRE_SCHEDULER_BMP280_SHIFT 0
 #define TWO_WIRE_SCHEDULER_IMU_PERIOD 4
 #define TWO_WIRE_SCHEDULER_IMU_SHIFT 2
 #define TWO_WIRE_SCHEDULER_MAG_PERIOD 40
@@ -62,7 +75,12 @@ class TWScheduler {
 
  public:
   /* static class devices to define */
+#ifdef HAVE_BMP280
+  static Bmp280 bmp280;
+#else  
   static Ms5611 ms5611;
+#endif
+  
 #ifdef HAVE_ACCELEROMETER
   static Vertaccel vertaccel;
 #endif
@@ -92,9 +110,14 @@ class TWScheduler {
 
  private:
   static uint8_t volatile status;
+#ifdef HAVE_BMP280 
+  static uint8_t volatile bmp280Output[2*3];  //two bmp280 output measures
+  static uint8_t volatile bmp280Count;
+#else
   static int8_t volatile ms5611Step; 
   static uint8_t volatile ms5611Output[3*3];  //three ms5611 output measures
   static uint8_t volatile ms5611Count;
+#endif
 #ifdef HAVE_ACCELEROMETER
   static uint8_t volatile checkOutput[2];
   static uint8_t volatile imuOutput[LIGHT_INVENSENSE_COMPRESSED_DMP_PAQUET_LENGTH]; //imu dmp fifo output
@@ -106,8 +129,14 @@ class TWScheduler {
 #endif //HAVE_ACCELEROMETER
   
   /* private interrupt methods */
+#ifdef HAVE_BMP280
+  static void bmp280Interrupt(void);
+  static void bmp280OutputCallback(void);
+#else
   static void ms5611Interrupt(void);
+  static void ms5611TempCallback(void);
   static void ms5611OutputCallback(void);
+#endif
 #ifdef HAVE_ACCELEROMETER
   static void imuInterrupt(void);
   static void imuCheckFifoCountCallBack(void);

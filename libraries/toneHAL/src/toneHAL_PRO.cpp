@@ -23,8 +23,8 @@
 
 #if defined(ARDUINO_AVR_PRO)
 #include <Arduino.h>
-//#include "Debug.h"
-#include "utility\Debug.h"
+#include "Debug.h"
+//#include "utility\Debug.h"
 
 #if defined(TONEDAC)
 /****************************************/

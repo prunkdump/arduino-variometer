@@ -32,6 +32,9 @@
 /*                                                                                                 */
 /*  1.1.1 07/04/2019   Ajout VARIO_Vx  pour facilité l'utilisation du fichier VarioSetting.h       */
 /*                     pour les différentes version du Gnuvario                                    */
+/*                                                                                                 */
+/*  1.1.2 21/04/2019   added option to set the MPU address                                         */
+/*                     added BMP280 barameter support                                              */
 /***************************************************************************************************/
 
 /* VarioSettings -- Main configuration file
@@ -59,8 +62,8 @@
 
 
 //#define VARIO_V1
-#define VARIO_V2
-//#define VARIO_V3
+//#define VARIO_V2
+#define VARIO_V3
 
 /*----------------------------*/
 /*          SOFTWARE          */
@@ -81,7 +84,7 @@
 /*------- !!! is sufficient.             !!! ---------*/
 
 /* time zone relative to UTC */
-#define VARIOMETER_TIME_ZONE (+1) 
+#define VARIOMETER_TIME_ZONE (+2) 
 
 /*********/
 /* Beeps */
@@ -225,12 +228,22 @@
 #define MS5611_STATIC_ADDRESS 0x77
 //#define MS5611_STATIC_CALIBRATION {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}}
 
-#define HAVE_SCREEN_JPG63
+/* We advice using the ms5611 barometer */
+/* but if you want to use the BMP280 you can enable it here */
+//#define HAVE_BMP280
+#define BMP280_STATIC_ADDRESS 0x76
+//#define BMP280_STATIC_CALIBRATION {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}}
+
 
 /* If you embed an accelerometer set the model here. */
 /* Possible values are :                             */
 /*   MPU6050, MPU6500, MPU9150, MPU9250              */
 #define MPU9250
+#define MPU_STATIC_ADDRESS 0x68
+
+/* Screen display mode */
+/*                     */
+#define HAVE_SCREEN_JPG63
 
 /* calibration method */
 // by EEPROM
