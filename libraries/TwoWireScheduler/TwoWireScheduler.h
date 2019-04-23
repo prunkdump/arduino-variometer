@@ -34,7 +34,7 @@
 #include <vertaccel.h>
 #endif
 
-/* The unit is 1.248 ms    */
+/* The unit is 0.008 ms    */
 /* 128 prescale on 16Mhz   */
 /* 64 prescale on 8 Mhz    */
 #if F_CPU >= 16000000L
@@ -43,22 +43,48 @@
 #define TWO_WIRE_SCHEDULER_INTERRUPT_PRESCALE 0b00000100
 #endif //F_CPU
 
-//need to be adjusted
+/******************************************/
+/* The barometer is the reference freq    */
+/* read take max 0.3 ms                   */
+/*                                        */
+/* bmp280                                 */ 
+/* -> max measurement time : 43.2 ms      */
+/* -> 43.5 ms period ( approx 20 Hz )     */
+/* -> ref period = 40 ( more than 20 Hz ) */
+/* -> compare = 136                       */
+/* -> real unit = 1.088 ms                */
+/*                                        */
+/* ms5611                                 */
+/* -> max measurement time : 9.04 ms      */
+/* -> 9.34 ms period ( approx 100 Hz )    */
+/* -> ref period = 8 ( more than 100 Hz ) */
+/* -> compare = 146                       */
+/* -> real unit = 1.168 ms                */
+/*                                        */
+/* mpu fifo                               */
+/* -> freq = 100 Hz but checked at 200 Hz */
+/* -> period = 4 ( more than 200 Hz )     */
+/*                                        */
+/* magnetometer                           */
+/* -> freq = 10 Hz but checked at 20 Hz   */
+/* -> period = 40 ( more than 20 Hz )     */
+/******************************************/
 #ifdef HAVE_BMP280
-#define TWO_WIRE_SCHEDULER_INTERRUPT_COMPARE 156
+#define TWO_WIRE_SCHEDULER_INTERRUPT_COMPARE 136
 #else
-#define TWO_WIRE_SCHEDULER_INTERRUPT_COMPARE 156
+#define TWO_WIRE_SCHEDULER_INTERRUPT_COMPARE 146
 #endif
 
-/* The scheduler */
-/* see how TW request are shifted    */
-/* so they don't interact each other */
+/* The scheduler                                          */
+/* see how TW request are shifted                         */
+/* so they don't interact each other                      */
+/* !! mpu fifo interrupt take 1.4 ms, more than 1 unit !! */ 
 #define TWO_WIRE_SCHEDULER_MS5611_PERIOD 8
 #define TWO_WIRE_SCHEDULER_MS5611_SHIFT 0
 #define TWO_WIRE_SCHEDULER_BMP280_PERIOD 40
 #define TWO_WIRE_SCHEDULER_BMP280_SHIFT 0
 #define TWO_WIRE_SCHEDULER_IMU_PERIOD 4
-#define TWO_WIRE_SCHEDULER_IMU_SHIFT 2
+#define TWO_WIRE_SCHEDULER_IMU_SHIFT 1
 #define TWO_WIRE_SCHEDULER_MAG_PERIOD 40
 #define TWO_WIRE_SCHEDULER_MAG_SHIFT 3
 
