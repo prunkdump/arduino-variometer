@@ -100,12 +100,13 @@ long accelCount;
 double accelMean[3];
 double accelSD[3];
 
+#ifdef AK89xx_SECONDARY
 /* mag measures */
 int16_t lastMagMeasure[3];
 long magCount;
 double magMean[3];
 double magSD[3];
-
+#endif //AK89xx_SECONDARY
 
 void startMeasure(void) {
 
@@ -118,13 +119,17 @@ void startMeasure(void) {
   /* init vars */
   measureTimestamp = millis();
   accelCount = 0;
+#ifdef AK89xx_SECONDARY
   magCount = 0;
+#endif
 
   for( int i = 0; i<3; i++) {
     accelMean[i] = 0.0;
     accelSD[i] = 0.0;
+#ifdef AK89xx_SECONDARY
     magMean[i] = 0.0;
     magSD[i] = 0.0;
+#endif
   }
 }
 
@@ -171,6 +176,7 @@ void makeMeasureStep(void) {
     }
   }
 
+#ifdef AK89xx_SECONDARY
   /* mag */
   int16_t mag[3];
   if( readRawMag(mag) ) {
@@ -180,6 +186,7 @@ void makeMeasureStep(void) {
       magSD[i] += ((double)mag[i])*((double)mag[i]);
     }
   }
+#endif //AK89xx_SECONDARY
 }
 
 
@@ -198,7 +205,7 @@ double getAccelMeasure(int16_t* accelMeasure) {
   return sqrt(accelMeasureSD);
 }
 
-
+#ifdef AK89xx_SECONDARY
 /* return standard deviation */
 double getMagMeasure(int16_t* magMeasure) {
   
@@ -213,7 +220,7 @@ double getMagMeasure(int16_t* magMeasure) {
 
   return sqrt(magMeasureSD);
 }
-
+#endif //AK89xx_SECONDARY
 
 
 void setup() {
@@ -361,9 +368,10 @@ void loop() {
       int16_t accelMeasure[3];
       double accelMeasureSD = getAccelMeasure(accelMeasure);
 
+#ifdef AK89xx_SECONDARY
       int16_t magMeasure[3];
       double magMeasureSD = getMagMeasure(magMeasure);
-
+#endif //AK89xx_SECONDARY
     
       /**************************/
       /* check measure validity */
@@ -397,12 +405,14 @@ void loop() {
           Serial.print(accelMeasure[1], DEC);
           Serial.print(", ");
           Serial.print(accelMeasure[2], DEC);
+#ifdef AK89xx_SECONDARY
           Serial.print(", ");
           Serial.print(magMeasure[0], DEC);
           Serial.print(", ");
           Serial.print(magMeasure[1], DEC);
           Serial.print(", ");
           Serial.print(magMeasure[2], DEC);
+#endif //AK89xx_SECONDARY
           Serial.print("\n");
 #endif //SERIAL_OUTPUT
 
@@ -417,6 +427,7 @@ void loop() {
           file.write(',');
           file.write(' ');
           writeNumber(accelMeasure[2]);
+#ifdef AK89xx_SECONDARY
           file.write(',');
           file.write(' ');
           writeNumber(magMeasure[0]);
@@ -426,6 +437,7 @@ void loop() {
           file.write(',');
           file.write(' ');
           writeNumber(magMeasure[2]);
+#endif //AK89xx_SECONDARY
           file.write('\n');
           
           file.sync();
