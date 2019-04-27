@@ -200,6 +200,22 @@
 /* use the gps-time-analysis sketch to determine it */
 #define GPS_PERIOD 1000
 
+/* The GPS RMC and GGA sentences parameters */
+/* Check the SD card ouput or bluetooth output of gps-time-analysis */
+#define NMEA_TAG_SIZE 5
+#define NMEA_RMC_TAG "GPRMC"
+#define NMEA_GGA_TAG "GPGGA"
+
+/* precision = 10^(number of digit after dot in gps ouput) */
+/* check the gps-time-analysis output to check the precision */
+/* RMC speed is at 8th position */
+/* GGA time is at 2th position */
+/* GGA Alti is at 10th position */
+/* be carefull, time precision is an int */
+#define NMEA_RMC_SPEED_PRECISION 1000.0
+#define NMEA_GGA_TIME_PRECISION 100
+#define NMEA_GGA_ALTI_PRECISION 10.0
+
 /*********************/
 /* TWO WIRE settings */
 /*********************/

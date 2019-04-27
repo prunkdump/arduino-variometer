@@ -162,6 +162,7 @@ void writeNumbers( double* values, int count ) {
 #if defined(HAVE_SDCARD) && defined(SDCARD_OUTPUT)
   if( sdcardState == SD_CARD_STATE_BEGIN ) {
     file.write('\n');
+    file.sync();
   }
 #endif
 #ifdef SERIAL_OUTPUT
@@ -273,7 +274,7 @@ void setup() {
   if( file.init() >= 0 ) {
     sdcardState = SD_CARD_STATE_INIT;
   }
-#endif HAVE_SDCARD
+#endif //HAVE_SDCARD
  
   /***************/
   /* init screen */
@@ -305,20 +306,40 @@ void loop() {
   }
 
 #if (defined(HAVE_SDCARD) && defined(SDCARD_OUTPUT)) || defined(SERIAL_OUTPUT)
-  if( millis() - serialNmea.getLastReceiveTimestamp() > MAX_SILENT_DURATION ) {
+  if( (millis() - serialNmea.getLastReceiveTimestamp() > MAX_SILENT_DURATION) && needOutput ) {
     outputResults();
     needOutput = false;
   }
 #endif
 
   /* parse when possible and check when release */
+  bool needOutputTag = false;
   if( serialNmea.lockRMC() ) {
     nmeaParser.beginRMC();
+    needOutputTag = true;
   }
 
   if( serialNmea.lockGGA() ) {
     nmeaParser.beginGGA();
+    needOutputTag = true;
   }
+
+#if defined(HAVE_SDCARD) && defined(SDCARD_OUTPUT)
+  if( needOutputTag ) {
+    if( sdcardState == SD_CARD_STATE_BEGIN ) {
+      serialNmea.addTagToRead();
+      
+      uint8_t c;
+      do {
+        c = serialNmea.read();
+        file.write(c);
+      } while( c != ',' );
+      nmeaParser.feed(c);
+    }
+     
+    needOutputTag = false;
+  }
+#endif
 
   if( nmeaParser.isParsing() ) {
     while( nmeaParser.isParsing() ) {
@@ -326,8 +347,25 @@ void loop() {
         
       /* parse sentence */        
       nmeaParser.feed( c );
+
+#if defined(HAVE_SDCARD) && defined(SDCARD_OUTPUT)
+      /* output to SD card */
+      if( sdcardState == SD_CARD_STATE_BEGIN ) {
+        file.write(c);
+      }
+#endif
     }
 
+#if defined(HAVE_SDCARD) && defined(SDCARD_OUTPUT)
+      /* output to SD card */
+      if( sdcardState == SD_CARD_STATE_BEGIN ) {
+        uint8_t c;
+        do {
+          c = serialNmea.read();
+          file.write(c);
+        } while( c != '\n' );
+      }
+#endif
     serialNmea.release();
     gpsSaveRelease();
   }

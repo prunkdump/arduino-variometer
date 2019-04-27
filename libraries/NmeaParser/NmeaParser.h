@@ -21,6 +21,27 @@
 #ifndef NMEA_PARSER_H
 #define NMEA_PARSER_H
 
+#include <Arduino.h>
+#include <VarioSettings.h>
+
+
+/*********************/
+/* the GPS sentences */
+/*********************/
+
+/* precision = 10^(number of digit after dot in gps ouput) */
+#ifndef NMEA_RMC_SPEED_PRECISION
+#define NMEA_RMC_SPEED_PRECISION 1000.0
+#endif
+
+#ifndef NMEA_GGA_TIME_PRECISION
+#define NMEA_GGA_TIME_PRECISION 100
+#endif
+
+#ifndef NMEA_GGA_ALTI_PRECISION
+#define NMEA_GGA_ALTI_PRECISION 10.0
+#endif
+
 /* position in NMEA sentence */
 #define NMEA_PARSER_RMC_SPEED_POS 7
 #define NMEA_PARSER_RMC_DATE_POS 9
@@ -28,14 +49,6 @@
 #define NMEA_PARSER_GGA_SATELLITE_COUNT_POS 7
 #define NMEA_PARSER_GGA_PRECISION_POS 8
 #define NMEA_PARSER_GGA_ALTITUDE_POS 9
-
-/* dot is not taken on account while parsing, here the compensating divisors */
-#define NMEA_PARSER_RMC_SPEED_PRECISION 1000.0
-#define NMEA_PARSER_GGA_TIME_PRECISION 100
-#define NMEA_PARSER_GGA_ALTITUDE_PRECISION 10.0
-
-
-#include <Arduino.h>
 
 
 class NmeaParser {

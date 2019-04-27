@@ -22,9 +22,8 @@
 
 #include <Arduino.h>
 
-#define NMEA_TAG_SIZE 5
-const char rmcTag[] PROGMEM = {"GPRMC"};
-const char ggaTag[] PROGMEM = {"GPGGA"};
+const char rmcTag[] PROGMEM = { NMEA_RMC_TAG };
+const char ggaTag[] PROGMEM = { NMEA_GGA_TAG };
 
 #define serialState_set(bit) state |= (1 << bit)
 #define serialState_unset(bit) state &= ~(1 << bit)
@@ -161,7 +160,7 @@ void SerialNmea::rxCompleteVect(void) {
   if( nmeaParseStep <= NMEA_TAG_SIZE + 1 ) { //before or on '*'
     nmeaParity ^= c;
   } else {
-    if( c >= '0' ) {  //not for \r or \n
+    if( nmeaParseStep <= NMEA_TAG_SIZE + 3 ) { //on the parity tag
       parityTag <<= 4;
       if( c <= '9' ) {
 	parityTag += c - '0';
@@ -210,27 +209,31 @@ void SerialNmea::rxCompleteVect(void) {
   }
 
   /* check parity */
-  else if ( nmeaParseStep == NMEA_TAG_SIZE + 4 + SERIAL_NMEA_NEWLINE_LENGTH ) { //parity tag read + newline
-     
-    if( nmeaParity != parityTag ) {
-      nmeaParseStep = -1; //bad sensence
-    } else {
-      /*********************************/
-      /* we have a new nmea sentence ! */
-      /*********************************/
+  else {
 
-      /* save pointer */
-      if( serialState_isset(RMC_TAG_FOUND) ) {
-	rmcPos = nmeaPos;
-	serialState_set(RMC_FOUND);
-      } else { //this is gga
-	ggaPos = nmeaPos;
-	serialState_set(GGA_FOUND);
+    /* wait for end with '\n' */
+    if( c == '\n' ) {
+      
+      if( nmeaParity != parityTag ) {
+	nmeaParseStep = -1; //bad sensence
+      } else {
+	/*********************************/
+	/* we have a new nmea sentence ! */
+	/*********************************/
+
+	/* save pointer */
+	if( serialState_isset(RMC_TAG_FOUND) ) {
+	  rmcPos = nmeaPos;
+	  serialState_set(RMC_FOUND);
+	} else { //this is gga
+	  ggaPos = nmeaPos;
+	  serialState_set(GGA_FOUND);
+	}
+	
+	/* send with serial */
+	txHead = nextPos;
+	sbi(UCSRB, UDRIE);
       }
-
-      /* send with serial */
-      txHead = nextPos;
-      sbi(UCSRB, UDRIE);
     }
   }
 }
@@ -281,6 +284,15 @@ bool SerialNmea::lockGGA(void) {
   return true;
 }
 
+void SerialNmea::addTagToRead(void) {
+
+  /* go backward */
+  if( readPos >= NMEA_TAG_SIZE + 1 ) {
+    readPos -= NMEA_TAG_SIZE + 1;
+  } else {
+    readPos += SERIAL_NMEA_BUFFER_SIZE - (NMEA_TAG_SIZE + 1);
+  }
+}
 
 void SerialNmea::release() {
   
