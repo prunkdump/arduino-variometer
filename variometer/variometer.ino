@@ -21,17 +21,20 @@
  
 #include <Arduino.h>
 #include <SPI.h>
+
+#include <DebugConfig.h>
+#include <HardwareConfig.h>
 #include <VarioSettings.h>
+
 #include <IntTW.h>
 #include <ms5611.h>
 #include <vertaccel.h>
+
 #include <EEPROM.h>
 #include <LightInvensense.h>
 #include <TwoWireScheduler.h>
 #include <kalmanvert.h>
-#include <beeper.h>
-#include "toneHAL.h"
-#include "toneHAL_PRO.h"
+
 #include <avr/pgmspace.h>
 #include <varioscreen.h>
 #include <digit.h>
@@ -45,6 +48,9 @@
 #include <FirmwareUpdaterTWS.h>
 #include <variostat.h>
 #include <FlightHistory.h>
+
+#include <toneHAL.h>
+#include <beeper.h>
 
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 /*!!            !!! WARNING  !!!              !!*/
@@ -140,6 +146,8 @@
  *            Corrected #9 : added option to set the MPU address
  *            TwoWireScheduleur : added error handling
  *            added BMP280 barameter support           
+ * v 63.9.7   14/07/2019
+ *            add Nmea parameter
  * 
  *******************
  * Compilation :
@@ -455,16 +463,6 @@ void setup() {
   file.enableSPI();
 #endif //defined(HAVE_SDCARD) && defined(HAVE_GPS)
 
-  /****************/
-  /* init SD Card */
-  /****************/
-
-#if defined(HAVE_SDCARD) && defined(HAVE_GPS)
-  if( file.init() >= 0 ) {
-    sdcardState = SDCARD_STATE_INITIALIZED;  //useless to set error
-  }
-#endif //defined(HAVE_SDCARD) && defined(HAVE_GPS)
-
   /**********************/
   /* init Two Wires devices */
   /**********************/
@@ -478,6 +476,16 @@ void setup() {
   fastMPUSetTapCallback(beeperTapCallback);
 #endif //HAVE_MUTE
 #endif //HAVE_ACCELEROMETER
+
+  /****************/
+  /* init SD Card */
+  /****************/
+
+#if defined(HAVE_SDCARD) && defined(HAVE_GPS)
+  if( file.init() >= 0 ) {
+    sdcardState = SDCARD_STATE_INITIALIZED;  //useless to set error
+  }
+#endif //defined(HAVE_SDCARD) && defined(HAVE_GPS)
 
   /*******************/
   /* init SPI SCREEN */

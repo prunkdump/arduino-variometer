@@ -479,42 +479,42 @@ static void TWScheduler::init(void) {
 
 static void TWScheduler::mainInterrupt(void) {
 
-  /* increase counters */
+  /* launch interrupts */
 #ifdef HAVE_BMP280
-  bmp280Count++;
+  if( bmp280Count == 0 ) {
+    bmp280Interrupt();
+    bmp280Count = TWO_WIRE_SCHEDULER_BMP280_PERIOD;
+  }
 #else
-  ms5611Count++;
+  if( ms5611Count == 0 ) {
+    ms5611Interrupt();
+    ms5611Count = TWO_WIRE_SCHEDULER_MS5611_PERIOD;
+  }
 #endif
 #ifdef HAVE_ACCELEROMETER
-  imuCount++;
+  if( imuCount == 0 ) {
+    imuInterrupt();
+    imuCount = TWO_WIRE_SCHEDULER_IMU_PERIOD;
+  }
 #ifdef AK89xx_SECONDARY
-  magCount++;
+  if( magCount == 0 ) {
+    magInterrupt();
+    magCount = TWO_WIRE_SCHEDULER_MAG_PERIOD;
+  }
 #endif //AK89xx_SECONDARY
 #endif //HAVE_ACCELEROMETER
 
   
-  /* launch interrupts */
+  /* decrease counters */
 #ifdef HAVE_BMP280
-  if( bmp280Count == TWO_WIRE_SCHEDULER_BMP280_PERIOD ) {
-    bmp280Interrupt();
-    bmp280Count = 0;
-  }
+  bmp280Count--;
 #else
-  if( ms5611Count == TWO_WIRE_SCHEDULER_MS5611_PERIOD ) {
-    ms5611Interrupt();
-    ms5611Count = 0;
-  }
+  ms5611Count--;
 #endif
 #ifdef HAVE_ACCELEROMETER
-  if( imuCount == TWO_WIRE_SCHEDULER_IMU_PERIOD ) {
-    imuInterrupt();
-    imuCount = 0;
-  }
+  imuCount--;
 #ifdef AK89xx_SECONDARY
-  if( magCount == TWO_WIRE_SCHEDULER_MAG_PERIOD ) {
-    magInterrupt();
-    magCount = 0;
-  }
+  magCount--;
 #endif //AK89xx_SECONDARY
 #endif //HAVE_ACCELEROMETER
   

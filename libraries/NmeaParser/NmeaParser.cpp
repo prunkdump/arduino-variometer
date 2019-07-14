@@ -101,7 +101,7 @@ void NmeaParser::feed(uint8_t c) {
 
 	/* GGA time */
 	if( commaCount == NMEA_PARSER_GGA_TIME_POS ) {
-	  time = value/NMEA_PARSER_GGA_TIME_PRECISION;
+	  time = value/NMEA_GGA_TIME_PRECISION;
 	}
 
 	/* GGA satellite count */
@@ -148,13 +148,13 @@ bool NmeaParser::haveDate(void) {
 double NmeaParser::getAlti(void) {
 
   parserState_unset(HAVE_NEW_ALTI_VALUE);
-  return ((double)altitude)/NMEA_PARSER_GGA_ALTITUDE_PRECISION;
+  return ((double)altitude)/NMEA_GGA_ALTI_PRECISION;
 }
   
 double NmeaParser::getSpeed(void) {
 
   parserState_unset(HAVE_NEW_SPEED_VALUE);
-  return (((double)speed)/NMEA_PARSER_RMC_SPEED_PRECISION)*KNOTS_TO_KMH;
+  return (((double)speed)/NMEA_RMC_SPEED_PRECISION)*KNOTS_TO_KMH;
 }
 
 bool NmeaParser::isParsing(void) {

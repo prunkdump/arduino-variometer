@@ -22,6 +22,24 @@
 #define SERIAL_NMEA_H
 
 #include <Arduino.h>
+#include <VarioSettings.h>
+
+/*********************/
+/* the GPS sentences */
+/*********************/
+
+/* the nmea tags */
+#ifndef NMEA_TAG_SIZE
+#define NMEA_TAG_SIZE 5
+#endif
+
+#ifndef NMEA_RMC_TAG
+#define NMEA_RMC_TAG "GPRMC"
+#endif
+
+#ifndef NMEA_GGA_TAG
+#define NMEA_GGA_TAG "GPGGA"
+#endif
 
 /* the maximum silent time before the timestamp is updated */
 #define SERIAL_NMEA_MAX_SILENT_TIME 5
@@ -79,7 +97,6 @@
 /* serial nmea class */
 /*********************/
 
-#define SERIAL_NMEA_NEWLINE_LENGTH 2 
 #define SERIAL_NMEA_MODE ( _BV(UCSZ1) | _BV(UCSZ0) )
 #define SERIAL_NMEA_INT_MODE _BV(TXEN)  
 
@@ -91,6 +108,7 @@ class SerialNmea {
   void begin(unsigned long baud, bool rxEnable);
   bool lockRMC(void);
   bool lockGGA(void);
+  void addTagToRead(void); //by default the tag is not included, call this between lock and read
   uint8_t read(void);
   void lock(void); //lock rx completely to write manually
   void write(uint8_t c);

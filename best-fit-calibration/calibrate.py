@@ -45,6 +45,8 @@ NEWTON_GAUSS_THRESHOLD = 1.0e-10
 ############################
 # read experimental points #
 ############################
+haveMag = True
+
 gyroCal = np.zeros(12);
 accel = np.zeros( (0,3) )
 mag = np.zeros( (0,3) )
@@ -65,11 +67,16 @@ with open(recordFile, 'rt') as csvfile:
 
     # next lines are accel/mag data #
     for row in reader:
-        if( len(row) == 6 ):
+        if( len(row) != 3 and len(row) != 6 ):
+            print("Bad measure line !")
+        else:
             newAccel = np.array( row[0:3], dtype=np.float64 )
-            newMag = np.array( row[3:6], dtype=np.float64 )
             accel = np.vstack( (accel, newAccel) )
-            mag = np.vstack( (mag, newMag) )
+            if( len(row) == 3 ):
+                haveMag = False
+            else:
+                newMag = np.array( row[3:6], dtype=np.float64 )
+                mag = np.vstack( (mag, newMag) )
 
     
 ###########################
@@ -82,11 +89,12 @@ print(" ")
 accelASphere, accelAgerr, accelGSphere, accelGerr, accelBeta, accelErr = bestFitEllipsoid(MIN_NEWTON_GAUSS_STEP, MAX_NEWTON_GAUSS_STEP, NEWTON_GAUSS_THRESHOLD, accel)
 print(" ")
 
-print("###############################")
-print("#      Mag calibration        #")
-print("###############################")
-print(" ")
-magASphere, magAgerr, magGSphere, magGerr, magBeta, magErr = bestFitEllipsoid(MIN_NEWTON_GAUSS_STEP, MAX_NEWTON_GAUSS_STEP, NEWTON_GAUSS_THRESHOLD, mag)
+if haveMag:
+    print("###############################")
+    print("#      Mag calibration        #")
+    print("###############################")
+    print(" ")
+    magASphere, magAgerr, magGSphere, magGerr, magBeta, magErr = bestFitEllipsoid(MIN_NEWTON_GAUSS_STEP, MAX_NEWTON_GAUSS_STEP, NEWTON_GAUSS_THRESHOLD, mag)
 
 
 ####################
@@ -95,7 +103,8 @@ magASphere, magAgerr, magGSphere, magGerr, magBeta, magErr = bestFitEllipsoid(MI
 
 # use least square geometrical distance sphere #
 applySphereCorrection(accelGSphere, accel);
-applySphereCorrection(magGSphere, mag);
+if haveMag:
+    applySphereCorrection(magGSphere, mag);
 
 
 ###################################
@@ -143,11 +152,11 @@ def leastSquaresProjectionCoefficient(normalizedAccel, normalizedMag):
 
     return pcoeff, perr
 
-
-projCoeff, projErr = leastSquaresProjectionCoefficient(accel, mag)
-print("Mag projection coefficients =", projCoeff)
-print("Projection error =", projErr)
-print(" ")
+if haveMag:
+    projCoeff, projErr = leastSquaresProjectionCoefficient(accel, mag)
+    print("Mag projection coefficients =", projCoeff)
+    print("Projection error =", projErr)
+    print(" ")
 
 ##########################
 # search best multiplier #
@@ -163,15 +172,16 @@ for i in range(3):
 if( bestAccelMultiplier > 30 ) :
     bestAccelMultiplier = 30
 
-# mag multiplier #
-bestMagMultiplier = -1;
-for i in range(3):
-    magMultiplier = int(floor( log( float(2**15 - 1)/abs(magGSphere[i]), 2 ) ));
-    if (bestMagMultiplier < 0) or (magMultiplier < bestMagMultiplier) :
-        bestMagMultiplier = magMultiplier 
+if haveMag:
+    # mag multiplier #
+    bestMagMultiplier = -1;
+    for i in range(3):
+        magMultiplier = int(floor( log( float(2**15 - 1)/abs(magGSphere[i]), 2 ) ));
+        if (bestMagMultiplier < 0) or (magMultiplier < bestMagMultiplier) :
+            bestMagMultiplier = magMultiplier 
 
-if( bestMagMultiplier > 30 ) :
-    bestMagMultiplier = 30
+    if( bestMagMultiplier > 30 ) :
+        bestMagMultiplier = 30
 
     
 #############################
@@ -212,19 +222,20 @@ print("}")
 # accel scale #
 print("#define VERTACCEL_ACCEL_CAL_SCALE", int(np.rint(  float(2**(ACCEL_BASE_SCALE+VERTACCEL_CAL_SCALE_MULTIPLIER))/accelGSphere[3] - float(2**VERTACCEL_CAL_SCALE_MULTIPLIER) )) )
 
-# mag bias #
-sys.stdout.write("#define VERTACCEL_MAG_CAL_BIAS {")
-for i in range(3):
-    sys.stdout.write(str(int(np.rint(  magGSphere[i]*float(2**bestMagMultiplier)  ))))
-    if( i != 2 ):
-        sys.stdout.write(", ")
-print("}")
+if haveMag:
+    # mag bias #
+    sys.stdout.write("#define VERTACCEL_MAG_CAL_BIAS {")
+    for i in range(3):
+        sys.stdout.write(str(int(np.rint(  magGSphere[i]*float(2**bestMagMultiplier)  ))))
+        if( i != 2 ):
+            sys.stdout.write(", ")
+    print("}")
 
-# mag proj scale #
-print("#define VERTACCEL_MAG_CAL_PROJ_SCALE", int(np.rint(  float(2**(MAG_BASE_PROJ_SCALE+VERTACCEL_CAL_SCALE_MULTIPLIER))/(projCoeff[1]*magGSphere[3]) - float(2**VERTACCEL_CAL_SCALE_MULTIPLIER)  )) )
+    # mag proj scale #
+    print("#define VERTACCEL_MAG_CAL_PROJ_SCALE", int(np.rint(  float(2**(MAG_BASE_PROJ_SCALE+VERTACCEL_CAL_SCALE_MULTIPLIER))/(projCoeff[1]*magGSphere[3]) - float(2**VERTACCEL_CAL_SCALE_MULTIPLIER)  )) )
 
-# accel multiplier #
-print("#define VERTACCEL_ACCEL_CAL_BIAS_MULTIPLIER", bestAccelMultiplier)
+    # accel multiplier #
+    print("#define VERTACCEL_ACCEL_CAL_BIAS_MULTIPLIER", bestAccelMultiplier)
 
-# mag multiplier #
-print("#define VERTACCEL_MAG_CAL_BIAS_MULTIPLIER", bestMagMultiplier)
+    # mag multiplier #
+    print("#define VERTACCEL_MAG_CAL_BIAS_MULTIPLIER", bestMagMultiplier)
