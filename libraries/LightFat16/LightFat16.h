@@ -23,7 +23,7 @@
 #define LIGHT_FAT_16_H
 
 #include <Arduino.h>
-#include <SdCard.h>
+#include <LightSdCard.h>
 #include <VarioSettings.h>
 
 /***************************************/

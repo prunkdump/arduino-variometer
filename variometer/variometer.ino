@@ -33,7 +33,7 @@
 #include <avr/pgmspace.h>
 #include <varioscreen.h>
 #include <digit.h>
-#include <SdCard.h>
+#include <LightSdCard.h>
 #include <LightFat16.h>
 #include <SerialNmea.h>
 #include <NmeaParser.h>

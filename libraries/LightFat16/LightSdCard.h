@@ -20,8 +20,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SdCard_h
-#define SdCard_h
+#ifndef LIGHT_SD_CARD_H
+#define LIGHT_SD_CARD_H
  /**
   * \file
   * SdCard class
@@ -152,4 +152,4 @@ class SdCard  {
     return SPI.transfer(0xff);
   }
 };
-#endif  // SdCard_h
+#endif  //LIGHT_SD_CARD_H

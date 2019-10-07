@@ -21,7 +21,7 @@
  */
 
 #include <Fat16Config.h>
-#include <SdCard.h>
+#include <LightSdCard.h>
 #include <SPI.h>
 
 //------------------------------------------------------------------------------
