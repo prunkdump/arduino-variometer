@@ -20,7 +20,7 @@
  */
 
 #include <LightFat16.h>
-#include <SdCard.h>
+#include <LightSdCard.h>
 
 #define BLOCK_SIZE LF16_BLOCK_SIZE
 
