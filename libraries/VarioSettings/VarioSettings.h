@@ -175,6 +175,10 @@
 #define VERTACCEL_MAG_CAL_BIAS {0, 0, 0}
 #define VERTACCEL_MAG_CAL_PROJ_SCALE -16689
 
+/* enable if you want to use the MPU INT pin */
+//#define MPU_ENABLE_INT_PIN
+#define MPU_INT_PIN 2
+
 /* Set the pins used for Screen and SD card modules */
 #define VARIOSCREEN_DC_PIN 6
 #define VARIOSCREEN_CS_PIN 7

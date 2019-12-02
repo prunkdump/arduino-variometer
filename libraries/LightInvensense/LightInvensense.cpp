@@ -21,6 +21,7 @@
 #include <LightInvensense.h>
 
 #include <Arduino.h>
+#include <VarioSettings.h>
 
 #ifdef LIGHT_INVENSENSE_BUILD
 #include <inv_mpu.h>
@@ -592,9 +593,17 @@ void enableDMP(void) {
     BIT_FIFO_EN;
   intTW.writeBytes(INV_HW_ADDR, INV_REG_USER_CTRL, 1, &data);
   
-  /* reset STD FIFO */
+#ifdef MPU_ENABLE_INT_PIN
+  /* enable DMP FiFo INT pin */
+  data = BIT_DMP_INT_EN;
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_INT_ENABLE, 1, &data);
+#else
   data = 0;
   intTW.writeBytes(INV_HW_ADDR, INV_REG_INT_ENABLE, 1, &data);
+#endif //MPU_ENABLE_INT_PIN
+
+  /* reset STD FIFO */
+  data = 0;
   intTW.writeBytes(INV_HW_ADDR, INV_REG_FIFO_EN, 1, &data);
 }
 

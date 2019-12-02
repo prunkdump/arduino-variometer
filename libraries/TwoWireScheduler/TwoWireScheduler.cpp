@@ -21,6 +21,7 @@
 #include <TwoWireScheduler.h>
 
 #include <Arduino.h>
+#include <VarioSettings.h>
 
 #include <IntTW.h>
 #include <avr/pgmspace.h>
@@ -30,8 +31,6 @@
 #else
 #include <ms5611.h>
 #endif
-
-#include <VarioSettings.h>
 
 #ifdef HAVE_ACCELEROMETER
 #include <LightInvensense.h>
@@ -45,6 +44,9 @@
 #define HAVE_ACCEL 4
 #define MAG_RELEASED 5
 #define HAVE_MAG 6
+#ifdef MPU_ENABLE_INT_PIN
+#define MPU_FIFO_EMPTIED 7
+#endif //MPU_ENABLE_INT_PIN
 
 #define bset(bit) status |= (1 << bit)
 #define bunset(bit) status &= ~(1 << bit)
@@ -67,6 +69,9 @@ uint8_t volatile TWScheduler::ms5611Count = TWO_WIRE_SCHEDULER_MS5611_SHIFT;
 #ifdef HAVE_ACCELEROMETER
 uint8_t volatile TWScheduler::checkOutput[2];
 uint8_t volatile TWScheduler::imuOutput[LIGHT_INVENSENSE_COMPRESSED_DMP_PAQUET_LENGTH]; //imu dmp fifo output
+#ifdef MPU_ENABLE_INT_PIN
+uint8_t volatile TWScheduler::imuIntCount = 0;
+#endif //MPU_ENABLE_INT_PIN
 uint8_t volatile TWScheduler::imuCount = TWO_WIRE_SCHEDULER_IMU_SHIFT;
 #ifdef AK89xx_SECONDARY
 uint8_t volatile TWScheduler::magOutput[8];    //magnetometer output
@@ -255,9 +260,24 @@ static const uint8_t imuReadFifo[] PROGMEM = { INTTW_ACTION(INV_HW_ADDR, INTTW_W
 
 static void TWScheduler::imuInterrupt(void) {
 
+#ifdef MPU_ENABLE_INT_PIN
+  /* once the FiFo is emptied, we use interrupts */
+  if( bisset(MPU_FIFO_EMPTIED) ) {
+    if( imuIntCount > 0 ) {
+      /* we can read the fifo directly */
+      imuReadFifoData();
+    }
+  } else {
+    /* FiFo still not emptied */
+    /* check for measures     */
+    intTW.setRxBuffer(checkOutput);
+    intTW.start(imuReadFifoCount, sizeof(imuReadFifoCount), INTTW_USE_PROGMEM | INTTW_KEEP_BUS, imuCheckFifoCountCallBack);
+  }
+#else
   /* check FiFo for available measures */
   intTW.setRxBuffer(checkOutput);
   intTW.start(imuReadFifoCount, sizeof(imuReadFifoCount), INTTW_USE_PROGMEM | INTTW_KEEP_BUS, imuCheckFifoCountCallBack);
+#endif //MPU_ENABLE_INT_PIN
 }
 
 
@@ -268,12 +288,17 @@ static void TWScheduler::imuCheckFifoCountCallBack(void) {
 
   /* launch FiFo read if OK */
   int8_t fifoState = fastMPUHaveFIFOPaquet(fifoCount);
+#ifdef MPU_ENABLE_INT_PIN
+  /* check for empty fifo */
+  if( fifoState == 0 ) {
+    noInterrupts();
+    bset(MPU_FIFO_EMPTIED);
+    imuIntCount = 0; //start using the interrupt
+    interrupts();
+  }
+#endif //MPU_ENABLE_INT_PIN
   if( fifoState > 0 ) {
-
-    /* we need to lock */
-    intTW.setRxBuffer(imuOutput);
-    bunset(ACCEL_RELEASED);
-    intTW.start(imuReadFifo, sizeof(imuReadFifo), INTTW_USE_PROGMEM, imuHaveFifoDataCallback);
+    imuReadFifoData();
   } else {
 
     /* else stop TW communication */
@@ -281,11 +306,33 @@ static void TWScheduler::imuCheckFifoCountCallBack(void) {
   }
 }
 
+static void TWScheduler::imuReadFifoData(void) {
+
+  /* we need to lock */
+  intTW.setRxBuffer(imuOutput);
+  bunset(ACCEL_RELEASED);
+  intTW.start(imuReadFifo, sizeof(imuReadFifo), INTTW_USE_PROGMEM, imuHaveFifoDataCallback);
+}
+
 static void TWScheduler::imuHaveFifoDataCallback(void) {
 
   /* done ! */
   status |= (1 << HAVE_ACCEL) | (1 << ACCEL_RELEASED);
+
+#ifdef MPU_ENABLE_INT_PIN
+  /* decrease FiFo counter */
+  noInterrupts();
+  imuIntCount--;
+  interrupts();
+#endif
 }
+
+#ifdef MPU_ENABLE_INT_PIN
+static void TWScheduler::imuIntPinInterrupt(void) {
+
+  imuIntCount++;
+}
+#endif
 
 bool TWScheduler::haveAccel(void) {
 
@@ -453,6 +500,12 @@ static void TWScheduler::init(void) {
 #endif
 #ifdef HAVE_ACCELEROMETER
   vertaccel.init();
+#endif
+
+#ifdef MPU_ENABLE_INT_PIN
+  /* init INT pin */
+  pinMode(MPU_INT_PIN, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(MPU_INT_PIN), imuIntPinInterrupt,  FALLING);
 #endif
 
   /* launch timer */
