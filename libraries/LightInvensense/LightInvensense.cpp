@@ -595,6 +595,8 @@ void enableDMP(void) {
   
 #ifdef MPU_ENABLE_INT_PIN
   /* enable DMP FiFo INT pin */
+  data = BIT_ACTL;
+  intTW.writeBytes(INV_HW_ADDR, INV_REG_INT_PIN_CFG, 1, &data);
   data = BIT_DMP_INT_EN;
   intTW.writeBytes(INV_HW_ADDR, INV_REG_INT_ENABLE, 1, &data);
 #else
