@@ -40,6 +40,10 @@ void Ms5611::readHardwareCalibration(uint16_t* cal) {
 
 void Ms5611::init(void) {
 
+  /* reset */
+  intTW.writeBytes(address, MS5611_CMD_RESET, 0, NULL);
+  delay(MS5611_RESET_DELAY);
+
 #ifndef MS5611_STATIC_CALIBRATION
   readHardwareCalibration(calibration.coeffs); 
 #endif
