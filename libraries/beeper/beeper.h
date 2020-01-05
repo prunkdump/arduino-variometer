@@ -46,6 +46,7 @@
 /* climbing beep sound freq computation : BEEP_FREQ_COEFF * velocity + BEEP_BASE_FREQ */
 #define CLIMBING_BEEP_BASE_FREQ 386.0
 #define CLIMBING_BEEP_FREQ_COEFF 141.0
+#define CLIMBING_BEEP_FREQ_UPDATE 1  // update climbing beep frequency(pitch) after X milliseconds. 0 = monotonous beep, do not update frequency while beep is playing. 1 = pitch changes smoothly every 1ms. more than 1 = pitch changed in steps every X milliseconds.
 
 /* climbing beep velocity filter */
 /* filteredVelocity = beepVelocity * BEEP_VELOCITY_FILTER_COEFF + BEEP_VELOCITY_FILTER_BASE */
@@ -141,6 +142,7 @@ class beeper {
   double beepClimbingThreshold;
   uint8_t volume;
   unsigned long beepStartTime;
+  unsigned long beepFreqUpdatePosition;
   double beepVelocity;
   double beepFreq;
   double beepPaternBasePosition;
