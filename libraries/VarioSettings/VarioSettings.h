@@ -66,6 +66,10 @@
 //#define VARIOMETER_ENABLE_NEAR_CLIMBING_ALARM
 //#define VARIOMETER_ENABLE_NEAR_CLIMBING_BEEP
 
+// Reminder beeps on low battery
+#define HAVE_LOW_BATTERY_BEEP
+#define BATTERY_BEEPS_INTERVAL 30000 // 30000 for prod
+#define LOW_BATT_BEEP_THRESOLD 3350 // low voltage thresold in mV
 
 /*******************/
 /* Screen behavior */
@@ -147,7 +151,8 @@
 #define HAVE_GPS
 #define HAVE_SDCARD
 #define HAVE_BLUETOOTH
-#define HAVE_VOLTAGE_DIVISOR
+//#define HAVE_VOLTAGE_DIVISOR
+#define HAVE_INTERNAL_VOLTMETER // For 5V chips powered straight from battery
 
 /* ms5611 parameters */
 /* You can set the calibration coefficients if known */
