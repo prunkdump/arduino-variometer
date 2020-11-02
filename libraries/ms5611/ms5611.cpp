@@ -149,7 +149,7 @@ void Ms5611::computeMeasures(uint8_t* d1Buff, uint8_t* d2Buff, double& temperatu
 static double Ms5611::computeAltitude(double pressure) {
   
   double alti;
-  alti = pow((pressure/(MS5611_BASE_SEA_PRESSURE)), 0.1902949572); //0.1902949572 = 1/5.255
+  alti = pow((pressure/(MS5611_BASE_SEA_PRESSURE)), 0.1902225604); //0.1902225604 = 1/5.257
   alti = (1-alti)*(288.15/0.0065);
   return alti;
 }
